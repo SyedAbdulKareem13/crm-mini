@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { ArrowRight, Filter, Plus, Search } from "lucide-react";
+import { ArrowRight, Filter, Pencil, Plus, Search } from "lucide-react";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,11 +28,13 @@ type Lead = {
   leadNumber: string;
   name: string;
   company: string;
+  contactPerson: string | null;
   email: string | null;
   mobile: string | null;
   source: string;
   industry: string | null;
   status: string;
+  notes: string | null;
   expectedRevenue: string | number | null;
   createdAt: string;
   owner: { name: string | null; image: string | null } | null;
@@ -53,6 +55,7 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
   const [openDialog, setOpenDialog] = useState(false);
+  const [editLead, setEditLead] = useState<Lead | null>(null);
 
   const filtered = useMemo(() => {
     const term = q.trim().toLowerCase();
@@ -186,13 +189,18 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
                     {formatRelativeTime(lead.createdAt)}
                   </TableCell>
                   <TableCell>
-                    {lead.status !== "CONVERTED" ? (
-                      <Button size="sm" variant="ghost" onClick={() => convert(lead.id)}>
-                        Convert <ArrowRight className="h-3.5 w-3.5" />
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="ghost" onClick={() => setEditLead(lead)} aria-label="Edit lead">
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                    ) : (
-                      <Badge variant="success">Converted</Badge>
-                    )}
+                      {lead.status !== "CONVERTED" ? (
+                        <Button size="sm" variant="ghost" onClick={() => convert(lead.id)}>
+                          Convert <ArrowRight className="h-3.5 w-3.5" />
+                        </Button>
+                      ) : (
+                        <Badge variant="success">Converted</Badge>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -206,6 +214,17 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
         onOpenChange={setOpenDialog}
         onCreated={(lead) => setLeads((prev) => [lead, ...prev])}
       />
+      {editLead ? (
+        <LeadDialog
+          open={!!editLead}
+          onOpenChange={(v) => !v && setEditLead(null)}
+          lead={editLead}
+          onSaved={(updated) => {
+            setLeads((prev) => prev.map((l) => (l.id === updated.id ? { ...l, ...updated } : l)));
+            setEditLead(null);
+          }}
+        />
+      ) : null}
     </>
   );
 }

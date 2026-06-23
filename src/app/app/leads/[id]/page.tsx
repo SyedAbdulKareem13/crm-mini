@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ConvertLeadButton } from "./convert-button";
+import { LeadEditButton } from "@/components/leads/lead-edit-button";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +27,20 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   });
   if (!lead) notFound();
 
+  const leadForEdit = {
+    id: lead.id,
+    name: lead.name,
+    company: lead.company,
+    contactPerson: lead.contactPerson,
+    email: lead.email,
+    mobile: lead.mobile,
+    source: lead.source,
+    industry: lead.industry,
+    status: lead.status,
+    notes: lead.notes,
+    expectedRevenue: lead.expectedRevenue != null ? Number(lead.expectedRevenue) : null,
+  };
+
   return (
     <div>
       <Link href="/app/leads" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -44,7 +59,10 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">{lead.company}</div>
               </div>
-              <ConvertLeadButton leadId={lead.id} disabled={!!lead.convertedOpportunityId} />
+              <div className="flex gap-2">
+                <LeadEditButton lead={leadForEdit} />
+                <ConvertLeadButton leadId={lead.id} disabled={!!lead.convertedOpportunityId} />
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
               <Info icon={<User className="h-4 w-4" />} label="Owner" value={lead.owner?.name ?? "Unassigned"} />

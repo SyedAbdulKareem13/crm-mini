@@ -1,7 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { Plus, Kanban as KanbanIcon } from "lucide-react";
+import { Kanban as KanbanIcon } from "lucide-react";
 import { auth } from "@/lib/auth";
+import { OpportunityCreate } from "@/components/opportunities/opportunity-create";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
@@ -32,6 +34,11 @@ export default async function OpportunitiesPage() {
     },
     take: 200,
   });
+  const customers = await prisma.customer.findMany({
+    where: { organizationId: session.user.organizationId },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true },
+  });
   const stageMap = new Map(OPP_STAGES.map((s) => [s.value, s.label]));
 
   return (
@@ -46,11 +53,9 @@ export default async function OpportunitiesPage() {
                 <KanbanIcon className="h-4 w-4" /> Pipeline view
               </Button>
             </Link>
-            <Link href="/app/opportunities?new=1">
-              <Button variant="gradient">
-                <Plus className="h-4 w-4" /> New
-              </Button>
-            </Link>
+            <Suspense fallback={null}>
+              <OpportunityCreate customers={customers} />
+            </Suspense>
           </div>
         }
       />
