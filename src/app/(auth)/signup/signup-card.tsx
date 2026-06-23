@@ -109,7 +109,7 @@ export function SignupCard() {
       </form>
 
       <p className="mt-6 text-center text-sm text-muted-foreground">
-        Already on Nova?{" "}
+        Already on Manzil One?{" "}
         <Link href="/login" className="font-medium text-foreground hover:underline">
           Sign in
         </Link>

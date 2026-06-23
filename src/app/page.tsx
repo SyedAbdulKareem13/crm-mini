@@ -9,6 +9,7 @@ import {
   Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/brand/logo";
 
 const features = [
   { icon: Kanban, title: "Pipeline Kanban", desc: "Drag-and-drop deals across 11 stages with live valuation, aging and probability." },
@@ -26,13 +27,8 @@ export default function LandingPage() {
       <div className="pointer-events-none absolute inset-0 -z-10 grid-bg opacity-40" />
 
       <header className="container flex items-center justify-between py-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-luxury text-white shadow-glow">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <span className="text-lg">
-            Nova <span className="text-gradient">CRM</span>
-          </span>
+        <Link href="/">
+          <Logo size="md" />
         </Link>
         <nav className="hidden gap-8 text-sm text-muted-foreground md:flex">
           <a href="#features" className="hover:text-foreground">Product</a>
@@ -50,12 +46,18 @@ export default function LandingPage() {
           <Sparkles className="h-3 w-3 text-primary" />
           A $100M-grade revenue platform — built for consulting & staffing
         </div>
+        <p
+          dir="rtl"
+          className="font-urdu mx-auto mt-8 max-w-3xl text-xl leading-[2] text-foreground/90 md:text-2xl"
+        >
+          منزل ون کے ساتھ، آپ کے ہر سودے کا سفر بنے آسان — اور آپ کی ٹیم پہنچے کامیابی کی منزل تک۔
+        </p>
         <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-semibold leading-[1.05] tracking-tight md:text-7xl">
           The revenue platform that <span className="text-gradient">runs your entire deal lifecycle.</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Leads, opportunities, RFQs, quotations, rate cards, approvals, forecasts —
-          one luxurious workspace. Built on Next.js, Postgres & Prisma.
+          From lead to closed-won — <span className="font-urdu" dir="rtl">لیڈ سے کامیابی کی منزل تک</span>.
+          Leads, opportunities, RFQs, quotations, rate cards, approvals and forecasts in one luxurious workspace.
         </p>
         <div className="mt-8 flex items-center justify-center gap-3">
           <Link href="/signup">
@@ -85,7 +87,7 @@ export default function LandingPage() {
 
       <section id="cta" className="container pb-24">
         <div className="luxury-card relative overflow-hidden p-10 text-center">
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-aurora opacity-20 animate-aurora" />
+          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-aurora opacity-15" />
           <h2 className="text-3xl font-semibold tracking-tight md:text-4xl">
             Ready to ship a premium revenue motion?
           </h2>
@@ -104,7 +106,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="container py-10 text-center text-sm text-muted-foreground">
-        © {new Date().getFullYear()} Nova CRM — Premium revenue platform.
+        © {new Date().getFullYear()} Manzil One · منزل ون — Premium revenue platform.
       </footer>
     </div>
   );

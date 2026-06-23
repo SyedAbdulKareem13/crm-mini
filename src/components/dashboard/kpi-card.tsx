@@ -1,6 +1,3 @@
-"use client";
-
-import { motion } from "framer-motion";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { Icon } from "@/components/app/icon";
 import { cn, formatCompactCurrency } from "@/lib/utils";
@@ -30,17 +27,11 @@ export function KpiCard({
       : "from-primary/15 to-primary/0 text-primary ring-primary/20";
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="luxury-card relative overflow-hidden p-5"
-    >
+    <div className="luxury-card relative overflow-hidden p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
       <div
         className={cn(
-          "pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br",
-          toneClasses.split(" ").slice(0, 2).join(" "),
-          "blur-2xl opacity-70"
+          "pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br opacity-60",
+          toneClasses.split(" ").slice(0, 2).join(" ")
         )}
       />
       <div className="flex items-center justify-between">
@@ -72,6 +63,6 @@ export function KpiCard({
           <span className="text-muted-foreground">vs last month</span>
         </div>
       ) : null}
-    </motion.div>
+    </div>
   );
 }

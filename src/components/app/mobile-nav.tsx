@@ -16,7 +16,7 @@ const MOBILE_ITEMS = [
 export function MobileNav() {
   const pathname = usePathname();
   return (
-    <nav className="fixed bottom-3 left-1/2 z-40 flex w-[94%] max-w-md -translate-x-1/2 items-center justify-around rounded-2xl border bg-card/80 p-1.5 backdrop-blur-xl shadow-luxury lg:hidden">
+    <nav className="fixed bottom-3 left-1/2 z-40 flex w-[94%] max-w-md -translate-x-1/2 items-center justify-around rounded-2xl border bg-card/95 supports-[backdrop-filter]:bg-card/85 p-1.5 shadow-md lg:hidden">
       {MOBILE_ITEMS.map((item) => {
         const active =
           item.href === "/app" ? pathname === "/app" : pathname.startsWith(item.href);

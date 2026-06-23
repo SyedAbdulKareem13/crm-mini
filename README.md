@@ -1,4 +1,4 @@
-# Nova CRM — Premium Modern CRM & Quotation Management Platform
+# Manzil One — Premium Modern CRM & Quotation Management Platform
 
 A production-ready, fully responsive SaaS CRM built for **consulting, staffing, manpower services, software licensing and project-based businesses** — designed to feel like a $100M-grade product.
 

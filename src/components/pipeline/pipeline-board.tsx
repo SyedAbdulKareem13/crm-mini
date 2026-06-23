@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { toast } from "sonner";
 import { GripVertical } from "lucide-react";
@@ -47,8 +47,7 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
   }
 
   return (
-    <LayoutGroup>
-      <div className="flex gap-3 overflow-x-auto pb-6 pt-1 scrollbar-thin">
+    <div className="flex gap-3 overflow-x-auto pb-6 pt-1 scrollbar-thin">
         {OPP_STAGES.map((stage) => {
           const items = opps.filter((o) => o.stage === stage.value);
           const totalValue = items.reduce((a, b) => a + Number(b.expectedRevenue), 0);
@@ -57,12 +56,12 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
             <div
               key={stage.value}
               className={cn(
-                "flex w-[300px] shrink-0 flex-col rounded-2xl border bg-card/60 backdrop-blur transition-all",
+                "flex w-[300px] shrink-0 flex-col rounded-2xl border bg-card/70 transition-colors",
                 isHover && "ring-2 ring-primary/60"
               )}
               onDragOver={(e) => {
                 e.preventDefault();
-                setHoverStage(stage.value);
+                setHoverStage((s) => (s === stage.value ? s : stage.value));
               }}
               onDragLeave={() => setHoverStage((s) => (s === stage.value ? null : s))}
               onDrop={() => {
@@ -102,17 +101,15 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
                     return (
                       <motion.div
                         key={o.id}
-                        layout
-                        layoutId={o.id}
+                        layout="position"
                         initial={{ opacity: 0, y: 8 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -8 }}
-                        whileHover={{ y: -2 }}
+                        exit={{ opacity: 0 }}
                         draggable
                         onDragStart={() => setDragging(o.id)}
                         onDragEnd={() => setDragging(null)}
                         className={cn(
-                          "group cursor-grab rounded-xl border bg-background/80 p-3 shadow-sm transition-all hover:shadow-luxury",
+                          "group cursor-grab rounded-xl border bg-background/80 p-3 shadow-sm transition-transform duration-200 will-change-transform hover:-translate-y-0.5 hover:shadow-md",
                           dragging === o.id && "opacity-50"
                         )}
                       >
@@ -166,7 +163,6 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
             </div>
           );
         })}
-      </div>
-    </LayoutGroup>
+    </div>
   );
 }

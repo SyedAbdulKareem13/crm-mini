@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { LoginCard } from "./login-card";
 
-export const metadata = { title: "Sign in — Nova CRM" };
+export const metadata = { title: "Sign in — Manzil One" };
 
 export default function LoginPage() {
   return (

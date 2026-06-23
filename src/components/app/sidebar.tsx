@@ -6,23 +6,15 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { Icon } from "@/components/app/icon";
-import { Sparkles } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 
 export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-card/40 backdrop-blur-xl lg:flex lg:flex-col">
-      <Link
-        href="/app"
-        className="flex h-16 items-center gap-2 border-b px-6 font-semibold tracking-tight"
-      >
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-luxury text-white shadow-glow">
-          <Sparkles className="h-4 w-4" />
-        </span>
-        <span>
-          Nova <span className="text-gradient">CRM</span>
-        </span>
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-card/95 supports-[backdrop-filter]:bg-card/80 lg:flex lg:flex-col">
+      <Link href="/app" className="flex h-16 items-center border-b px-5">
+        <Logo />
       </Link>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">

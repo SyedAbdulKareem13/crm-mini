@@ -13,7 +13,7 @@ const buttonVariants = cva(
         default:
           "bg-primary text-primary-foreground shadow-sm hover:shadow-md hover:bg-primary/90",
         gradient:
-          "bg-gradient-to-r from-[hsl(var(--chart-1))] via-[hsl(var(--chart-2))] to-[hsl(var(--chart-5))] text-white shadow-lg hover:shadow-glow",
+          "btn-gradient text-white shadow-[0_8px_20px_-8px_hsl(var(--primary)/0.55)] hover:shadow-[0_10px_26px_-8px_hsl(var(--primary)/0.65)]",
         destructive:
           "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
         outline:

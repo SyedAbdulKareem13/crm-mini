@@ -107,9 +107,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger }) {
+      // Hit the DB only at sign-in (or an explicit session update) — never on
+      // every request. role/orgId then ride in the signed JWT at zero cost.
       if (user?.id) token.id = user.id;
-      if (token.id) {
+      if ((user?.id || trigger === "update") && token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { role: true, organizationId: true },

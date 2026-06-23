@@ -1,22 +1,15 @@
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Logo } from "@/components/brand/logo";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative min-h-screen overflow-hidden bg-background">
-      {/* aurora background */}
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-mesh" />
-      <div className="pointer-events-none absolute -top-32 -left-32 -z-10 h-[480px] w-[480px] rounded-full bg-gradient-luxury opacity-30 blur-3xl" />
-      <div className="pointer-events-none absolute -bottom-32 -right-32 -z-10 h-[480px] w-[480px] rounded-full bg-gradient-aurora opacity-25 blur-3xl animate-aurora" />
+      {/* Soft static brand glow — no animation/blur loop, keeps scrolling buttery */}
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-mesh opacity-70" />
 
       <header className="container flex items-center justify-between py-6">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-          <span className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-luxury text-white shadow-glow">
-            <Sparkles className="h-4 w-4" />
-          </span>
-          <span className="text-lg">
-            Nova <span className="text-gradient">CRM</span>
-          </span>
+        <Link href="/">
+          <Logo size="md" />
         </Link>
         <Link
           href="/login"

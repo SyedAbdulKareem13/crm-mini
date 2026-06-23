@@ -4,14 +4,14 @@ import bcrypt from "bcryptjs";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Seeding Nova CRM…");
+  console.log("🌱 Seeding Manzil One…");
 
   // ----- Organization -----
   const org = await prisma.organization.upsert({
     where: { slug: "nova-tech" },
     update: {},
     create: {
-      name: "Nova Technologies",
+      name: "Manzil One Technologies",
       slug: "nova-tech",
       industry: "Consulting & Software Services",
       country: "India",

@@ -46,6 +46,11 @@
     --chart-5: 316 73% 52%;
 
     --radius: 0.85rem;
+
+    /* Simple, premium 2-stop brand gradient (violet → indigo) */
+    --brand-from: 252 90% 64%;
+    --brand-to: 234 89% 60%;
+    --brand-gradient: linear-gradient(135deg, hsl(var(--brand-from)) 0%, hsl(var(--brand-to)) 100%);
   }
 
   .dark {
@@ -86,6 +91,8 @@
     --chart-3: 173 80% 55%;
     --chart-4: 38 95% 65%;
     --chart-5: 316 85% 70%;
+    --brand-from: 252 95% 70%;
+    --brand-to: 234 92% 66%;
   }
 }
 
@@ -100,14 +107,44 @@
   ::selection {
     background: hsl(var(--primary) / 0.25);
   }
+  /* Respect OS "reduce motion" — neutralizes infinite shimmer/float/aurora etc. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
 }
 
 @layer components {
+  /* Simple premium gradient used by primary buttons + logo mark */
+  .btn-gradient {
+    background-image: var(--brand-gradient);
+    background-size: 100% 100%;
+  }
+  .btn-gradient:hover {
+    filter: brightness(1.06) saturate(1.04);
+  }
+  .logo-mark {
+    background-image: var(--brand-gradient);
+  }
+  .font-urdu {
+    font-family: var(--font-urdu), "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif;
+  }
+  /* Solid translucent surfaces — no live backdrop-filter (keeps scrolling buttery).
+     Use .glass-blur only on small, non-scrolling overlays. */
   .glass {
-    @apply bg-white/60 dark:bg-white/[0.04] backdrop-blur-xl border border-white/30 dark:border-white/[0.06];
+    @apply bg-white/80 dark:bg-white/[0.05] border border-black/[0.06] dark:border-white/[0.06];
   }
   .glass-strong {
-    @apply bg-white/80 dark:bg-white/[0.06] backdrop-blur-2xl border border-white/40 dark:border-white/[0.08] shadow-glass;
+    @apply bg-white/90 dark:bg-white/[0.07] border border-black/[0.06] dark:border-white/[0.08] shadow-glass;
+  }
+  .glass-blur {
+    @apply backdrop-blur-md;
   }
   .luxury-card {
     @apply rounded-2xl glass shadow-luxury;
