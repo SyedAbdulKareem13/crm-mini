@@ -111,6 +111,15 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Hit the DB only at sign-in (or an explicit session update) — never on
       // every request. role/orgId then ride in the signed JWT at zero cost.
       if (user?.id) token.id = user.id;
+      // Never let a base64/data-URL avatar into the JWT — it bloats the auth
+      // cookie (chunking, huge per-request payload). The avatar is read from
+      // the DB where it's needed (topbar/settings) instead.
+      if (
+        typeof token.picture === "string" &&
+        (token.picture.startsWith("data:") || token.picture.length > 300)
+      ) {
+        token.picture = undefined;
+      }
       if ((user?.id || trigger === "update") && token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
