@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { OPP_STAGES } from "@/lib/constants";
 
 type Customer = { id: string; name: string };
@@ -173,14 +174,14 @@ export function OpportunityDialog({
               />
             </div>
             <div className="sm:col-span-2">
-              <Label htmlFor="expectedCloseDate">Expected close date</Label>
-              <Input
-                id="expectedCloseDate"
-                name="expectedCloseDate"
-                type="date"
-                defaultValue={opportunity?.expectedCloseDate ? opportunity.expectedCloseDate.slice(0, 10) : ""}
-                className="mt-1.5"
-              />
+              <Label>Expected close date</Label>
+              <div className="mt-1.5">
+                <DatePicker
+                  name="expectedCloseDate"
+                  defaultValue={opportunity?.expectedCloseDate ? opportunity.expectedCloseDate.slice(0, 10) : ""}
+                  placeholder="Select close date"
+                />
+              </div>
             </div>
             <div className="sm:col-span-2">
               <Label htmlFor="notes">Notes</Label>

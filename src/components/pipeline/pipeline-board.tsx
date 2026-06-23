@@ -79,7 +79,7 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
   }
 
   return (
-    <div className="flex gap-4 overflow-x-auto pb-6 pt-1 scrollbar-thin">
+    <div className="flex h-[calc(100dvh-13rem)] items-stretch gap-4 overflow-x-auto pb-3 pt-1 scrollbar-thin">
       {OPP_STAGES.map((stage) => {
         const color = STAGE_COLOR[stage.value] ?? FALLBACK_COLOR;
         const items = opps.filter((o) => o.stage === stage.value);
@@ -90,7 +90,7 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
           <div
             key={stage.value}
             className={cn(
-              "flex w-[304px] shrink-0 flex-col overflow-hidden rounded-2xl border bg-card/70 shadow-sm transition-all duration-200",
+              "flex h-full w-[304px] shrink-0 flex-col overflow-hidden rounded-2xl border bg-card/70 shadow-sm transition-all duration-200",
               isHover && "shadow-md"
             )}
             style={
@@ -160,7 +160,7 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
             </div>
 
             {/* Cards */}
-            <div className="flex min-h-[140px] flex-1 flex-col gap-2 p-2.5">
+            <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-2.5 scrollbar-thin">
               <AnimatePresence>
                 {items.map((o) => {
                   const ageDays = Math.max(

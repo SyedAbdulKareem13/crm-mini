@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 
 type LineItem = {
   lineType: string;
@@ -132,7 +133,7 @@ export function RfqForm({
           </div>
           <div>
             <Label>Due date</Label>
-            <Input className="mt-1.5" type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
+            <DatePicker className="mt-1.5" value={dueDate} onChange={setDueDate} placeholder="Select due date" />
           </div>
           <div>
             <Label>Currency</Label>

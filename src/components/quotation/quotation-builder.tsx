@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -205,7 +206,7 @@ export function QuotationBuilder({
             </div>
             <div>
               <Label>Valid until</Label>
-              <Input className="mt-1.5" type="date" value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
+              <DatePicker className="mt-1.5" value={validUntil} onChange={setValidUntil} placeholder="Select validity date" />
             </div>
             <div className="sm:col-span-2">
               <Label>Notes</Label>

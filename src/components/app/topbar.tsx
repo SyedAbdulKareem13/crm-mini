@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommandPalette } from "@/components/app/command-palette";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,23 @@ export function Topbar({
   const { theme, setTheme } = useTheme();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const router = useRouter();
+
+  // Live avatar/name — updated instantly when the profile is saved in Settings.
+  const [image, setImage] = useState<string | null>(user.image ?? null);
+  const [name, setName] = useState<string | null>(user.name ?? null);
+  useEffect(() => {
+    setImage(user.image ?? null);
+    setName(user.name ?? null);
+  }, [user.image, user.name]);
+  useEffect(() => {
+    function onProfile(e: Event) {
+      const detail = (e as CustomEvent).detail as { image?: string | null; name?: string | null };
+      if (detail?.image !== undefined) setImage(detail.image ?? null);
+      if (detail?.name) setName(detail.name);
+    }
+    window.addEventListener("manzil:profile", onProfile);
+    return () => window.removeEventListener("manzil:profile", onProfile);
+  }, []);
 
   return (
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/90 supports-[backdrop-filter]:bg-background/80 px-4 lg:px-8">
@@ -56,11 +73,11 @@ export function Topbar({
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-2 rounded-xl px-1.5 py-1 hover:bg-accent/60">
             <Avatar className="h-8 w-8">
-              {user.image ? <AvatarImage src={user.image} alt={user.name ?? ""} /> : null}
-              <AvatarFallback>{initials(user.name ?? user.email ?? "?")}</AvatarFallback>
+              {image ? <AvatarImage src={image} alt={name ?? ""} /> : null}
+              <AvatarFallback>{initials(name ?? user.email ?? "?")}</AvatarFallback>
             </Avatar>
             <div className="hidden text-left text-sm md:block">
-              <div className="font-medium leading-tight">{user.name ?? "User"}</div>
+              <div className="font-medium leading-tight">{name ?? "User"}</div>
               <div className="text-xs text-muted-foreground leading-tight">{user.email}</div>
             </div>
           </DropdownMenuTrigger>

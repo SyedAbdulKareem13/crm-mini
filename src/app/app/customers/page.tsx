@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
-import { Building2, Plus } from "lucide-react";
+import { Building2 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
-import { Button } from "@/components/ui/button";
+import { CustomerCreate } from "@/components/customers/customer-create";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -26,7 +27,9 @@ export default async function CustomersPage() {
         title="Customers"
         description="Master records, contacts, billing details and engagement summary."
         actions={
-          <Button variant="gradient"><Plus className="h-4 w-4" /> New customer</Button>
+          <Suspense fallback={null}>
+            <CustomerCreate />
+          </Suspense>
         }
       />
       {customers.length === 0 ? (

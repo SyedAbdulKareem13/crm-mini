@@ -83,6 +83,14 @@ export function ProfileCard({ user }: { user: ProfileUser }) {
         throw new Error(data?.error ?? "Failed to save profile");
       }
       toast.success("Profile updated.");
+      // Update the topbar avatar/name instantly (no reload needed).
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("manzil:profile", {
+            detail: { image: image ?? null, name: name.trim() || null },
+          })
+        );
+      }
       router.refresh();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to save profile");
