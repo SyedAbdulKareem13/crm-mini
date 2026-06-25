@@ -583,6 +583,7 @@ class HeroEngine {
 
   confettiBurst(x: number, y: number, big?: boolean) {
     const layer = this.refs.confetti;
+    if (!layer) return;
     const colors = [this.o.accent, "#10B981", "#F5A524", "#6366F1", "#06B6D4", "#FF8A65", "#FFFFFF"];
     const m = this.o.motion;
     let N = m === "Calm" ? 46 : m === "Showcase" ? 150 : 92;
@@ -608,6 +609,7 @@ class HeroEngine {
 
   emitValue(x: number, y: number, v: number) {
     const layer = this.refs.confetti;
+    if (!layer) return;
     const chip = document.createElement("div");
     chip.textContent = "+₹" + v.toFixed(2) + " Cr";
     chip.style.cssText = "position:fixed;left:" + x + "px;top:" + y + "px;z-index:760;transform:translate(-50%,-50%);font:700 14px/1 'DM Sans';color:#fff;background:linear-gradient(180deg,var(--primary),var(--primary-deep));padding:7px 13px;border-radius:999px;box-shadow:0 12px 26px -8px var(--glow), inset 0 0 0 1px rgba(255,255,255,.25);pointer-events:none;white-space:nowrap;";
@@ -695,7 +697,9 @@ function computeRootStyle(theme: Theme, acc: string): React.CSSProperties {
   const vars = theme === "dark" ? { ...base, ...dark } : base;
   return {
     ...vars,
-    position: "relative", width: "100%", height: "100vh", minHeight: "680px", overflow: "hidden",
+    // height comes from the .mzh-root class (100dvh with a 100vh fallback) so
+    // the mobile address bar does not push the hero past the viewport.
+    position: "relative", width: "100%", minHeight: "680px", overflow: "hidden",
     background: "var(--bg)", color: "var(--ink)", fontFamily: "'DM Sans', system-ui, sans-serif",
     transition: "background .4s ease",
   } as React.CSSProperties;
@@ -707,6 +711,9 @@ const HERO_CSS = `
   70%  { opacity: 1; }
   100% { transform: translate(var(--dx), calc(var(--dy) + 340px)) rotate(var(--rot)) scale(var(--s)); opacity: 0; }
 }
+.mzh-root{height:100vh;}
+@supports (height:100dvh){.mzh-root{height:100dvh;}}
+.mzh-link:focus-visible,.mzh-signin:focus-visible,.mzh-primary:focus-visible,.mzh-ghost:focus-visible,.mzh-nav-cta:focus-visible,.mzh-credit:focus-visible,.mzh-toggle:focus-visible{outline:2px solid var(--primary);outline-offset:2px;border-radius:10px}
 .mzh-link{transition:color .2s}
 .mzh-link:hover{color:var(--ink)}
 .mzh-signin{transition:border-color .2s, transform .1s}
@@ -819,15 +826,15 @@ export function HeroV2({
   const eng = () => engineRef.current;
 
   return (
-    <div ref={rootRef} data-screen-label="Manzil One — Hero" style={rootStyle}>
+    <div ref={rootRef} data-screen-label="Manzil One — Hero" className="mzh-root" style={rootStyle}>
       <style>{HERO_CSS}</style>
 
       <canvas ref={canvasRef} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", zIndex: 1, pointerEvents: "none", display: "block" }} />
 
       <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", backgroundImage: "radial-gradient(circle, var(--dot) 1px, transparent 1px)", backgroundSize: "24px 24px", WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 180px, #000 calc(100% - 60px), transparent 100%)", maskImage: "linear-gradient(to bottom, transparent 0, #000 180px, #000 calc(100% - 60px), transparent 100%)" }} />
 
-      <div data-px="0.6" style={{ position: "absolute", top: "-160px", right: "-120px", width: "720px", height: "720px", zIndex: 1, pointerEvents: "none", background: "radial-gradient(circle at center, var(--glow), transparent 66%)" }} />
-      <div data-px="0.35" style={{ position: "absolute", bottom: "-220px", left: "-160px", width: "620px", height: "620px", zIndex: 1, pointerEvents: "none", background: "radial-gradient(circle at center, var(--glow-2), transparent 68%)" }} />
+      <div data-px="0.6" style={{ position: "absolute", top: "-160px", right: "-120px", width: "720px", height: "720px", zIndex: 1, pointerEvents: "none", willChange: "transform", background: "radial-gradient(circle at center, var(--glow), transparent 66%)" }} />
+      <div data-px="0.35" style={{ position: "absolute", bottom: "-220px", left: "-160px", width: "620px", height: "620px", zIndex: 1, pointerEvents: "none", willChange: "transform", background: "radial-gradient(circle at center, var(--glow-2), transparent 68%)" }} />
 
       <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none", background: "linear-gradient(to right, var(--bg) 0%, var(--bg) 24%, color-mix(in oklab, var(--bg) 55%, transparent) 42%, transparent 62%)" }} />
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "104px", zIndex: 3, pointerEvents: "none", background: "linear-gradient(to bottom, var(--bg), transparent)" }} />
@@ -854,10 +861,10 @@ export function HeroV2({
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <div role="group" aria-label="Theme" style={{ position: "relative", display: "flex", alignItems: "center", width: "70px", height: "34px", padding: "3px", borderRadius: "999px", border: "1px solid var(--line-2)", background: "var(--bg-2)" }}>
             <div style={knobStyle} />
-            <button onClick={() => setTheme("light")} aria-label="Light" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
+            <button onClick={() => setTheme("light")} aria-label="Light" className="mzh-toggle" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></svg>
             </button>
-            <button onClick={() => setTheme("dark")} aria-label="Dark" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
+            <button onClick={() => setTheme("dark")} aria-label="Dark" className="mzh-toggle" style={{ position: "relative", zIndex: 1, flex: 1, height: "100%", border: 0, background: "transparent", display: "grid", placeItems: "center", color: "var(--ink-2)", cursor: "pointer" }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" /></svg>
             </button>
           </div>
@@ -999,7 +1006,7 @@ export function HeroV2({
           className="mzh-credit"
           style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: "10px", padding: "7px 15px 7px 8px", borderRadius: "999px", background: "var(--glass-2)", backdropFilter: "blur(12px)", WebkitBackdropFilter: "blur(12px)", border: "1px solid color-mix(in oklab, var(--primary) 38%, var(--line-2))", boxShadow: "0 12px 30px -12px var(--glow), var(--shadow-card)", textDecoration: "none", overflow: "hidden" }}
         >
-          <span ref={creditSheenRef} style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "55%", pointerEvents: "none", background: "linear-gradient(105deg, transparent, color-mix(in oklab, var(--primary) 20%, transparent) 44%, rgba(255,255,255,.6) 50%, color-mix(in oklab, var(--primary) 20%, transparent) 56%, transparent)", transform: "translateX(-180%) skewX(-12deg)" }} />
+          <span ref={creditSheenRef} style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "55%", pointerEvents: "none", transformOrigin: "left center", background: "linear-gradient(105deg, transparent, color-mix(in oklab, var(--primary) 20%, transparent) 44%, rgba(255,255,255,.6) 50%, color-mix(in oklab, var(--primary) 20%, transparent) 56%, transparent)", transform: "translateX(-180%) skewX(-12deg)" }} />
           <span ref={creditBadgeRef} style={{ position: "relative", width: "27px", height: "27px", borderRadius: "8px", background: "linear-gradient(135deg, var(--primary), var(--primary-2))", display: "grid", placeItems: "center", boxShadow: "0 5px 13px -4px var(--glow), inset 0 0 0 1px rgba(255,255,255,.28)", flexShrink: 0 }}>
             <svg ref={creditIconRef} width="14" height="14" viewBox="0 0 24 24" fill="#fff" style={{ willChange: "transform" }}><path d="M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1 4.98 2.12 4.98 3.5zM.2 8.5h4.6V23H.2V8.5zM8.5 8.5h4.4v2h.06c.61-1.16 2.1-2.38 4.34-2.38 4.64 0 5.5 3.05 5.5 7.02V23h-4.6v-6.31c0-1.5-.03-3.43-2.1-3.43-2.1 0-2.42 1.64-2.42 3.33V23H8.5V8.5z" /></svg>
           </span>
@@ -1016,7 +1023,7 @@ export function HeroV2({
 
       {/* Toast */}
       {toast ? (
-        <div ref={toastRef} style={{ position: "absolute", left: "50%", bottom: "30px", transform: "translateX(-50%)", zIndex: 800, display: "flex", alignItems: "center", gap: "13px", padding: "13px 18px 13px 15px", borderRadius: "14px", background: "#14161D", color: "#fff", boxShadow: "0 26px 64px -22px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08)" }}>
+        <div ref={toastRef} style={{ position: "fixed", left: "50%", bottom: "30px", transform: "translateX(-50%)", zIndex: 800, display: "flex", alignItems: "center", gap: "13px", padding: "13px 18px 13px 15px", borderRadius: "14px", background: "#14161D", color: "#fff", boxShadow: "0 26px 64px -22px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.08)" }}>
           <div style={{ width: "28px", height: "28px", borderRadius: "50%", background: "#10B981", display: "grid", placeItems: "center", flexShrink: 0, boxShadow: "0 6px 16px -4px rgba(16,185,129,.6)" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5" /></svg>
           </div>
