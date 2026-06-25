@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { sendMail, emailConfigured, otpEmailHtml } from "@/lib/email";
+import { sendSms, smsConfigured } from "@/lib/sms";
 
 const OTP_TTL_MS = 5 * 60 * 1000;
 
@@ -37,10 +38,16 @@ export async function issueOtp(opts: {
       text: `Your Manzil One verification code is ${code}. It expires in 5 minutes.`,
     });
     delivered = r.ok;
+  } else if (opts.channel === "SMS" && smsConfigured()) {
+    delivered = await sendSms({
+      to: opts.identifier,
+      body: `Your Manzil One verification code is ${code}. It expires in 5 minutes.`,
+    });
   }
 
-  // When no real email provider is configured we return the code so the UI can
-  // show it (keeps dev / demo usable). With a provider, the code goes to email only.
-  const expose = !emailConfigured();
+  // Expose the code in the response only when we could NOT actually deliver it
+  // (no provider configured, or the send failed) — this keeps signup / reset
+  // unblocked. When delivery succeeds, the code is returned to email/SMS only.
+  const expose = !delivered;
   return { code: expose ? code : null, mock: expose, delivered };
 }
