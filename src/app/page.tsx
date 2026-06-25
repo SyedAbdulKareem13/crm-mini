@@ -3,7 +3,6 @@ import {
   ArrowRight,
   BarChart3,
   Kanban,
-  Linkedin,
   Receipt,
   ShieldCheck,
   Sparkles,
@@ -12,10 +11,9 @@ import {
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/brand/logo";
 import { ThemeMenu } from "@/components/theme-menu";
+import { DeveloperCredit } from "@/components/developer-credit";
 import { prisma } from "@/lib/prisma";
 import { formatCompactCurrency } from "@/lib/utils";
-
-const LINKEDIN_URL = "https://www.linkedin.com/in/syed-abdul-kareem-b33519200/";
 
 export const dynamic = "force-dynamic";
 
@@ -175,31 +173,9 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* Developer credit */}
-      <section className="container pb-16">
-        <div className="luxury-card relative mx-auto max-w-lg overflow-hidden p-8 text-center">
-          <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-aurora opacity-[0.08]" />
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl btn-gradient text-base font-semibold tracking-wide text-white shadow-lg">
-            SA
-          </div>
-          <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Designed &amp; developed by
-          </div>
-          <div className="mt-1 text-xl font-semibold tracking-tight">Syed Abdul Kareem</div>
-          <div className="mt-0.5 text-sm text-muted-foreground">
-            Full-stack engineer · Architect of Manzil One
-          </div>
-          <a
-            href={LINKEDIN_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-5 inline-flex items-center gap-2 rounded-full border border-[#0A66C2]/30 bg-[#0A66C2]/10 px-5 py-2 text-sm font-medium text-[#0A66C2] transition-colors hover:bg-[#0A66C2] hover:text-white dark:text-[#7BB1FF] dark:hover:text-white"
-          >
-            <Linkedin className="h-4 w-4" />
-            Connect on LinkedIn
-            <ArrowRight className="h-3.5 w-3.5" />
-          </a>
-        </div>
+      {/* Developer credit — luxury animated card */}
+      <section className="container pb-20 pt-4">
+        <DeveloperCredit />
       </section>
 
       <footer className="container py-10 text-center text-sm text-muted-foreground">
