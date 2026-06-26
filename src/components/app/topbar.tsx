@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Search, LogOut, User as UserIcon, Settings, WandSparkles } from "lucide-react";
+import { Search, LogOut, User as UserIcon, Settings } from "lucide-react";
+import { ManzOrb } from "@/components/app/manz-orb";
 import { Notifications } from "@/components/app/notifications";
 import { WhatsNew } from "@/components/app/whats-new";
 import { ThemeMenu } from "@/components/theme-menu";
@@ -69,7 +70,7 @@ export function Topbar({
             className="pointer-events-none absolute inset-0 -z-10 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
             style={{ background: "linear-gradient(120deg, hsl(var(--chart-1)/.18), hsl(var(--chart-5)/.18))" }}
           />
-          <WandSparkles className="h-4 w-4" />
+          <ManzOrb size={20} className="transition-transform duration-300 group-hover:scale-110" />
           <span className="hidden sm:inline">Manz AI</span>
         </Link>
 

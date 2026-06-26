@@ -5,10 +5,10 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ConvertLeadButton } from "./convert-button";
 import { LeadEditButton } from "@/components/leads/lead-edit-button";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
+import { ActivityPanel } from "@/components/activity/activity-panel";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -88,32 +88,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             </CardContent>
           </Card>
 
-          <RecordAuditTrail organizationId={session.user.organizationId} entityType="LEAD" entityId={lead.id} />
+          <ActivityPanel entity="lead" entityId={lead.id} />
         </div>
 
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Activity timeline</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {lead.activities.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No activities yet.</p>
-              ) : (
-                <ol className="relative space-y-4 border-l pl-4">
-                  {lead.activities.map((a) => (
-                    <li key={a.id} className="relative">
-                      <span className="absolute -left-[19px] top-1.5 h-2.5 w-2.5 rounded-full bg-primary" />
-                      <div className="text-sm font-medium">{a.subject}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {a.type.toLowerCase()} · {formatDate(a.createdAt)}
-                      </div>
-                    </li>
-                  ))}
-                </ol>
-              )}
-            </CardContent>
-          </Card>
+          <RecordAuditTrail organizationId={session.user.organizationId} entityType="LEAD" entityId={lead.id} />
         </div>
       </div>
     </div>

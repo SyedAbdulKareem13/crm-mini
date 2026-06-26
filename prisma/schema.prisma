@@ -56,6 +56,51 @@ model Organization {
   activities      Activity[]
   documents       Document[]
   auditLogs       AuditLog[]
+  fieldConfigs       FieldConfig[]
+  activityTypeConfigs ActivityTypeConfig[]
+}
+
+// -------------------------------------------------------------
+// Frontend-configurable field & activity master data
+// -------------------------------------------------------------
+
+model FieldConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  module     String  // LEAD | OPPORTUNITY | CUSTOMER | QUOTATION | RFQ | ACTIVITY
+  fieldKey   String
+  label      String
+  active     Boolean @default(true)
+  required   Boolean @default(false)
+  position   Int     @default(0)
+  isCustom   Boolean @default(false)
+  fieldType  String  @default("text") // text|textarea|number|date|email|phone|select|currency
+  options    Json?   // for select fields: string[]
+  helpText   String?
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([organizationId, module, fieldKey])
+  @@index([organizationId, module])
+}
+
+model ActivityTypeConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  key       String  // CALL | MEETING | EMAIL | FOLLOW_UP | TASK | NOTE
+  label     String
+  icon      String  @default("Activity")
+  color     String  @default("#64748b")
+  active    Boolean @default(true)
+  position  Int     @default(0)
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
 }
 
 enum UserRole {
@@ -686,6 +731,7 @@ model Activity {
   description    String?  @db.Text
   dueAt          DateTime?
   completedAt    DateTime?
+  data           Json?    // values for configurable custom activity fields
 
   ownerId        String?
   owner          User?    @relation(fields: [ownerId], references: [id])

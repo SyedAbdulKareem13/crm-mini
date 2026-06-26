@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.8.0";
+export const CURRENT_VERSION = "0.9.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,19 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.9.0",
+    date: "2026-06-26",
+    title: "Activities & no-code field configuration",
+    summary: "A full activity timeline on Leads and Opportunities, plus an Admin Configuration studio where every module's fields and activity types are configured from the frontend.",
+    items: [
+      { type: "new", text: "Activity timeline on every Lead and Opportunity — log calls, meetings, emails, follow-ups, tasks and notes, then mark them done. Each entry shows the owner and a relative timestamp and is mirrored into the record's audit trail." },
+      { type: "new", text: "Admin → Configuration: a no-code studio to tailor the app to your process — no redeploy needed." },
+      { type: "new", text: "Field configuration for every module (Leads, Opportunities, Customers, Quotations, RFQs and Activities) — show or hide fields, rename labels, mark them required, reorder by drag, and add your own custom fields." },
+      { type: "new", text: "Activity types are configurable — relabel, recolour, pick an icon, reorder and toggle Call / Meeting / Email / Follow-up / Task / Note to match how your team works." },
+      { type: "improved", text: "The Lead form now renders live from its field configuration — hide, rename, reorder or require a field in Admin and the form follows instantly." },
+    ],
+  },
   {
     version: "0.8.0",
     date: "2026-06-26",
@@ -120,10 +133,10 @@ export const ROADMAP: RoadmapWeek[] = [
     week: "Week 1",
     range: "26 Jun – 2 Jul 2026",
     items: [
-      { title: "Activities on Opportunities", detail: "Log calls, meetings, emails, tasks and notes against any opportunity on a single timeline.", status: "in_progress" },
-      { title: "Activities on Leads", detail: "The same activity timeline on every lead, carried over on lead → opportunity conversion.", status: "in_progress" },
-      { title: "Task creation with confirmation", detail: "Create follow-up tasks with a confirm step, owner, due date and priority.", status: "planned" },
-      { title: "Activity types", detail: "Call, Meeting, Email, Task and Note — each with type-specific fields and status.", status: "planned" },
+      { title: "Config-driven forms everywhere", detail: "Extend the live field configuration that now powers the Lead form to the Opportunity, Customer, Quotation and RFQ forms.", status: "in_progress" },
+      { title: "Custom-field values across modules", detail: "Persist and display admin-defined custom fields on every record, not just Activities.", status: "planned" },
+      { title: "Task creation with confirmation", detail: "Create follow-up tasks with a confirm step, owner, due date and priority from the activity composer.", status: "planned" },
+      { title: "Reminders & due-date nudges", detail: "Notifications for upcoming tasks, calls and meetings logged on the timeline.", status: "planned" },
     ],
   },
   {
@@ -132,7 +145,6 @@ export const ROADMAP: RoadmapWeek[] = [
     items: [
       { title: "AI activity creation", detail: "Manz AI logs the right activity or task from a sentence — “call Priya at Crescent Capital Mon 3pm”.", status: "planned" },
       { title: "Email · Call · Meeting", detail: "Compose & send the AI-drafted email, log calls, and schedule meetings with reminders.", status: "planned" },
-      { title: "Reminders & due-date nudges", detail: "Notifications for upcoming tasks, calls and meetings.", status: "planned" },
       { title: "Live Manz AI", detail: "Swap in a quota-enabled Gemini key (Supabase config) to turn on live chat, RFQ parsing and drafting.", status: "planned" },
       { title: "Merge Manz AI to production", detail: "Promote the AI workspace from dev to manzilone.vercel.app.", status: "planned" },
     ],

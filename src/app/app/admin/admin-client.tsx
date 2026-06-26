@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { initials, formatDate } from "@/lib/utils";
+import { ConfigurationManager } from "./configuration-manager";
 
 type Role =
   | "ADMIN"
@@ -82,6 +83,7 @@ export function AdminClient({
         <TabsTrigger value="territories">Territories</TabsTrigger>
         <TabsTrigger value="bus">Business units</TabsTrigger>
         <TabsTrigger value="chain">Approval chain</TabsTrigger>
+        <TabsTrigger value="config">Configuration</TabsTrigger>
         <TabsTrigger value="landing">Landing</TabsTrigger>
       </TabsList>
 
@@ -96,6 +98,9 @@ export function AdminClient({
       </TabsContent>
       <TabsContent value="chain">
         <ApprovalChainTab chain={chain} readOnly={readOnly} onChanged={() => router.refresh()} />
+      </TabsContent>
+      <TabsContent value="config">
+        <ConfigurationManager />
       </TabsContent>
       <TabsContent value="landing">
         <LandingTab heroVersion={heroVersion} readOnly={readOnly} onChanged={() => router.refresh()} />
