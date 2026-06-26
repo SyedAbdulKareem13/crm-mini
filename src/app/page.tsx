@@ -13,6 +13,7 @@ import { Logo } from "@/components/brand/logo";
 import { ThemeMenu } from "@/components/theme-menu";
 import { DeveloperCredit } from "@/components/developer-credit";
 import { HeroV2 } from "@/components/landing/hero-v2";
+import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { prisma } from "@/lib/prisma";
 import { getHeroVersion } from "@/lib/app-config";
 import { formatCompactCurrency } from "@/lib/utils";
@@ -64,19 +65,31 @@ async function getStats(): Promise<Stats | null> {
 
 /* ----------------------------- Shared sections ----------------------------- */
 
-function FeaturesSection() {
+function FeatureCard({ Icon, title, desc }: { Icon: typeof Kanban; title: string; desc: string }) {
+  return (
+    <div className="luxury-card p-6 transition-transform hover:-translate-y-0.5">
+      <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(var(--chart-1))/.25] to-[hsl(var(--chart-5))/.25] text-primary">
+        <Icon className="h-5 w-5" />
+      </div>
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
+    </div>
+  );
+}
+
+function FeaturesSection({ reveal = false }: { reveal?: boolean }) {
   return (
     <section id="features" className="container pb-24">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {features.map(({ icon: Icon, title, desc }) => (
-          <div key={title} className="luxury-card p-6 transition-transform hover:-translate-y-0.5">
-            <div className="mb-4 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[hsl(var(--chart-1))/.25] to-[hsl(var(--chart-5))/.25] text-primary">
-              <Icon className="h-5 w-5" />
-            </div>
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{desc}</p>
-          </div>
-        ))}
+        {features.map(({ icon: Icon, title, desc }, i) =>
+          reveal ? (
+            <ScrollReveal key={title} delay={i * 90}>
+              <FeatureCard Icon={Icon} title={title} desc={desc} />
+            </ScrollReveal>
+          ) : (
+            <FeatureCard key={title} Icon={Icon} title={title} desc={desc} />
+          )
+        )}
       </div>
     </section>
   );
@@ -131,8 +144,10 @@ export default async function LandingPage() {
           <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-mesh opacity-70" />
           <div className="pointer-events-none absolute inset-0 -z-10 grid-bg opacity-30" />
           <div className="pt-20" />
-          <FeaturesSection />
-          <CtaSection />
+          <FeaturesSection reveal />
+          <ScrollReveal>
+            <CtaSection />
+          </ScrollReveal>
           <SiteFooter />
         </div>
       </div>
