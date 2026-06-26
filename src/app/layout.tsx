@@ -48,19 +48,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           attribute="class"
           defaultTheme="platinum"
           themes={["light", "dark", "platinum", "sapphire", "emerald", "amber", "violet", "graphite"]}
-          value={{
-            light: "light",
-            dark: "dark",
-            platinum: "platinum",
-            sapphire: "sapphire",
-            emerald: "emerald",
-            amber: "amber",
-            violet: "violet",
-            // Graphite is a DARK theme — carry the `.dark` class too so Tailwind
-            // `dark:` utilities (cards, inputs, etc.) render correctly, not just
-            // the CSS-variable tokens. `.graphite` (defined later) wins the tokens.
-            graphite: "dark graphite",
-          }}
           enableSystem={false}
           disableTransitionOnChange
         >

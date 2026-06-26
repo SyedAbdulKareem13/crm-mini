@@ -1,7 +1,11 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
-  darkMode: ["class"],
+  // `dark:` utilities apply under BOTH the `.dark` (Midnight) and `.graphite`
+  // themes. Graphite is set by next-themes as a single class, so we extend the
+  // dark variant to match it too (a space-separated class value crashes
+  // next-themes' classList.add/remove).
+  darkMode: ["variant", ["&:is(.dark *)", "&:is(.graphite *)"]],
   content: ["./src/**/*.{ts,tsx,js,jsx,mdx}"],
   theme: {
     container: {
