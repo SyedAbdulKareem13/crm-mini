@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { aiConfigured } from "@/lib/ai";
+import { getGeminiKey } from "@/lib/app-config";
 import { PageHeader } from "@/components/app/page-header";
 import { AiStudioClient } from "./ai-studio-client";
 
@@ -37,7 +37,10 @@ async function buildContext(orgId: string): Promise<string> {
 export default async function AiStudioPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
-  const context = await buildContext(session.user.organizationId);
+  const [context, geminiKey] = await Promise.all([
+    buildContext(session.user.organizationId),
+    getGeminiKey(),
+  ]);
 
   return (
     <>
@@ -47,7 +50,7 @@ export default async function AiStudioPage() {
         urdu="منزل اے آئی"
       />
       <AiStudioClient
-        configured={aiConfigured()}
+        configured={Boolean(geminiKey)}
         context={context}
         userName={session.user.name ?? null}
       />

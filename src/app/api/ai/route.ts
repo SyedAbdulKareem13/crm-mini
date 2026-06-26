@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
-import { geminiGenerate, geminiJSON, AiError, aiConfigured } from "@/lib/ai";
+import { geminiGenerate, geminiJSON, AiError } from "@/lib/ai";
+import { getGeminiKey, getGeminiModel } from "@/lib/app-config";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -34,12 +35,18 @@ const bodySchema = z.discriminatedUnion("tool", [
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (!aiConfigured()) {
+  const apiKey = await getGeminiKey();
+  if (!apiKey) {
     return NextResponse.json(
-      { error: "AI is not configured yet. Add a GEMINI_API_KEY.", code: "not_configured" },
+      { error: "AI is not configured yet. Add a Gemini API key.", code: "not_configured" },
       { status: 503 }
     );
   }
+  const model = await getGeminiModel();
+  const gen = (o: { system?: string; prompt: string; temperature?: number }) =>
+    geminiGenerate({ apiKey, model, ...o });
+  const genJSON = (o: { system?: string; prompt: string; temperature?: number }) =>
+    geminiJSON({ apiKey, model, ...o });
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -54,7 +61,7 @@ export async function POST(req: Request) {
         data.context ? `Workspace context (live):\n${data.context}\n` : "",
         `Conversation so far:\n${convo}\n\nReply as Manzil AI (plain text, no markdown headers, short).`,
       ].join("\n");
-      const text = await geminiGenerate({ system: BRAND, prompt, temperature: 0.7 });
+      const text = await gen({ system: BRAND, prompt, temperature: 0.7 });
       return NextResponse.json({ text });
     }
 
@@ -68,7 +75,7 @@ If a field is unknown use null or an empty array. Infer category sensibly.
 
 RFQ TEXT:
 """${data.text}"""`;
-      const json = await geminiJSON({ system: BRAND, prompt, temperature: 0.2 });
+      const json = await genJSON({ system: BRAND, prompt, temperature: 0.2 });
       return NextResponse.json({ result: json });
     }
 
@@ -80,7 +87,7 @@ RFQ TEXT:
  "sizeSignal": string, "talkingPoints": string[3-5], "fitForUs": string,
  "confidence": "high"|"medium"|"low"}
 If you are not confident about the specific company, set confidence "low" and keep it generic but useful. Do not fabricate specific figures.`;
-      const json = await geminiJSON({ system: BRAND, prompt, temperature: 0.4 });
+      const json = await genJSON({ system: BRAND, prompt, temperature: 0.4 });
       return NextResponse.json({ result: json });
     }
 
@@ -91,7 +98,7 @@ If you are not confident about the specific company, set confidence "low" and ke
 Context about the deal/contact:
 """${data.context}"""
 Return JSON ONLY: {"subject": string, "body": string}. The body should be ready to send, with a greeting and sign-off placeholder [Your name]. Keep it tight.`;
-      const json = await geminiJSON({ system: BRAND, prompt, temperature: 0.6 });
+      const json = await genJSON({ system: BRAND, prompt, temperature: 0.6 });
       return NextResponse.json({ result: json });
     }
 
@@ -102,7 +109,7 @@ Return JSON ONLY: {"subject": string, "body": string}. The body should be ready 
  "pricingNote": string, "nextSteps": string[]}
 Brief:
 """${data.brief}"""`;
-    const json = await geminiJSON({ system: BRAND, prompt, temperature: 0.4 });
+    const json = await genJSON({ system: BRAND, prompt, temperature: 0.4 });
     return NextResponse.json({ result: json });
   } catch (e) {
     if (e instanceof AiError) {

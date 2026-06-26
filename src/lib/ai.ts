@@ -7,7 +7,7 @@
  * friendly message (e.g. rate-limited / not-configured) instead of breaking.
  */
 
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+const DEFAULT_MODEL = "gemini-2.5-flash";
 const ENDPOINT = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
@@ -24,11 +24,9 @@ export class AiError extends Error {
   }
 }
 
-export function aiConfigured(): boolean {
-  return Boolean(process.env.GEMINI_API_KEY);
-}
-
 type GenOpts = {
+  apiKey: string;
+  model?: string;
   system?: string;
   prompt: string;
   json?: boolean;
@@ -36,8 +34,9 @@ type GenOpts = {
 };
 
 export async function geminiGenerate(opts: GenOpts): Promise<string> {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) throw new AiError("not_configured", "AI is not configured (missing GEMINI_API_KEY).", 503);
+  const key = opts.apiKey;
+  if (!key) throw new AiError("not_configured", "AI is not configured (missing Gemini API key).", 503);
+  const model = opts.model || DEFAULT_MODEL;
 
   const body: Record<string, unknown> = {
     contents: [{ role: "user", parts: [{ text: opts.prompt }] }],
@@ -52,7 +51,7 @@ export async function geminiGenerate(opts: GenOpts): Promise<string> {
 
   let res: Response;
   try {
-    res = await fetch(ENDPOINT(MODEL), {
+    res = await fetch(ENDPOINT(model), {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-goog-api-key": key },
       body: JSON.stringify(body),
