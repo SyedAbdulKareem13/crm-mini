@@ -106,6 +106,8 @@ type EngineRefs = {
   creditSheen: HTMLSpanElement | null;
   creditArrow: SVGSVGElement | null;
   creditIcon: SVGSVGElement | null;
+  spotlight: HTMLDivElement | null;
+  accent: HTMLSpanElement | null;
 };
 
 type EngineOpts = {
@@ -153,6 +155,8 @@ class HeroEngine {
   _pbT = 0;
   scrollY = 0;
   scrollProg = 0;
+  mousePx?: { x: number; y: number };
+  spx?: { x: number; y: number };
   _toastT?: ReturnType<typeof setTimeout>;
   drag?: { px: number; py: number; x: number; y: number; lx: number; ly: number; lt: number };
 
@@ -161,7 +165,7 @@ class HeroEngine {
   scene?: THREE.Scene;
   camera?: THREE.PerspectiveCamera;
   rig?: THREE.Group;
-  beacon?: { group: THREE.Group; rings: THREE.Mesh[]; core: THREE.Mesh; glow: THREE.Mesh };
+  beacon?: { group: THREE.Group; rings: THREE.Mesh[]; core: THREE.Mesh; glow: THREE.Mesh; rays?: THREE.Mesh };
   trav: { mesh: THREE.Mesh; shadow: THREE.Mesh; t: number; speed: number; ph: number; lane: THREE.Vector3 }[] = [];
   stream?: { n: number; ts: Float32Array; sp: Float32Array; jx: Float32Array; jy: Float32Array; jz: Float32Array; geo: THREE.BufferGeometry; pts: THREE.Points };
   points?: THREE.Points;
@@ -194,6 +198,7 @@ class HeroEngine {
       const r = root.getBoundingClientRect();
       this.mouse.x = ((e.clientX - r.left) / r.width) * 2 - 1;
       this.mouse.y = ((e.clientY - r.top) / r.height) * 2 - 1;
+      this.mousePx = { x: e.clientX, y: e.clientY };
     };
     root.addEventListener("pointermove", this._onMove);
 
@@ -201,6 +206,28 @@ class HeroEngine {
       root.querySelectorAll<HTMLElement>("[data-rise]").forEach((el) =>
         this.revealEl(el, parseFloat(el.getAttribute("data-rise") || "0") || 0)
       );
+      // Shimmer sweep across the "destination." accent word.
+      const acc = this.refs.accent;
+      if (acc?.animate) {
+        try {
+          acc.animate(
+            [{ backgroundPosition: "180% 0" }, { backgroundPosition: "-80% 0", offset: 0.5 }, { backgroundPosition: "-80% 0" }],
+            { duration: 5200, iterations: Infinity, easing: "cubic-bezier(.6,0,.4,1)" }
+          );
+        } catch { /* noop */ }
+      }
+      // Slow opacity breathing on the ambient glow blobs.
+      root.querySelectorAll<HTMLElement>("[data-glow]").forEach((g, i) => {
+        if (g.animate) {
+          try {
+            g.animate([{ opacity: 0.55 }, { opacity: 1 }, { opacity: 0.55 }], {
+              duration: 6000 + i * 1200,
+              iterations: Infinity,
+              easing: "ease-in-out",
+            });
+          } catch { /* noop */ }
+        }
+      });
     });
 
     this.loadCounts();
@@ -227,8 +254,11 @@ class HeroEngine {
     if (!el.animate) return;
     try {
       el.animate(
-        [{ opacity: 0, transform: "translateY(22px)" }, { opacity: 1, transform: "translateY(0)" }],
-        { duration: 720, delay, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" }
+        [
+          { opacity: 0, transform: "translateY(24px)", filter: "blur(9px)" },
+          { opacity: 1, transform: "translateY(0)", filter: "blur(0px)" },
+        ],
+        { duration: 780, delay, easing: "cubic-bezier(.16,1,.3,1)", fill: "backwards" }
       );
     } catch { /* noop */ }
   }
@@ -290,6 +320,22 @@ class HeroEngine {
     gr.addColorStop(0.45, `rgba(${r},${g},${b},0.45)`);
     gr.addColorStop(1, `rgba(${r},${g},${b},0)`);
     x.fillStyle = gr; x.fillRect(0, 0, s, s);
+    return new this.T!.CanvasTexture(cv);
+  }
+
+  raysTex() {
+    const s = 256, cv = document.createElement("canvas"); cv.width = cv.height = s;
+    const x = cv.getContext("2d")!, c = s / 2, N = 12;
+    for (let i = 0; i < N; i++) {
+      x.save(); x.translate(c, c); x.rotate((i / N) * Math.PI * 2);
+      const g = x.createLinearGradient(0, 0, 0, c);
+      g.addColorStop(0, "rgba(255,255,255,0)");
+      g.addColorStop(0.45, "rgba(255,255,255,0.55)");
+      g.addColorStop(1, "rgba(255,255,255,0)");
+      x.fillStyle = g;
+      x.beginPath(); x.moveTo(-2.5, 0); x.lineTo(2.5, 0); x.lineTo(9, c); x.lineTo(-9, c); x.closePath(); x.fill();
+      x.restore();
+    }
     return new this.T!.CanvasTexture(cv);
   }
 
@@ -360,6 +406,13 @@ class HeroEngine {
     const glow = new T.Mesh(new T.PlaneGeometry(2.8, 2.8), new T.MeshBasicMaterial({ map: glowTex, color: acc, transparent: true, opacity: 0.6, blending: T.AdditiveBlending, depthWrite: false }));
     bg.add(r3, r2, r1, glow, core); scene.add(bg);
     this.beacon = { group: bg, rings: [r1, r2, r3], core, glow };
+    // Slowly rotating light rays radiating from the beacon.
+    const rays = new T.Mesh(
+      new T.PlaneGeometry(3.7, 3.7),
+      new T.MeshBasicMaterial({ map: this.raysTex(), color: acc, transparent: true, opacity: 0.2, blending: T.AdditiveBlending, depthWrite: false })
+    );
+    bg.add(rays);
+    this.beacon.rays = rays;
     this.placeBeacon();
 
     // Auto-traveling deal cards
@@ -444,11 +497,21 @@ class HeroEngine {
       const heroH = this.refs.root.clientHeight || 1;
       this.scrollProg = Math.min(1, this.scrollY / heroH); // 0 at top → 1 after one hero of scroll
 
-      // Background/decoration layers drift up at depth-dependent rates.
+      // Cursor spotlight glides toward the pointer (viewport-anchored).
+      if (this.refs.spotlight && this.mousePx) {
+        if (!this.spx) this.spx = { x: this.mousePx.x, y: this.mousePx.y };
+        this.spx.x += (this.mousePx.x - this.spx.x) * 0.12;
+        this.spx.y += (this.mousePx.y - this.spx.y) * 0.12;
+        this.refs.spotlight.style.transform = "translate(" + this.spx.x.toFixed(1) + "px," + this.spx.y.toFixed(1) + "px)";
+      }
+
+      // Background/decoration layers drift up at depth-dependent rates; chips
+      // also bob gently (data-bob phase offset).
       this.pxEls.forEach((el) => {
         const d = parseFloat(el.dataset.px || "0.3") || 0.3;
         const sy = this.scrollY * 0.28 * d;
-        el.style.transform = "translate3d(" + (this.pm.x * 40 * d).toFixed(2) + "px," + (this.pm.y * 28 * d - sy).toFixed(2) + "px,0)";
+        const bob = el.dataset.bob ? Math.sin(now * 0.0012 + parseFloat(el.dataset.bob)) * 7 : 0;
+        el.style.transform = "translate3d(" + (this.pm.x * 40 * d).toFixed(2) + "px," + (this.pm.y * 28 * d - sy + bob).toFixed(2) + "px,0)";
       });
 
       // The hero copy lifts and fades out as you scroll into the page.
@@ -525,6 +588,7 @@ class HeroEngine {
 
     if (this.beacon) {
       this.beacon.rings.forEach((r, i) => { r.rotation.x += 0.002 * (i + 1); r.rotation.y += 0.003 * (i + 1); });
+      if (this.beacon.rays) this.beacon.rays.rotation.z += 0.0016;
       const pulse = 1 + Math.sin(t * 1.6) * 0.04; this.beacon.group.scale.setScalar(pulse);
       let baseGlow = 0.55 + Math.sin(t * 1.6) * 0.08;
       if (this.fx) {
@@ -801,6 +865,8 @@ export function HeroV2({
   const creditSheenRef = React.useRef<HTMLSpanElement>(null);
   const creditArrowRef = React.useRef<SVGSVGElement>(null);
   const creditIconRef = React.useRef<SVGSVGElement>(null);
+  const spotlightRef = React.useRef<HTMLDivElement>(null);
+  const accentRef = React.useRef<HTMLSpanElement>(null);
 
   const engineRef = React.useRef<HeroEngine | null>(null);
 
@@ -827,6 +893,8 @@ export function HeroV2({
         creditSheen: creditSheenRef.current,
         creditArrow: creditArrowRef.current,
         creditIcon: creditIconRef.current,
+        spotlight: spotlightRef.current,
+        accent: accentRef.current,
       },
       { accent: ACCENT, motion: MOTION, pipelineCr, opps, won, setCounters, setDeal, setToast }
     );
@@ -874,11 +942,14 @@ export function HeroV2({
 
       <div style={{ position: "absolute", inset: 0, zIndex: 2, pointerEvents: "none", backgroundImage: "radial-gradient(circle, var(--dot) 1px, transparent 1px)", backgroundSize: "24px 24px", WebkitMaskImage: "linear-gradient(to bottom, transparent 0, #000 180px, #000 calc(100% - 60px), transparent 100%)", maskImage: "linear-gradient(to bottom, transparent 0, #000 180px, #000 calc(100% - 60px), transparent 100%)" }} />
 
-      <div data-px="0.6" style={{ position: "absolute", top: "-160px", right: "-120px", width: "720px", height: "720px", zIndex: 1, pointerEvents: "none", willChange: "transform", background: "radial-gradient(circle at center, var(--glow), transparent 66%)" }} />
-      <div data-px="0.35" style={{ position: "absolute", bottom: "-220px", left: "-160px", width: "620px", height: "620px", zIndex: 1, pointerEvents: "none", willChange: "transform", background: "radial-gradient(circle at center, var(--glow-2), transparent 68%)" }} />
+      <div data-px="0.6" data-glow="1" style={{ position: "absolute", top: "-160px", right: "-120px", width: "720px", height: "720px", zIndex: 1, pointerEvents: "none", willChange: "transform, opacity", background: "radial-gradient(circle at center, var(--glow), transparent 66%)" }} />
+      <div data-px="0.35" data-glow="1" style={{ position: "absolute", bottom: "-220px", left: "-160px", width: "620px", height: "620px", zIndex: 1, pointerEvents: "none", willChange: "transform, opacity", background: "radial-gradient(circle at center, var(--glow-2), transparent 68%)" }} />
 
       <div style={{ position: "absolute", inset: 0, zIndex: 3, pointerEvents: "none", background: "linear-gradient(to right, var(--bg) 0%, var(--bg) 24%, color-mix(in oklab, var(--bg) 55%, transparent) 42%, transparent 62%)" }} />
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "104px", zIndex: 3, pointerEvents: "none", background: "linear-gradient(to bottom, var(--bg), transparent)" }} />
+
+      {/* Cursor-following spotlight (viewport-anchored, lerped in the rAF loop) */}
+      <div ref={spotlightRef} style={{ position: "fixed", left: 0, top: 0, width: "540px", height: "540px", margin: "-270px 0 0 -270px", zIndex: 4, pointerEvents: "none", borderRadius: "50%", background: "radial-gradient(circle, color-mix(in oklab, var(--primary) 32%, transparent), transparent 60%)", opacity: 0.5, mixBlendMode: "screen", willChange: "transform" }} />
 
       {/* Nav */}
       <nav data-rise="0" style={{ position: "relative", zIndex: 30, display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px clamp(24px,4vw,52px)" }}>
@@ -918,7 +989,21 @@ export function HeroV2({
       <div style={{ position: "relative", zIndex: 20, height: "calc(100vh - 73px)", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 clamp(24px,4vw,52px)", pointerEvents: "none" }}>
         <div ref={contentRef} style={{ maxWidth: "540px", pointerEvents: "auto", willChange: "transform, opacity" }}>
           <h1 data-rise="120" style={{ margin: 0, fontFamily: "'DM Sans', sans-serif", fontWeight: 600, fontSize: "clamp(40px,4.6vw,62px)", lineHeight: 1.02, letterSpacing: "-.032em", color: "var(--ink)" }}>
-            Guide every deal<br />to its <span style={{ color: "var(--primary)" }}>destination.</span>
+            Guide every deal<br />to its{" "}
+            <span
+              ref={accentRef}
+              style={{
+                background: "linear-gradient(100deg, var(--primary) 0%, var(--primary) 40%, #FFCBB0 50%, var(--primary) 60%, var(--primary) 100%)",
+                WebkitBackgroundClip: "text",
+                backgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                color: "transparent",
+                backgroundSize: "220% 100%",
+                backgroundPosition: "180% 0",
+              }}
+            >
+              destination.
+            </span>
           </h1>
 
           <p dir="rtl" data-rise="180" style={{ margin: "14px 0 0", font: "500 26px/1.9 'Noto Nastaliq Urdu', serif", color: "var(--ink-2)" }}>لیڈ سے کامیابی کی منزل تک</p>
@@ -960,19 +1045,19 @@ export function HeroV2({
       </div>
 
       {/* Floating stage chips */}
-      <div data-px="0.9" style={{ position: "absolute", top: "22%", left: "50%", zIndex: 8 }}>
+      <div data-px="0.9" data-bob="0" style={{ position: "absolute", top: "22%", left: "50%", zIndex: 8 }}>
         <div className="mzh-chip" style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "7px 12px", borderRadius: "999px", background: "var(--glass-2)", backdropFilter: "blur(10px)", border: "1px solid var(--line-2)", boxShadow: "var(--shadow-card)" }}>
           <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#F5A524", boxShadow: "0 0 0 3px rgba(245,165,36,.18)" }} />
           <span style={{ font: "600 12px/1 'DM Sans'", color: "var(--ink-2)" }}>Discovery</span>
         </div>
       </div>
-      <div data-px="1.1" style={{ position: "absolute", top: "60%", right: "7%", zIndex: 8 }}>
+      <div data-px="1.1" data-bob="2.1" style={{ position: "absolute", top: "60%", right: "7%", zIndex: 8 }}>
         <div className="mzh-chip" style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "7px 12px", borderRadius: "999px", background: "var(--glass-2)", backdropFilter: "blur(10px)", border: "1px solid var(--line-2)", boxShadow: "var(--shadow-card)" }}>
           <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#06B6D4", boxShadow: "0 0 0 3px rgba(6,182,212,.18)" }} />
           <span style={{ font: "600 12px/1 'DM Sans'", color: "var(--ink-2)" }}>RFQ · Quotation</span>
         </div>
       </div>
-      <div data-px="0.7" style={{ position: "absolute", bottom: "20%", left: "64%", zIndex: 8 }}>
+      <div data-px="0.7" data-bob="4.2" style={{ position: "absolute", bottom: "20%", left: "64%", zIndex: 8 }}>
         <div className="mzh-chip" style={{ display: "inline-flex", alignItems: "center", gap: "7px", padding: "7px 12px", borderRadius: "999px", background: "var(--glass-2)", backdropFilter: "blur(10px)", border: "1px solid var(--line-2)", boxShadow: "var(--shadow-card)" }}>
           <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: "#6366F1", boxShadow: "0 0 0 3px rgba(99,102,241,.18)" }} />
           <span style={{ font: "600 12px/1 'DM Sans'", color: "var(--ink-2)" }}>Approval</span>
