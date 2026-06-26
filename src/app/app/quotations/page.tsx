@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
+import { DraftWithAiButton } from "./draft-with-ai-button";
 
 export const dynamic = "force-dynamic";
 
@@ -37,9 +38,12 @@ export default async function QuotationsPage() {
         title="Quotations"
         description="Generate quotations from RFQs — with markup, discount, tax, and full approval flow."
         actions={
-          <Link href="/app/quotations/new">
-            <Button variant="gradient"><Plus className="h-4 w-4" /> New quotation</Button>
-          </Link>
+          <>
+            <DraftWithAiButton />
+            <Link href="/app/quotations/new">
+              <Button variant="gradient"><Plus className="h-4 w-4" /> New quotation</Button>
+            </Link>
+          </>
         }
       />
       {quotations.length === 0 ? (
