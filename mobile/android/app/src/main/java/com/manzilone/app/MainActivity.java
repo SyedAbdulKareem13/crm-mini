@@ -49,7 +49,9 @@ public class MainActivity extends BridgeActivity {
                 + '#mz-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}'
                 + '#mz-grid a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:14px;background:#fff;border:1px solid rgba(20,21,26,.08);color:#14151a;text-decoration:none;font:600 13.5px/1.15 -apple-system,Roboto,system-ui,sans-serif}'
                 + '#mz-grid a:active{background:#fff2ec}'
-                + '#mz-grid .mz-e{font-size:17px;width:22px;text-align:center}';
+                + '#mz-grid .mz-e{font-size:17px;width:22px;text-align:center}'
+                // Manz AI: stop the spinning halo border (the stray diagonal line)
+                + '.manz-halo::before{animation:none !important;opacity:.25 !important}';
               var st=document.createElement('style');st.id='mz-style';st.appendChild(document.createTextNode(css));
               (document.head||document.documentElement).appendChild(st);
             }
@@ -111,6 +113,20 @@ public class MainActivity extends BridgeActivity {
             }
 
             build();
+
+            // Manz AI: replace the overflowing animated placeholder with a clean
+            // static one so it can't bleed behind the buttons on phones.
+            try {
+              var ai=document.querySelector('input[aria-label="Ask Manz AI"]');
+              if (ai && ai.getAttribute('data-mzph') !== '1') {
+                ai.setAttribute('placeholder','Ask Manz AI...');
+                ai.setAttribute('data-mzph','1');
+                var pp=ai.parentElement;
+                var ov=pp ? pp.querySelector('[aria-hidden]') : null;
+                if (ov) ov.style.display='none';
+              }
+            } catch(e){}
+
             // Rebuild after Next.js client-side route changes (wrap once).
             if (!window.__mzWrap) {
               window.__mzWrap = 1;
