@@ -50,7 +50,7 @@ export function Topbar({
     <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-background/90 supports-[backdrop-filter]:bg-background/80 px-4 lg:px-8">
       <button
         onClick={() => setPaletteOpen(true)}
-        className="flex w-full max-w-md items-center gap-2 rounded-xl border bg-card/60 px-3 py-2 text-sm text-muted-foreground hover:bg-card transition-colors"
+        className="flex min-w-0 flex-1 items-center gap-2 rounded-xl border bg-card/60 px-3 py-2 text-sm text-muted-foreground hover:bg-card transition-colors sm:max-w-md"
       >
         <Search className="h-4 w-4" />
         <span className="hidden sm:inline">Search leads, opportunities, customers…</span>
@@ -58,7 +58,7 @@ export function Topbar({
         <kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd>
       </button>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ml-auto flex shrink-0 items-center gap-1 sm:gap-2">
         <Link
           href="/app/ai"
           aria-label="Manz AI"
