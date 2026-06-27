@@ -1,18 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Manzil One icon foreground: the "Najm" guiding star (amber -> coral). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
     <group
-        android:pivotX="32" android:pivotY="34"
-        android:scaleX="1.55" android:scaleY="1.55"
-        android:translateX="22" android:translateY="20">
+        android:pivotX="0" android:pivotY="0"
+        android:scaleX="0.37" android:scaleY="0.37"
+        android:translateX="17" android:translateY="17">
         <path
-            android:pathData="M12,50V18l20,14 20,-14v32"
-            android:strokeColor="#FFFFFFFF"
-            android:strokeWidth="6"
-            android:strokeLineCap="round"
-            android:strokeLineJoin="round" />
+            android:pathData="M100,10 C108,72 128,92 190,100 C128,108 108,128 100,190 C92,128 72,108 10,100 C72,92 92,72 100,10 Z">
+            <aapt:attr name="android:fillColor">
+                <gradient
+                    android:type="linear"
+                    android:startX="10" android:startY="10"
+                    android:endX="190" android:endY="190">
+                    <item android:offset="0" android:color="#FFFFE9C2" />
+                    <item android:offset="0.45" android:color="#FFFF8A65" />
+                    <item android:offset="1" android:color="#FFFF5C5C" />
+                </gradient>
+            </aapt:attr>
+        </path>
     </group>
 </vector>

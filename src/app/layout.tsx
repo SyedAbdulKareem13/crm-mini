@@ -1,5 +1,5 @@
 import "./globals.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, Noto_Nastaliq_Urdu, DM_Sans, DM_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/components/session-provider";
@@ -34,6 +34,18 @@ export const metadata: Metadata = {
   description:
     "Manzil One — لیڈ سے کامیابی کی منزل تک. A premium CRM for consulting, staffing and licensing: leads, opportunities, RFQ, quotation and approvals in one elegant workspace.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f7f7f0" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1117" },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

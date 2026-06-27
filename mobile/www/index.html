@@ -6,54 +6,52 @@
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="color-scheme" content="dark light" />
-    <meta name="theme-color" content="#0b0f1a" />
+    <meta name="color-scheme" content="light" />
+    <meta name="theme-color" content="#f7f7f0" />
     <title>Manzil One</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- Fluid animated aurora / gradient-mesh background (matches the web app) -->
+    <!-- Soft fluid coral/peach light blooms on a warm platinum canvas -->
     <div class="aurora" aria-hidden="true">
-      <span class="blob blob--1"></span>
-      <span class="blob blob--2"></span>
-      <span class="blob blob--3"></span>
-      <span class="grain"></span>
+      <span class="bloom bloom--1"></span>
+      <span class="bloom bloom--2"></span>
+      <span class="bloom bloom--3"></span>
     </div>
 
     <main class="stage">
-      <!-- Glassmorphic launch card -->
       <section class="glass-card" role="status" aria-live="polite">
+        <!-- Brand mark: dark metallic tile + the coral "Najm" guiding star -->
         <div class="mark">
-          <svg viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">
-            <defs>
-              <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-                <stop offset="0" stop-color="#7c5cff" />
-                <stop offset=".5" stop-color="#3b82f6" />
-                <stop offset="1" stop-color="#22d3ee" />
-              </linearGradient>
-            </defs>
-            <path
-              d="M12 50V18l20 14 20-14v32"
-              fill="none"
-              stroke="url(#g)"
-              stroke-width="6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
           <span class="mark__ring"></span>
+          <span class="mark__tile">
+            <svg viewBox="0 0 200 200" width="100%" height="100%" aria-hidden="true">
+              <defs>
+                <linearGradient id="najm" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0" stop-color="#FFE9C2" />
+                  <stop offset="0.45" stop-color="#FF8A65" />
+                  <stop offset="1" stop-color="#FF5C5C" />
+                </linearGradient>
+              </defs>
+              <path
+                d="M100 10 C108 72 128 92 190 100 C128 108 108 128 100 190 C92 128 72 108 10 100 C72 92 92 72 100 10 Z"
+                fill="url(#najm)"
+              />
+            </svg>
+          </span>
         </div>
 
-        <h1 class="brand">Manzil One</h1>
-        <p class="tagline">لیڈ سے کامیابی کی منزل تک</p>
-
-        <div class="loader" aria-hidden="true">
-          <span></span><span></span><span></span>
+        <div class="wordmark">
+          <h1>Manzil <span class="grad">One</span></h1>
+          <span class="urdu" dir="rtl">منزل ون</span>
         </div>
+        <span class="kicker">CRM Suite</span>
+
+        <p class="tagline" dir="rtl">لیڈ سے کامیابی کی منزل تک</p>
+
+        <div class="loader" aria-hidden="true"><span></span><span></span><span></span></div>
         <p class="status" id="status">Preparing your workspace…</p>
       </section>
-
-      <footer class="byline">Premium revenue platform</footer>
     </main>
 
     <!-- Offline fallback -->

@@ -26,7 +26,8 @@
   function setupNative() {
     if (!isNative) return;
     if (P.StatusBar) {
-      try { P.StatusBar.setStyle({ style: "DARK" }); P.StatusBar.setBackgroundColor({ color: "#0b0f1a" }); } catch (e) {}
+      // Platinum: dark icons on a light cream status bar.
+      try { P.StatusBar.setStyle({ style: "LIGHT" }); P.StatusBar.setBackgroundColor({ color: "#f7f7f0" }); } catch (e) {}
     }
     if (P.SplashScreen) { try { P.SplashScreen.hide(); } catch (e) {} }
     if (P.Haptics) { try { P.Haptics.impact({ style: "LIGHT" }); } catch (e) {} }

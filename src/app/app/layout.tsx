@@ -28,10 +28,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-mesh opacity-50" />
       <div className="flex">
         <Sidebar />
-        <div className="flex min-h-screen w-full flex-col">
+        <div className="flex min-h-screen w-full min-w-0 flex-col">
           <Topbar user={topbarUser} />
-          <main className="flex-1 px-4 py-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[1480px]">{children}</div>
+          {/* pb on mobile clears the floating bottom nav + the home-gesture inset */}
+          <main className="flex-1 px-4 py-5 pb-28 sm:py-6 lg:px-8 lg:pb-8">
+            <div className="mx-auto w-full min-w-0 max-w-[1480px]">{children}</div>
           </main>
         </div>
       </div>

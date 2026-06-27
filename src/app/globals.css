@@ -222,7 +222,14 @@
   html, body {
     @apply bg-background text-foreground antialiased;
     font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1, "cv11" 1;
+    /* Kill accidental horizontal scroll/zoom-out on small screens (WebView + mobile) */
+    max-width: 100%;
+    overflow-x: hidden;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
+  /* Media should never force the page wider than the viewport */
+  img, video, canvas { max-width: 100%; height: auto; }
   ::selection {
     background: hsl(var(--primary) / 0.25);
   }

@@ -15,10 +15,10 @@ const config: CapacitorConfig = {
   appId: "com.manzilone.app",
   appName: "Manzil One",
   webDir: "www",
-  backgroundColor: "#0b0f1a",
+  backgroundColor: "#f7f7f0",
   android: {
     allowMixedContent: false,
-    backgroundColor: "#0b0f1a",
+    backgroundColor: "#f7f7f0",
   },
   server: {
     androidScheme: "https",
@@ -35,7 +35,7 @@ const config: CapacitorConfig = {
   plugins: {
     SplashScreen: {
       launchShowDuration: 0,
-      backgroundColor: "#0b0f1a",
+      backgroundColor: "#f7f7f0",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
       splashFullScreen: true,
@@ -43,8 +43,8 @@ const config: CapacitorConfig = {
     },
     StatusBar: {
       overlaysWebView: false,
-      style: "DARK",
-      backgroundColor: "#0b0f1a",
+      style: "LIGHT",
+      backgroundColor: "#f7f7f0",
     },
     Keyboard: {
       resize: "native",

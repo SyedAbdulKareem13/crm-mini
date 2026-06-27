@@ -41,7 +41,7 @@ export function PageHeader({
     <div className={cn("mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div>
         <div className="flex items-baseline gap-3 flex-wrap">
-          <h1 className="font-display text-3xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="font-display text-2xl font-semibold tracking-tight sm:text-3xl">{title}</h1>
           {urduText ? (
             <span dir="rtl" className="font-urdu text-2xl text-muted-foreground leading-none">{urduText}</span>
           ) : null}

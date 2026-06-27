@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Manzil One icon background: the dark metallic tile from the brand mark. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
@@ -8,11 +9,12 @@
     <path android:pathData="M0,0h108v108h-108z">
         <aapt:attr name="android:fillColor">
             <gradient
-                android:type="linear"
-                android:startX="0" android:startY="0"
-                android:endX="108" android:endY="108">
-                <item android:offset="0" android:color="#FF11152A" />
-                <item android:offset="1" android:color="#FF0B0F1A" />
+                android:type="radial"
+                android:centerX="34" android:centerY="24"
+                android:gradientRadius="118">
+                <item android:offset="0" android:color="#FF2A2D34" />
+                <item android:offset="0.55" android:color="#FF14151A" />
+                <item android:offset="1" android:color="#FF0B0C10" />
             </gradient>
         </aapt:attr>
     </path>
