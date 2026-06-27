@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Solid dark launch background. The animated glass branding is rendered by
+     www/index.html immediately after the WebView is ready. Kept as a plain
+     color (no vector) so it inflates safely on every device at launch. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:drawable="@color/splashBg" />
-    <item
-        android:width="140dp"
-        android:height="140dp"
-        android:gravity="center"
-        android:drawable="@drawable/ic_launcher_monogram" />
 </layer-list>
