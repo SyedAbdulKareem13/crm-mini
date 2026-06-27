@@ -131,15 +131,35 @@ public class MainActivity extends BridgeActivity {
         final WebView webView = bridge.getWebView();
         if (webView == null) return;
 
-        webView.setWebViewClient(new BridgeWebViewClient(bridge) {
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                try {
-                    view.evaluateJavascript(INJECT_JS, null);
-                } catch (Exception ignored) {
+        // (1) Inject on each full page load.
+        try {
+            webView.setWebViewClient(new BridgeWebViewClient(bridge) {
+                @Override
+                public void onPageFinished(WebView view, String url) {
+                    super.onPageFinished(view, url);
+                    inject(view);
                 }
+            });
+        } catch (Exception ignored) {
+        }
+
+        // (2) Safety net: re-inject on a timer (idempotent via in-page guards),
+        //     so the menu + CSS appear even if onPageFinished is missed or the
+        //     app does a client-side route change.
+        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        h.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                inject(webView);
+                h.postDelayed(this, 1200);
             }
-        });
+        }, 1500);
+    }
+
+    private void inject(WebView view) {
+        try {
+            view.evaluateJavascript(INJECT_JS, null);
+        } catch (Exception ignored) {
+        }
     }
 }
