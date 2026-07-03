@@ -24,7 +24,7 @@ import {
 } from "@/components/ui/select";
 import { LEAD_SOURCES, INDUSTRIES } from "@/lib/constants";
 import {
-  CustomFieldsGrid,
+  CustomFieldItem,
   buildCustomData,
   missingRequiredCustom,
   seedCustomValues,
@@ -369,13 +369,23 @@ export function LeadDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {visible.map(renderField)}
-          <CustomFieldsGrid
-            fields={customVisible}
-            values={custom}
-            onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
-            idPrefix="lead-cf"
-          />
+          {/* One position-ordered flow: core and custom fields interleaved,
+              so Admin drag-reorder fully drives the form layout. */}
+          {([...visible, ...customVisible] as ConfigField[])
+            .sort((a, b) => a.position - b.position)
+            .map((f) =>
+              f.isCustom ? (
+                <CustomFieldItem
+                  key={f.id ?? f.fieldKey}
+                  field={f as SharedConfigField}
+                  value={custom[f.fieldKey] ?? ""}
+                  onChange={(v) => setCustom((prev) => ({ ...prev, [f.fieldKey]: v }))}
+                  idPrefix="lead-cf"
+                />
+              ) : (
+                renderField(f)
+              )
+            )}
           <DialogFooter className="sm:col-span-2 mt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

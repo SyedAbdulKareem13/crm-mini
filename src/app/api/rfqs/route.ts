@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextRfqNumber } from "@/lib/numbering";
@@ -23,6 +24,7 @@ const createSchema = z.object({
   terms: z.string().optional(),
   remarks: z.string().optional(),
   lineItems: z.array(lineItemSchema).default([]),
+  data: z.record(z.unknown()).optional(),
 });
 
 export async function POST(req: Request) {
@@ -45,6 +47,9 @@ export async function POST(req: Request) {
       currency: parsed.data.currency,
       terms: parsed.data.terms,
       remarks: parsed.data.remarks,
+      ...(parsed.data.data && Object.keys(parsed.data.data).length
+        ? { data: parsed.data.data as Prisma.InputJsonValue }
+        : {}),
       status: "RECEIVED",
       lineItems: {
         create: parsed.data.lineItems.map((item, idx) => ({ ...item, position: idx })),

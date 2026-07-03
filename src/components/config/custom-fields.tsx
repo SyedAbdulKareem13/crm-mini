@@ -109,6 +109,71 @@ function inputTypeFor(fieldType: string): string {
   }
 }
 
+/** One custom field: label + type-appropriate input (animated container). */
+export function CustomFieldItem({
+  field: f,
+  value,
+  onChange,
+  idPrefix,
+}: {
+  field: ConfigField;
+  value: string;
+  onChange: (value: string) => void;
+  idPrefix: string;
+}) {
+  const id = `${idPrefix}-${f.fieldKey}`;
+  const isTextarea = f.fieldType === "textarea";
+  const isSelect = f.fieldType === "select" && f.options && f.options.length > 0;
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
+      transition={{ duration: 0.22, ease: [0.2, 0.9, 0.25, 1] }}
+      className={isTextarea ? "sm:col-span-2" : undefined}
+    >
+      <Label htmlFor={id}>
+        {f.label}
+        {f.required && <span className="text-destructive"> *</span>}
+      </Label>
+      {isSelect ? (
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger id={id} className="mt-1.5">
+            <SelectValue placeholder={`Select ${f.label.toLowerCase()}`} />
+          </SelectTrigger>
+          <SelectContent>
+            {f.options!.map((opt) => (
+              <SelectItem key={opt} value={opt}>
+                {opt}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      ) : isTextarea ? (
+        <Textarea
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          rows={2}
+          className="mt-1.5"
+        />
+      ) : (
+        <Input
+          id={id}
+          type={inputTypeFor(f.fieldType)}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className="mt-1.5"
+        />
+      )}
+      {f.helpText && (
+        <p className="mt-1 text-xs text-muted-foreground">{f.helpText}</p>
+      )}
+    </motion.div>
+  );
+}
+
 /** Renders the module's active custom fields as a two-column grid (animated). */
 export function CustomFieldsGrid({
   fields,
@@ -124,63 +189,15 @@ export function CustomFieldsGrid({
   if (fields.length === 0) return null;
   return (
     <AnimatePresence initial={false} mode="popLayout">
-      {fields.map((f) => {
-        const id = `${idPrefix}-${f.fieldKey}`;
-        const isTextarea = f.fieldType === "textarea";
-        const isSelect = f.fieldType === "select" && f.options && f.options.length > 0;
-        return (
-          <motion.div
-            key={f.id}
-            layout
-            initial={{ opacity: 0, y: 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
-            transition={{ duration: 0.22, ease: [0.2, 0.9, 0.25, 1] }}
-            className={isTextarea ? "sm:col-span-2" : undefined}
-          >
-            <Label htmlFor={id}>
-              {f.label}
-              {f.required && <span className="text-destructive"> *</span>}
-            </Label>
-            {isSelect ? (
-              <Select
-                value={values[f.fieldKey] ?? ""}
-                onValueChange={(v) => onChange(f.fieldKey, v)}
-              >
-                <SelectTrigger id={id} className="mt-1.5">
-                  <SelectValue placeholder={`Select ${f.label.toLowerCase()}`} />
-                </SelectTrigger>
-                <SelectContent>
-                  {f.options!.map((opt) => (
-                    <SelectItem key={opt} value={opt}>
-                      {opt}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : isTextarea ? (
-              <Textarea
-                id={id}
-                value={values[f.fieldKey] ?? ""}
-                onChange={(e) => onChange(f.fieldKey, e.target.value)}
-                rows={2}
-                className="mt-1.5"
-              />
-            ) : (
-              <Input
-                id={id}
-                type={inputTypeFor(f.fieldType)}
-                value={values[f.fieldKey] ?? ""}
-                onChange={(e) => onChange(f.fieldKey, e.target.value)}
-                className="mt-1.5"
-              />
-            )}
-            {f.helpText && (
-              <p className="mt-1 text-xs text-muted-foreground">{f.helpText}</p>
-            )}
-          </motion.div>
-        );
-      })}
+      {fields.map((f) => (
+        <CustomFieldItem
+          key={f.id}
+          field={f}
+          value={values[f.fieldKey] ?? ""}
+          onChange={(v) => onChange(f.fieldKey, v)}
+          idPrefix={idPrefix}
+        />
+      ))}
     </AnimatePresence>
   );
 }

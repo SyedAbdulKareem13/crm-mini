@@ -14,6 +14,12 @@ import {
   Users,
 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  CustomFieldsGrid,
+  buildCustomData,
+  missingRequiredCustom,
+  useModuleConfig,
+} from "@/components/config/custom-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -80,6 +86,14 @@ export function QuotationBuilder({
 
   const [items, setItems] = useState<LineItem[]>(seedItemsFromRFQ(rfq, manpower, license));
   const [positions, setPositions] = useState<Position[]>(seedPositionsFromRFQ(rfq, manpower));
+  const [custom, setCustom] = useState<Record<string, string>>({});
+
+  // Live QUOTATION field configuration (labels / required + custom fields).
+  const { fields: cfgFields, customFields } = useModuleConfig("QUOTATION", true);
+  const cfg = new Map(cfgFields.map((f) => [f.fieldKey, f]));
+  const labelOf = (key: string, fallback: string) => cfg.get(key)?.label ?? fallback;
+  const requiredOf = (key: string) => cfg.get(key)?.required ?? false;
+  const shown = (key: string) => cfg.get(key)?.active ?? true;
 
   const fleet = useMemo(() => estimateFleet(positions), [positions]);
   const totals = useMemo(() => computeQuotation(items.map((i) => ({ unitCost: i.unitCost, quantity: i.quantity, markupPct: i.markupPct, discountPct: i.discountPct, taxPct: i.taxPct }))), [items]);
@@ -145,6 +159,10 @@ export function QuotationBuilder({
   async function submit() {
     if (!customerId) return toast.error("Pick a customer");
     if (items.length === 0) return toast.error("Add at least one line item");
+    if (requiredOf("validUntil") && !validUntil)
+      return toast.error(`${labelOf("validUntil", "Valid until")} is required`);
+    const missingCustom = missingRequiredCustom(customFields, custom);
+    if (missingCustom) return toast.error(`${missingCustom.label} is required`);
     setLoading(true);
     try {
       const res = await fetch("/api/quotations", {
@@ -157,6 +175,7 @@ export function QuotationBuilder({
           validUntil: validUntil || undefined,
           notes,
           termsAndConditions: terms,
+          data: buildCustomData(customFields, custom),
           items,
           positions: fleet.rows.map((r) => ({
             designation: r.designation,
@@ -204,18 +223,33 @@ export function QuotationBuilder({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Valid until</Label>
-              <DatePicker className="mt-1.5" value={validUntil} onChange={setValidUntil} placeholder="Select validity date" />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Notes</Label>
-              <Textarea className="mt-1.5" value={notes} onChange={(e) => setNotes(e.target.value)} />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Terms & Conditions</Label>
-              <Textarea className="mt-1.5" value={terms} onChange={(e) => setTerms(e.target.value)} />
-            </div>
+            {shown("validUntil") && (
+              <div>
+                <Label>
+                  {labelOf("validUntil", "Valid until")}
+                  {requiredOf("validUntil") && <span className="text-destructive"> *</span>}
+                </Label>
+                <DatePicker className="mt-1.5" value={validUntil} onChange={setValidUntil} placeholder="Select validity date" />
+              </div>
+            )}
+            {shown("notes") && (
+              <div className="sm:col-span-2">
+                <Label>{labelOf("notes", "Notes")}</Label>
+                <Textarea className="mt-1.5" value={notes} onChange={(e) => setNotes(e.target.value)} />
+              </div>
+            )}
+            {shown("termsAndConditions") && (
+              <div className="sm:col-span-2">
+                <Label>{labelOf("termsAndConditions", "Terms & Conditions")}</Label>
+                <Textarea className="mt-1.5" value={terms} onChange={(e) => setTerms(e.target.value)} />
+              </div>
+            )}
+            <CustomFieldsGrid
+              fields={customFields}
+              values={custom}
+              onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
+              idPrefix="qt-cf"
+            />
           </CardContent>
         </Card>
 

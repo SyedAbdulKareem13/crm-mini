@@ -12,6 +12,12 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
+import {
+  CustomFieldsGrid,
+  buildCustomData,
+  missingRequiredCustom,
+  useModuleConfig,
+} from "@/components/config/custom-fields";
 
 type LineItem = {
   lineType: string;
@@ -52,7 +58,15 @@ export function RfqForm({
   const [currency, setCurrency] = useState("INR");
   const [terms, setTerms] = useState("");
   const [remarks, setRemarks] = useState("");
+  const [custom, setCustom] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Live RFQ field configuration (labels / required + admin-defined custom fields).
+  const { fields, customFields } = useModuleConfig("RFQ", true);
+  const cfg = new Map(fields.map((f) => [f.fieldKey, f]));
+  const labelOf = (key: string, fallback: string) => cfg.get(key)?.label ?? fallback;
+  const requiredOf = (key: string) => cfg.get(key)?.required ?? false;
+  const shown = (key: string) => cfg.get(key)?.active ?? true;
 
   function update(i: number, patch: Partial<LineItem>) {
     setItems((prev) => prev.map((p, idx) => (idx === i ? { ...p, ...patch } : p)));
@@ -71,6 +85,10 @@ export function RfqForm({
     e.preventDefault();
     if (!customerId) return toast.error("Pick a customer");
     if (items.length === 0) return toast.error("Add at least one line item");
+    if (requiredOf("dueDate") && !dueDate)
+      return toast.error(`${labelOf("dueDate", "Due date")} is required`);
+    const missingCustom = missingRequiredCustom(customFields, custom);
+    if (missingCustom) return toast.error(`${missingCustom.label} is required`);
     setLoading(true);
     try {
       const res = await fetch("/api/rfqs", {
@@ -84,6 +102,7 @@ export function RfqForm({
           terms,
           remarks,
           lineItems: items,
+          data: buildCustomData(customFields, custom),
         }),
       });
       const data = await res.json();
@@ -105,7 +124,7 @@ export function RfqForm({
         </CardHeader>
         <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label>Customer *</Label>
+            <Label>{labelOf("customerId", "Customer")} *</Label>
             <Select value={customerId} onValueChange={setCustomerId}>
               <SelectTrigger className="mt-1.5"><SelectValue placeholder="Select customer" /></SelectTrigger>
               <SelectContent>
@@ -131,10 +150,15 @@ export function RfqForm({
               </SelectContent>
             </Select>
           </div>
-          <div>
-            <Label>Due date</Label>
-            <DatePicker className="mt-1.5" value={dueDate} onChange={setDueDate} placeholder="Select due date" />
-          </div>
+          {shown("dueDate") && (
+            <div>
+              <Label>
+                {labelOf("dueDate", "Due date")}
+                {requiredOf("dueDate") && <span className="text-destructive"> *</span>}
+              </Label>
+              <DatePicker className="mt-1.5" value={dueDate} onChange={setDueDate} placeholder="Select due date" />
+            </div>
+          )}
           <div>
             <Label>Currency</Label>
             <Select value={currency} onValueChange={setCurrency}>
@@ -152,6 +176,12 @@ export function RfqForm({
             <Label>Remarks</Label>
             <Textarea className="mt-1.5" value={remarks} onChange={(e) => setRemarks(e.target.value)} />
           </div>
+          <CustomFieldsGrid
+            fields={customFields}
+            values={custom}
+            onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
+            idPrefix="rfq-cf"
+          />
         </CardContent>
       </Card>
 

@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.10.0";
+export const CURRENT_VERSION = "0.11.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,18 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.11.0",
+    date: "2026-06-29",
+    title: "AI activity logging & configuration everywhere",
+    summary: "Type “call Priya at Crescent Capital Mon 3pm” into ⌘K and Manz AI logs it on the right record. RFQ and Quotation forms join the configuration studio, and drag-reorder now drives form layout.",
+    items: [
+      { type: "new", text: "Manz AI activity logging — type a plain sentence in the ⌘K palette (“call Priya at Crescent Capital Mon 3pm”) and the right activity is created on the right lead or opportunity, with the type, subject and due time understood automatically (IST)." },
+      { type: "new", text: "RFQ and Quotation forms now render admin-defined custom fields and honour configured labels, visibility and required — every module is configuration-driven end to end." },
+      { type: "improved", text: "Admin drag-reorder now fully drives form layout on Leads, Opportunities and Customers — core and custom fields flow in one configured order." },
+      { type: "improved", text: "Editing a quotation preserves custom-field values (key-wise merge)." },
+    ],
+  },
   {
     version: "0.10.0",
     date: "2026-06-29",
@@ -146,17 +158,14 @@ export const ROADMAP: RoadmapWeek[] = [
     week: "Week 1",
     range: "26 Jun – 2 Jul 2026",
     items: [
-      { title: "Config-driven forms everywhere", detail: "Extend the live field configuration that now powers the Lead form to the Opportunity, Customer, Quotation and RFQ forms.", status: "in_progress" },
-      { title: "Custom-field values across modules", detail: "Persist and display admin-defined custom fields on every record, not just Activities.", status: "planned" },
-      { title: "Task creation with confirmation", detail: "Create follow-up tasks with a confirm step, owner, due date and priority from the activity composer.", status: "planned" },
-      { title: "Reminders & due-date nudges", detail: "Notifications for upcoming tasks, calls and meetings logged on the timeline.", status: "planned" },
+      { title: "Reminders & due-date nudges", detail: "Notifications for upcoming tasks, calls and meetings logged on the timeline.", status: "in_progress" },
+      { title: "Document storage", detail: "Upload, preview and version documents on records (object storage).", status: "planned" },
     ],
   },
   {
     week: "Week 2",
     range: "3 Jul – 9 Jul 2026",
     items: [
-      { title: "AI activity creation", detail: "Manz AI logs the right activity or task from a sentence — “call Priya at Crescent Capital Mon 3pm”.", status: "planned" },
       { title: "Email · Call · Meeting", detail: "Compose & send the AI-drafted email, log calls, and schedule meetings with reminders.", status: "planned" },
       { title: "Live Manz AI", detail: "Swap in a quota-enabled Gemini key (Supabase config) to turn on live chat, RFQ parsing and drafting.", status: "planned" },
       { title: "Merge Manz AI to production", detail: "Promote the AI workspace from dev to manzilone.vercel.app.", status: "planned" },

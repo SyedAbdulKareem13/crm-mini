@@ -26,6 +26,8 @@ import {
 } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
+import { toast } from "sonner";
+import { ManzOrb } from "@/components/app/manz-orb";
 
 type SearchResult = {
   type: "lead" | "opportunity" | "customer" | "rfq" | "quotation";
@@ -106,6 +108,35 @@ export function CommandPalette({
     router.push(href);
   }
 
+  /** Manz AI: turn the typed sentence into a logged activity on the right record. */
+  function aiLogActivity() {
+    const prompt = query.trim();
+    onOpenChange(false);
+    toast.promise(
+      fetch("/api/ai/create-activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      }).then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error ?? "Couldn't log that");
+        return data as {
+          activity: { subject: string; type: string };
+          target: { label: string; href: string };
+        };
+      }),
+      {
+        loading: "Manz AI is logging that…",
+        success: (data) => {
+          router.push(data.target.href);
+          router.refresh();
+          return `Logged ${data.activity.type.toLowerCase().replace("_", " ")} “${data.activity.subject}” on ${data.target.label}`;
+        },
+        error: (e: Error) => e.message,
+      }
+    );
+  }
+
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput
@@ -123,6 +154,17 @@ export function CommandPalette({
             "No results found."
           )}
         </CommandEmpty>
+        {query.trim().length >= 6 && (
+          <CommandGroup heading="Manz AI">
+            <CommandItem value={`manz-ai-log ${query}`} onSelect={aiLogActivity}>
+              <ManzOrb size={18} />
+              <span className="truncate">
+                Log activity: <span className="font-medium">“{query.trim()}”</span>
+              </span>
+              <span className="ml-auto pl-3 text-xs text-muted-foreground">✨ AI</span>
+            </CommandItem>
+          </CommandGroup>
+        )}
         {results.length > 0 && (
           <CommandGroup heading="Records">
             {results.map((r) => {
