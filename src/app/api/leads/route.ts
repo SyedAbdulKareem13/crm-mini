@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextLeadNumber } from "@/lib/numbering";
@@ -16,6 +17,7 @@ const createSchema = z.object({
   notes: z.string().optional(),
   expectedRevenue: z.coerce.number().nonnegative().optional(),
   territoryId: z.string().optional(),
+  data: z.record(z.unknown()).optional(),
 });
 
 export async function GET(req: Request) {
@@ -60,9 +62,13 @@ export async function POST(req: Request) {
   }
   const orgId = session.user.organizationId;
   const leadNumber = await nextLeadNumber(orgId);
+  const { data: customData, ...core } = parsed.data;
   const lead = await prisma.lead.create({
     data: {
-      ...parsed.data,
+      ...core,
+      ...(customData && Object.keys(customData).length
+        ? { data: customData as Prisma.InputJsonValue }
+        : {}),
       leadNumber,
       organizationId: orgId,
       ownerId: session.user.id,

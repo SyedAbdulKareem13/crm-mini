@@ -338,3 +338,51 @@
 @media (prefers-reduced-motion: reduce) {
   .manz-orb-blob { animation: none !important; }
 }
+
+/* ---- Motion system: page transitions, staggered reveals, hover lifts ---- */
+@keyframes mz-page-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes mz-rise-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .mz-page {
+    animation: mz-page-in 0.34s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+  /* Staggered entrance for list/grid children (caps at the 12th child). */
+  .mz-stagger > * {
+    animation: mz-rise-in 0.4s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  }
+  .mz-stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .mz-stagger > *:nth-child(2) { animation-delay: 0.06s; }
+  .mz-stagger > *:nth-child(3) { animation-delay: 0.1s; }
+  .mz-stagger > *:nth-child(4) { animation-delay: 0.14s; }
+  .mz-stagger > *:nth-child(5) { animation-delay: 0.18s; }
+  .mz-stagger > *:nth-child(6) { animation-delay: 0.22s; }
+  .mz-stagger > *:nth-child(7) { animation-delay: 0.26s; }
+  .mz-stagger > *:nth-child(8) { animation-delay: 0.3s; }
+  .mz-stagger > *:nth-child(9) { animation-delay: 0.33s; }
+  .mz-stagger > *:nth-child(10) { animation-delay: 0.36s; }
+  .mz-stagger > *:nth-child(11) { animation-delay: 0.39s; }
+  .mz-stagger > *:nth-child(n + 12) { animation-delay: 0.42s; }
+}
+/* Gentle interactive lift for cards & rows (transform+shadow only — GPU friendly). */
+.luxury-card {
+  transition: box-shadow 0.25s ease, border-color 0.25s ease, transform 0.25s ease;
+}
+.hover-lift {
+  transition: transform 0.22s cubic-bezier(0.2, 0.9, 0.25, 1), box-shadow 0.22s ease;
+  will-change: transform;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .hover-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 34px -18px hsl(var(--foreground) / 0.28);
+  }
+  .hover-lift:active {
+    transform: translateY(0) scale(0.995);
+  }
+}

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextOppNumber } from "@/lib/numbering";
@@ -21,6 +22,7 @@ const schema = z.object({
   territoryId: z.string().optional(),
   businessUnitId: z.string().optional(),
   notes: z.string().optional(),
+  data: z.record(z.unknown()).optional(),
 });
 
 export async function GET() {
@@ -47,9 +49,13 @@ export async function POST(req: Request) {
   }
   const orgId = session.user.organizationId;
   const oppNumber = await nextOppNumber(orgId);
+  const { data: customData, ...core } = parsed.data;
   const opp = await prisma.opportunity.create({
     data: {
-      ...parsed.data,
+      ...core,
+      ...(customData && Object.keys(customData).length
+        ? { data: customData as Prisma.InputJsonValue }
+        : {}),
       oppNumber,
       organizationId: orgId,
       ownerId: session.user.id,

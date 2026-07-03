@@ -94,6 +94,8 @@ export type ConfiguredField = {
   isCustom: boolean;
   fieldType: string;
   options: string[] | null;
+  /** ACTIVITY module: activity-type keys this field applies to (null/[] = all types). */
+  appliesTo: string[] | null;
   helpText: string | null;
 };
 
@@ -108,6 +110,28 @@ export const DEFAULT_ACTIVITY_TYPES = [
 
 function isModule(m: string): m is ModuleKey {
   return (MODULES as readonly string[]).includes(m);
+}
+
+/**
+ * Merge incoming custom-field values onto a record's stored data.
+ * Only the keys present in `incoming` are touched (null/"" clears a key), so
+ * values for fields not on the submitting form are preserved.
+ * Returns undefined when `incoming` is undefined (no change intended).
+ */
+export function mergeCustomData(
+  existing: unknown,
+  incoming: Record<string, unknown> | undefined | null
+): Record<string, unknown> | undefined {
+  if (incoming === undefined || incoming === null) return undefined;
+  const base: Record<string, unknown> =
+    existing && typeof existing === "object" && !Array.isArray(existing)
+      ? { ...(existing as Record<string, unknown>) }
+      : {};
+  for (const [k, v] of Object.entries(incoming)) {
+    if (v === null || v === "") delete base[k];
+    else base[k] = v;
+  }
+  return base;
 }
 
 /** Seed default fields for a module if none exist yet (idempotent). */
@@ -149,6 +173,7 @@ export async function getModuleConfig(orgId: string, module: string): Promise<Co
     isCustom: r.isCustom,
     fieldType: r.fieldType,
     options: (r.options as string[] | null) ?? null,
+    appliesTo: (r.appliesTo as string[] | null) ?? null,
     helpText: r.helpText ?? null,
   }));
 }

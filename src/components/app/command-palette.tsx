@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CommandDialog,
@@ -13,9 +13,35 @@ import {
 } from "@/components/ui/command";
 import { NAV_ITEMS } from "@/lib/constants";
 import { Icon } from "@/components/app/icon";
-import { LogOut, Moon, Sun } from "lucide-react";
+import {
+  LogOut,
+  Moon,
+  Sun,
+  Sparkles,
+  Target,
+  Building2,
+  FileText,
+  Receipt,
+  Loader2,
+} from "lucide-react";
 import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
+
+type SearchResult = {
+  type: "lead" | "opportunity" | "customer" | "rfq" | "quotation";
+  id: string;
+  title: string;
+  subtitle: string;
+  href: string;
+};
+
+const RESULT_ICON: Record<SearchResult["type"], React.ComponentType<{ className?: string }>> = {
+  lead: Sparkles,
+  opportunity: Target,
+  customer: Building2,
+  rfq: FileText,
+  quotation: Receipt,
+};
 
 export function CommandPalette({
   open,
@@ -26,6 +52,10 @@ export function CommandPalette({
 }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [searching, setSearching] = useState(false);
+  const debounce = useRef<number | null>(null);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -38,6 +68,39 @@ export function CommandPalette({
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onOpenChange]);
 
+  // Live record search (debounced) across leads / opps / customers / RFQs / quotes.
+  useEffect(() => {
+    if (!open) return;
+    if (debounce.current) window.clearTimeout(debounce.current);
+    const q = query.trim();
+    if (q.length < 2) {
+      setResults([]);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    debounce.current = window.setTimeout(() => {
+      fetch(`/api/search?q=${encodeURIComponent(q)}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((data) => {
+          setResults((data?.results as SearchResult[]) ?? []);
+        })
+        .catch(() => setResults([]))
+        .finally(() => setSearching(false));
+    }, 220);
+    return () => {
+      if (debounce.current) window.clearTimeout(debounce.current);
+    };
+  }, [query, open]);
+
+  // Reset the query whenever the palette closes.
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      setResults([]);
+    }
+  }, [open]);
+
   function go(href: string) {
     onOpenChange(false);
     router.push(href);
@@ -45,9 +108,41 @@ export function CommandPalette({
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
-      <CommandInput placeholder="Type a command or search anything…" />
+      <CommandInput
+        placeholder="Search records, or type a command…"
+        value={query}
+        onValueChange={setQuery}
+      />
       <CommandList>
-        <CommandEmpty>No results found.</CommandEmpty>
+        <CommandEmpty>
+          {searching ? (
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+            </span>
+          ) : (
+            "No results found."
+          )}
+        </CommandEmpty>
+        {results.length > 0 && (
+          <CommandGroup heading="Records">
+            {results.map((r) => {
+              const Ico = RESULT_ICON[r.type];
+              return (
+                <CommandItem
+                  key={`${r.type}-${r.id}`}
+                  value={`${r.title} ${r.subtitle} ${query}`}
+                  onSelect={() => go(r.href)}
+                >
+                  <Ico className="h-4 w-4" />
+                  <span className="truncate">{r.title}</span>
+                  <span className="ml-auto truncate pl-3 text-xs text-muted-foreground">
+                    {r.subtitle}
+                  </span>
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        )}
         <CommandGroup heading="Navigation">
           {NAV_ITEMS.map((item) => (
             <CommandItem key={item.href} onSelect={() => go(item.href)}>

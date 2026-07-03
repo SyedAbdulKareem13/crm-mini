@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit, diffFields } from "@/lib/audit";
+import { mergeCustomData } from "@/lib/field-config";
 import { OPP_STAGES } from "@/lib/constants";
 
 const updateSchema = z.object({
@@ -20,6 +22,7 @@ const updateSchema = z.object({
     .optional(),
   notes: z.string().optional(),
   lostReason: z.string().optional(),
+  data: z.record(z.unknown()).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -36,10 +39,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const stageChanged = parsed.data.stage !== undefined && parsed.data.stage !== before.stage;
+  const { data: customData, ...core } = parsed.data;
+  const mergedData = mergeCustomData(before.data, customData);
   const updated = await prisma.opportunity.update({
     where: { id, organizationId: session.user.organizationId },
     data: {
-      ...parsed.data,
+      ...core,
+      ...(mergedData !== undefined ? { data: mergedData as Prisma.InputJsonValue } : {}),
       expectedCloseDate: parsed.data.expectedCloseDate ? new Date(parsed.data.expectedCloseDate) : undefined,
       ...(stageChanged ? { stageEnteredAt: new Date() } : {}),
     },

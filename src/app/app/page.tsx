@@ -41,7 +41,7 @@ export default async function DashboardPage() {
         }
       />
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mz-stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard label="Total Leads" value={data.kpi.totalLeads} icon="Sparkles" trend={+12} />
         <KpiCard label="Open Opportunities" value={data.kpi.openOpps} icon="Target" trend={+8} />
         <KpiCard label="Won Deals" value={data.kpi.wonOpps} icon="Trophy" trend={+22} tone="success" />

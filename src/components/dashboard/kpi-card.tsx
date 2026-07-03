@@ -27,7 +27,7 @@ export function KpiCard({
       : "from-primary/15 to-primary/0 text-primary ring-primary/20";
 
   return (
-    <div className="luxury-card relative overflow-hidden p-5 animate-in fade-in slide-in-from-bottom-2 duration-500">
+    <div className="luxury-card hover-lift relative overflow-hidden p-5">
       <div
         className={cn(
           "pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-gradient-to-br opacity-60",

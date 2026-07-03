@@ -108,6 +108,7 @@ interface FieldConfig {
   isCustom: boolean;
   fieldType: string;
   options: string[] | null;
+  appliesTo: string[] | null;
   helpText: string | null;
 }
 
@@ -323,11 +324,14 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
     return m;
   }, [fields]);
 
+  /** A core field is shown when active AND configured for this activity type
+   *  (empty appliesTo = all types). */
   const isActive = React.useCallback(
-    (key: keyof typeof FIELD_FALLBACK): boolean => {
+    (key: keyof typeof FIELD_FALLBACK, typeKey: string): boolean => {
       const f = fieldMap.get(key);
       if (!f) return FIELD_FALLBACK[key];
-      return f.active;
+      if (!f.active) return false;
+      return !f.appliesTo || f.appliesTo.length === 0 || f.appliesTo.includes(typeKey);
     },
     [fieldMap]
   );
@@ -337,16 +341,39 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
     [fieldMap]
   );
 
-  const showDueAt = isActive("dueAt");
-  const showStatus = isActive("status");
-  const showDescription = isActive("description");
+  // Composer visibility follows the selected type; edit dialog follows the edited type.
+  const showDueAt = isActive("dueAt", selectedKey);
+  const showStatus = isActive("status", selectedKey);
+  const showDescription = isActive("description", selectedKey);
+  const editShowDueAt = isActive("dueAt", editKey);
+  const editShowStatus = isActive("status", editKey);
+  const editShowDescription = isActive("description", editKey);
 
-  const customFields = React.useMemo(
+  const allCustomFields = React.useMemo(
     () =>
       fields.filter(
         (f) => f.active && f.isCustom && !RESERVED_KEYS.has(f.fieldKey)
       ),
     [fields]
+  );
+
+  /** Fields configured for a specific activity type (empty appliesTo = all types). */
+  const fieldsForType = React.useCallback(
+    (typeKey: string) =>
+      allCustomFields.filter(
+        (f) => !f.appliesTo || f.appliesTo.length === 0 || f.appliesTo.includes(typeKey)
+      ),
+    [allCustomFields]
+  );
+
+  const customFields = React.useMemo(
+    () => fieldsForType(selectedKey),
+    [fieldsForType, selectedKey]
+  );
+
+  const editCustomFields = React.useMemo(
+    () => fieldsForType(editKey),
+    [fieldsForType, editKey]
   );
 
   const typeByKey = React.useMemo(() => {
@@ -527,13 +554,13 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
       // longer in the active config (deactivated/deleted) are preserved, not
       // silently wiped. Only the currently-editable keys are overwritten/cleared.
       const mergedData: Record<string, unknown> = { ...(editing.data ?? {}) };
-      for (const f of customFields) {
+      for (const f of editCustomFields) {
         const v = editCustom[f.fieldKey];
         if (v === undefined || v === "") delete mergedData[f.fieldKey];
         else mergedData[f.fieldKey] = v;
       }
-      const hasData = customFields.length > 0 || !!editing.data;
-      const dueIso = showDueAt && editDueAt ? new Date(editDueAt).toISOString() : null;
+      const hasData = editCustomFields.length > 0 || !!editing.data;
+      const dueIso = editShowDueAt && editDueAt ? new Date(editDueAt).toISOString() : null;
 
       setSavingEdit(true);
       try {
@@ -544,9 +571,9 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
             id: editing.id,
             type: toPostType(editKey),
             subject: trimmed,
-            description: showDescription ? editDescription.trim() || null : undefined,
-            dueAt: showDueAt ? dueIso : undefined,
-            status: showStatus ? editStatus : undefined,
+            description: editShowDescription ? editDescription.trim() || null : undefined,
+            dueAt: editShowDueAt ? dueIso : undefined,
+            status: editShowStatus ? editStatus : undefined,
             data: hasData ? mergedData : undefined,
           }),
         });
@@ -566,13 +593,13 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
       editing,
       editSubject,
       savingEdit,
-      customFields,
+      editCustomFields,
       editCustom,
-      showDueAt,
+      editShowDueAt,
       editDueAt,
-      showDescription,
+      editShowDescription,
       editDescription,
-      showStatus,
+      editShowStatus,
       editStatus,
       editKey,
     ]
@@ -712,22 +739,33 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
               </div>
             )}
 
-            {/* Custom fields */}
+            {/* Custom fields — filtered to the selected activity type, animated on type switch */}
             {customFields.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {customFields.map((f) => (
-                  <CustomFieldInput
-                    key={f.id}
-                    field={f}
-                    value={customValues[f.fieldKey]}
-                    onChange={(val) =>
-                      setCustomValues((prev) => ({
-                        ...prev,
-                        [f.fieldKey]: val,
-                      }))
-                    }
-                  />
-                ))}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {customFields.map((f) => (
+                    <motion.div
+                      key={f.id}
+                      layout
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
+                      transition={{ duration: 0.22, ease: [0.2, 0.9, 0.25, 1] }}
+                      className={f.fieldType?.toUpperCase() === "TEXTAREA" ? "sm:col-span-2" : undefined}
+                    >
+                      <CustomFieldInput
+                        field={f}
+                        value={customValues[f.fieldKey]}
+                        onChange={(val) =>
+                          setCustomValues((prev) => ({
+                            ...prev,
+                            [f.fieldKey]: val,
+                          }))
+                        }
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
 
@@ -829,15 +867,15 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
             </div>
 
             {/* Due + Status */}
-            {(showDueAt || showStatus) && (
+            {(editShowDueAt || editShowStatus) && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {showDueAt && (
+                {editShowDueAt && (
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-activity-due">{labelFor("dueAt", "Due / scheduled")}</Label>
                     <DateTimePicker value={editDueAt} onChange={setEditDueAt} placeholder="Pick date & time" />
                   </div>
                 )}
-                {showStatus && (
+                {editShowStatus && (
                   <div className="space-y-1.5">
                     <Label htmlFor="edit-activity-status">{labelFor("status", "Status")}</Label>
                     <Select value={editStatus} onValueChange={(v) => setEditStatus(v as ActivityStatus)}>
@@ -857,7 +895,7 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
             )}
 
             {/* Description */}
-            {showDescription && (
+            {editShowDescription && (
               <div className="space-y-1.5">
                 <Label htmlFor="edit-activity-notes">{labelFor("description", "Notes")}</Label>
                 <Textarea
@@ -869,19 +907,30 @@ export function ActivityPanel({ entity, entityId }: ActivityPanelProps) {
               </div>
             )}
 
-            {/* Custom fields */}
-            {customFields.length > 0 && (
+            {/* Custom fields — filtered to the activity's (possibly re-picked) type */}
+            {editCustomFields.length > 0 && (
               <div className="grid gap-4 sm:grid-cols-2">
-                {customFields.map((f) => (
-                  <CustomFieldInput
-                    key={f.id}
-                    field={f}
-                    value={editCustom[f.fieldKey]}
-                    onChange={(val) =>
-                      setEditCustom((prev) => ({ ...prev, [f.fieldKey]: val }))
-                    }
-                  />
-                ))}
+                <AnimatePresence initial={false} mode="popLayout">
+                  {editCustomFields.map((f) => (
+                    <motion.div
+                      key={f.id}
+                      layout
+                      initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
+                      transition={{ duration: 0.22, ease: [0.2, 0.9, 0.25, 1] }}
+                      className={f.fieldType?.toUpperCase() === "TEXTAREA" ? "sm:col-span-2" : undefined}
+                    >
+                      <CustomFieldInput
+                        field={f}
+                        value={editCustom[f.fieldKey]}
+                        onChange={(val) =>
+                          setEditCustom((prev) => ({ ...prev, [f.fieldKey]: val }))
+                        }
+                      />
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
               </div>
             )}
 
