@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  ArrowRight,
   BarChart3,
   Kanban,
   Receipt,
@@ -13,10 +12,10 @@ import { Logo } from "@/components/brand/logo";
 import { ThemeMenu } from "@/components/theme-menu";
 import { DeveloperCredit } from "@/components/developer-credit";
 import { HeroV2 } from "@/components/landing/hero-v2";
+import { HeroV1, type HeroStat } from "@/components/landing/hero-v1";
 import { ScrollReveal } from "@/components/landing/scroll-reveal";
 import { prisma } from "@/lib/prisma";
 import { getHeroVersion } from "@/lib/app-config";
-import { formatCompactCurrency } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -154,13 +153,13 @@ export default async function LandingPage() {
     );
   }
 
-  // ----- v1: classic refined landing (default) -----
-  const stats = s
+  // ----- v1: premium animated landing (default) -----
+  const stats: HeroStat[] = s
     ? [
-        { label: "Pipeline value", value: formatCompactCurrency(s.pipeline) },
-        { label: "Active opportunities", value: s.openOpps.toLocaleString("en-IN") },
-        { label: "Quotations generated", value: s.quotations.toLocaleString("en-IN") },
-        { label: "Leads tracked", value: s.leads.toLocaleString("en-IN") },
+        { label: "Pipeline value", value: s.pipeline, kind: "currency" },
+        { label: "Active opportunities", value: s.openOpps, kind: "number" },
+        { label: "Quotations generated", value: s.quotations, kind: "number" },
+        { label: "Leads tracked", value: s.leads, kind: "number" },
       ]
     : [];
 
@@ -187,66 +186,12 @@ export default async function LandingPage() {
         </div>
       </header>
 
-      <section className="container pt-16 pb-14 text-center">
-        <p
-          dir="rtl"
-          className="font-urdu mx-auto max-w-3xl text-xl leading-[2] text-foreground/85 md:text-2xl"
-        >
-          منزل ون کے ساتھ، آپ کے ہر سودے کا سفر بنے آسان — اور آپ کی ٹیم پہنچے کامیابی کی منزل تک۔
-        </p>
-        <h1 className="mx-auto mt-6 max-w-4xl text-5xl font-semibold leading-[1.04] tracking-tight md:text-7xl">
-          The revenue platform that{" "}
-          <span className="text-gradient">runs your entire deal lifecycle.</span>
-        </h1>
-        <p className="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
-          Leads, opportunities, RFQs, quotations, rate cards, approvals and forecasts —
-          one elegant workspace, from first touch to closed-won.
-        </p>
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <Link href="/signup">
-            <Button size="xl" variant="gradient">
-              Start free trial <ArrowRight className="h-4 w-4" />
-            </Button>
-          </Link>
-          <Link href="/login">
-            <Button size="xl" variant="glass">See it in action</Button>
-          </Link>
-        </div>
-      </section>
+      <HeroV1 stats={stats} />
 
-      {/* Live, real-time platform metrics straight from the database */}
-      {stats.length ? (
-        <section id="metrics" className="container pb-20">
-          <div className="mx-auto max-w-4xl">
-            <div className="mb-4 flex items-center justify-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary/60" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-              </span>
-              Live platform metrics
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {stats.map((stat) => (
-                <div
-                  key={stat.label}
-                  className="rounded-2xl border bg-card/70 p-5 text-center shadow-sm transition-transform hover:-translate-y-0.5"
-                >
-                  <div className="font-display text-2xl font-semibold tracking-tight tabular-nums md:text-3xl">
-                    {stat.value}
-                  </div>
-                  <div className="mt-1.5 text-xs text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-            <p className="mt-3 text-center text-[11px] text-muted-foreground">
-              Updated in real time from the live workspace.
-            </p>
-          </div>
-        </section>
-      ) : null}
-
-      <FeaturesSection />
-      <CtaSection />
+      <FeaturesSection reveal />
+      <ScrollReveal>
+        <CtaSection />
+      </ScrollReveal>
 
       {/* Developer credit — luxury animated card */}
       <section className="container pb-20 pt-4">
