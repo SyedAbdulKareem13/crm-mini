@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextQuotationNumber } from "@/lib/numbering";
@@ -45,6 +46,7 @@ const schema = z.object({
   termsAndConditions: z.string().optional(),
   items: z.array(itemSchema).default([]),
   positions: z.array(positionSchema).default([]),
+  data: z.record(z.unknown()).optional(),
 });
 
 export async function POST(req: Request) {
@@ -79,6 +81,9 @@ export async function POST(req: Request) {
       validUntil: parsed.data.validUntil ? new Date(parsed.data.validUntil) : undefined,
       notes: parsed.data.notes,
       termsAndConditions: parsed.data.termsAndConditions,
+      ...(parsed.data.data && Object.keys(parsed.data.data).length
+        ? { data: parsed.data.data as Prisma.InputJsonValue }
+        : {}),
       baseCost: totals.baseCost,
       markupAmount: totals.markupAmount,
       discountAmount: totals.discountAmount,

@@ -24,12 +24,24 @@ import {
 } from "@/components/ui/select";
 import { INDUSTRIES } from "@/lib/constants";
 import {
-  CustomFieldsGrid,
+  CustomFieldItem,
   buildCustomData,
   missingRequiredCustom,
   seedCustomValues,
   useModuleConfig,
 } from "@/components/config/custom-fields";
+
+/** Core Customer form keys (config `position` fully drives the order). */
+const CORE_ORDER = [
+  "name",
+  "industry",
+  "gstNumber",
+  "country",
+  "region",
+  "website",
+  "billingAddress",
+  "shippingAddress",
+];
 
 export function CustomerDialog({
   open,
@@ -48,9 +60,17 @@ export function CustomerDialog({
   // Live CUSTOMER field configuration (label / active / required + custom fields).
   const { fields, customFields } = useModuleConfig("CUSTOMER", open);
   const cfg = new Map(fields.map((f) => [f.fieldKey, f]));
-  const shown = (key: string) => cfg.get(key)?.active ?? true;
   const labelOf = (key: string, fallback: string) => cfg.get(key)?.label ?? fallback;
   const requiredOf = (key: string) => cfg.get(key)?.required ?? false;
+
+  // One position-ordered flow of core + custom fields (fallback until config loads).
+  const ordered =
+    fields.length === 0
+      ? CORE_ORDER.map((key) => ({ key, custom: null as null | (typeof customFields)[number] }))
+      : fields
+          .filter((f) => f.active && (f.isCustom || CORE_ORDER.includes(f.fieldKey)))
+          .sort((a, b) => a.position - b.position)
+          .map((f) => ({ key: f.fieldKey, custom: f.isCustom ? f : null }));
 
   useEffect(() => {
     if (!open) return;
@@ -104,84 +124,86 @@ export function CustomerDialog({
           <DialogDescription>Add a customer master record.</DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <Label htmlFor="name">
-              {labelOf("name", "Customer name")}
-              <span className="text-destructive"> *</span>
-            </Label>
-            <Input id="name" name="name" required className="mt-1.5" />
-          </div>
-          {shown("industry") && (
-            <div>
-              <Label>
-                {labelOf("industry", "Industry")}
-                {requiredOf("industry") && <span className="text-destructive"> *</span>}
-              </Label>
-              <Select value={industry} onValueChange={setIndustry}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue placeholder="Select industry" />
-                </SelectTrigger>
-                <SelectContent>
-                  {INDUSTRIES.map((i) => (
-                    <SelectItem key={i} value={i}>
-                      {i}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          {shown("gstNumber") && (
-            <Field name="gstNumber" label={labelOf("gstNumber", "GST number")} required={requiredOf("gstNumber")} />
-          )}
-          {shown("country") && (
-            <Field name="country" label={labelOf("country", "Country")} required={requiredOf("country")} />
-          )}
-          {shown("region") && (
-            <Field name="region" label={labelOf("region", "Region")} required={requiredOf("region")} />
-          )}
-          {shown("website") && (
-            <Field
-              name="website"
-              label={labelOf("website", "Website")}
-              required={requiredOf("website")}
-              className="sm:col-span-2"
-            />
-          )}
-          {shown("billingAddress") && (
-            <div className="sm:col-span-2">
-              <Label htmlFor="billingAddress">
-                {labelOf("billingAddress", "Billing address")}
-                {requiredOf("billingAddress") && <span className="text-destructive"> *</span>}
-              </Label>
-              <Textarea
-                id="billingAddress"
-                name="billingAddress"
-                required={requiredOf("billingAddress")}
-                className="mt-1.5"
-              />
-            </div>
-          )}
-          {shown("shippingAddress") && (
-            <div className="sm:col-span-2">
-              <Label htmlFor="shippingAddress">
-                {labelOf("shippingAddress", "Shipping address")}
-                {requiredOf("shippingAddress") && <span className="text-destructive"> *</span>}
-              </Label>
-              <Textarea
-                id="shippingAddress"
-                name="shippingAddress"
-                required={requiredOf("shippingAddress")}
-                className="mt-1.5"
-              />
-            </div>
-          )}
-          <CustomFieldsGrid
-            fields={customFields}
-            values={custom}
-            onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
-            idPrefix="cust-cf"
-          />
+          {ordered.map(({ key, custom: cf }) => {
+            if (cf) {
+              return (
+                <CustomFieldItem
+                  key={cf.id}
+                  field={cf}
+                  value={custom[cf.fieldKey] ?? ""}
+                  onChange={(v) => setCustom((prev) => ({ ...prev, [cf.fieldKey]: v }))}
+                  idPrefix="cust-cf"
+                />
+              );
+            }
+            switch (key) {
+              case "name":
+                return (
+                  <div key={key} className="sm:col-span-2">
+                    <Label htmlFor="name">
+                      {labelOf("name", "Customer name")}
+                      <span className="text-destructive"> *</span>
+                    </Label>
+                    <Input id="name" name="name" required className="mt-1.5" />
+                  </div>
+                );
+              case "industry":
+                return (
+                  <div key={key}>
+                    <Label>
+                      {labelOf("industry", "Industry")}
+                      {requiredOf("industry") && <span className="text-destructive"> *</span>}
+                    </Label>
+                    <Select value={industry} onValueChange={setIndustry}>
+                      <SelectTrigger className="mt-1.5">
+                        <SelectValue placeholder="Select industry" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INDUSTRIES.map((i) => (
+                          <SelectItem key={i} value={i}>
+                            {i}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                );
+              case "gstNumber":
+              case "country":
+              case "region":
+                return (
+                  <Field
+                    key={key}
+                    name={key}
+                    label={labelOf(key, key === "gstNumber" ? "GST number" : key.charAt(0).toUpperCase() + key.slice(1))}
+                    required={requiredOf(key)}
+                  />
+                );
+              case "website":
+                return (
+                  <Field
+                    key={key}
+                    name="website"
+                    label={labelOf("website", "Website")}
+                    required={requiredOf("website")}
+                    className="sm:col-span-2"
+                  />
+                );
+              case "billingAddress":
+              case "shippingAddress":
+                return (
+                  <div key={key} className="sm:col-span-2">
+                    <Label htmlFor={key}>
+                      {labelOf(key, key === "billingAddress" ? "Billing address" : "Shipping address")}
+                      {requiredOf(key) && <span className="text-destructive"> *</span>}
+                    </Label>
+                    <Textarea id={key} name={key} required={requiredOf(key)} className="mt-1.5" />
+                  </div>
+                );
+              default:
+                return null;
+            }
+          })}
           <DialogFooter className="sm:col-span-2 mt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

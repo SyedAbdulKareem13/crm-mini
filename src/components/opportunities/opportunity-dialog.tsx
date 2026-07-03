@@ -25,7 +25,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { OPP_STAGES } from "@/lib/constants";
 import {
-  CustomFieldsGrid,
+  CustomFieldItem,
   buildCustomData,
   missingRequiredCustom,
   seedCustomValues,
@@ -74,6 +74,27 @@ export function OpportunityDialog({
     for (const f of fields) m.set(f.fieldKey, f);
     return m;
   }, [fields]);
+
+  /** Core keys this form can render (config `position` fully drives the order). */
+  const CORE = useMemo(
+    () =>
+      new Set(["title", "customerId", "stage", "expectedRevenue", "probability", "expectedCloseDate", "notes"]),
+    []
+  );
+  const FALLBACK_ORDER = useMemo(
+    () => ["title", "customerId", "stage", "expectedRevenue", "probability", "expectedCloseDate", "notes"],
+    []
+  );
+  const ordered = useMemo(() => {
+    if (fields.length === 0) {
+      // Config not loaded yet — render the default core order.
+      return FALLBACK_ORDER.map((key) => ({ key, custom: null as null | (typeof customFields)[number] }));
+    }
+    return fields
+      .filter((f) => f.active && (f.isCustom || CORE.has(f.fieldKey)))
+      .sort((a, b) => a.position - b.position)
+      .map((f) => ({ key: f.fieldKey, custom: f.isCustom ? f : null }));
+  }, [fields, customFields, CORE, FALLBACK_ORDER]);
 
   /** Config lookups with safe fallbacks (config not yet loaded = show everything). */
   const shown = (key: string) => {
@@ -168,110 +189,130 @@ export function OpportunityDialog({
           </p>
         ) : (
           <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <Label htmlFor="name">
-                {labelOf("title", "Opportunity name")}
-                <span className="text-destructive"> *</span>
-              </Label>
-              <Input id="name" name="name" required defaultValue={opportunity?.name ?? ""} className="mt-1.5" />
-            </div>
-            <div>
-              <Label>
-                {labelOf("customerId", "Customer")}
-                <span className="text-destructive"> *</span>
-              </Label>
-              <Select value={customerId} onValueChange={setCustomerId}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((c) => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            {shown("stage") && (
-              <div>
-                <Label>{labelOf("stage", "Stage")}</Label>
-                <Select value={stage} onValueChange={setStage}>
-                  <SelectTrigger className="mt-1.5">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {OPP_STAGES.map((s) => (
-                      <SelectItem key={s.value} value={s.value}>
-                        {s.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {shown("expectedRevenue") && (
-              <div>
-                <Label htmlFor="expectedRevenue">
-                  {labelOf("expectedRevenue", "Expected revenue (₹)")}
-                  {requiredOf("expectedRevenue") && <span className="text-destructive"> *</span>}
-                </Label>
-                <Input
-                  id="expectedRevenue"
-                  name="expectedRevenue"
-                  type="number"
-                  required={requiredOf("expectedRevenue")}
-                  defaultValue={opportunity ? Number(opportunity.expectedRevenue) : ""}
-                  className="mt-1.5"
-                />
-              </div>
-            )}
-            {shown("probability") && (
-              <div>
-                <Label htmlFor="probability">
-                  {labelOf("probability", "Probability %")}
-                </Label>
-                <Input
-                  id="probability"
-                  name="probability"
-                  type="number"
-                  min={0}
-                  max={100}
-                  defaultValue={opportunity?.probability ?? 20}
-                  className="mt-1.5"
-                />
-              </div>
-            )}
-            {shown("expectedCloseDate") && (
-              <div className="sm:col-span-2">
-                <Label>
-                  {labelOf("expectedCloseDate", "Expected close date")}
-                  {requiredOf("expectedCloseDate") && <span className="text-destructive"> *</span>}
-                </Label>
-                <div className="mt-1.5">
-                  <DatePicker
-                    name="expectedCloseDate"
-                    defaultValue={opportunity?.expectedCloseDate ? opportunity.expectedCloseDate.slice(0, 10) : ""}
-                    placeholder="Select close date"
+            {ordered.map(({ key, custom: cf }) => {
+              if (cf) {
+                return (
+                  <CustomFieldItem
+                    key={cf.id}
+                    field={cf}
+                    value={custom[cf.fieldKey] ?? ""}
+                    onChange={(v) => setCustom((prev) => ({ ...prev, [cf.fieldKey]: v }))}
+                    idPrefix="opp-cf"
                   />
-                </div>
-              </div>
-            )}
-            {shown("notes") && (
-              <div className="sm:col-span-2">
-                <Label htmlFor="notes">
-                  {labelOf("notes", "Notes")}
-                  {requiredOf("notes") && <span className="text-destructive"> *</span>}
-                </Label>
-                <Textarea id="notes" name="notes" defaultValue={opportunity?.notes ?? ""} className="mt-1.5" />
-              </div>
-            )}
-            <CustomFieldsGrid
-              fields={customFields}
-              values={custom}
-              onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
-              idPrefix="opp-cf"
-            />
+                );
+              }
+              switch (key) {
+                case "title":
+                  return (
+                    <div key={key} className="sm:col-span-2">
+                      <Label htmlFor="name">
+                        {labelOf("title", "Opportunity name")}
+                        <span className="text-destructive"> *</span>
+                      </Label>
+                      <Input id="name" name="name" required defaultValue={opportunity?.name ?? ""} className="mt-1.5" />
+                    </div>
+                  );
+                case "customerId":
+                  return (
+                    <div key={key}>
+                      <Label>
+                        {labelOf("customerId", "Customer")}
+                        <span className="text-destructive"> *</span>
+                      </Label>
+                      <Select value={customerId} onValueChange={setCustomerId}>
+                        <SelectTrigger className="mt-1.5">
+                          <SelectValue placeholder="Select customer" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {customers.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                case "stage":
+                  return (
+                    <div key={key}>
+                      <Label>{labelOf("stage", "Stage")}</Label>
+                      <Select value={stage} onValueChange={setStage}>
+                        <SelectTrigger className="mt-1.5">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {OPP_STAGES.map((s) => (
+                            <SelectItem key={s.value} value={s.value}>
+                              {s.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  );
+                case "expectedRevenue":
+                  return (
+                    <div key={key}>
+                      <Label htmlFor="expectedRevenue">
+                        {labelOf("expectedRevenue", "Expected revenue (₹)")}
+                        {requiredOf("expectedRevenue") && <span className="text-destructive"> *</span>}
+                      </Label>
+                      <Input
+                        id="expectedRevenue"
+                        name="expectedRevenue"
+                        type="number"
+                        required={requiredOf("expectedRevenue")}
+                        defaultValue={opportunity ? Number(opportunity.expectedRevenue) : ""}
+                        className="mt-1.5"
+                      />
+                    </div>
+                  );
+                case "probability":
+                  return (
+                    <div key={key}>
+                      <Label htmlFor="probability">{labelOf("probability", "Probability %")}</Label>
+                      <Input
+                        id="probability"
+                        name="probability"
+                        type="number"
+                        min={0}
+                        max={100}
+                        defaultValue={opportunity?.probability ?? 20}
+                        className="mt-1.5"
+                      />
+                    </div>
+                  );
+                case "expectedCloseDate":
+                  return (
+                    <div key={key} className="sm:col-span-2">
+                      <Label>
+                        {labelOf("expectedCloseDate", "Expected close date")}
+                        {requiredOf("expectedCloseDate") && <span className="text-destructive"> *</span>}
+                      </Label>
+                      <div className="mt-1.5">
+                        <DatePicker
+                          name="expectedCloseDate"
+                          defaultValue={opportunity?.expectedCloseDate ? opportunity.expectedCloseDate.slice(0, 10) : ""}
+                          placeholder="Select close date"
+                        />
+                      </div>
+                    </div>
+                  );
+                case "notes":
+                  return (
+                    <div key={key} className="sm:col-span-2">
+                      <Label htmlFor="notes">
+                        {labelOf("notes", "Notes")}
+                        {requiredOf("notes") && <span className="text-destructive"> *</span>}
+                      </Label>
+                      <Textarea id="notes" name="notes" defaultValue={opportunity?.notes ?? ""} className="mt-1.5" />
+                    </div>
+                  );
+                default:
+                  return null;
+              }
+            })}
             <DialogFooter className="sm:col-span-2 mt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel

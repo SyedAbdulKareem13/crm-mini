@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { computeQuotation } from "@/lib/quotation-engine";
 import { recordAudit, diffFields } from "@/lib/audit";
+import { mergeCustomData } from "@/lib/field-config";
 
 const itemSchema = z.object({
   itemType: z.enum(["MANPOWER", "NON_MANPOWER", "LICENSE"]),
@@ -25,6 +27,7 @@ const schema = z.object({
   termsAndConditions: z.string().optional().nullable(),
   validUntil: z.string().optional().nullable(),
   items: z.array(itemSchema).min(1, "Add at least one line item"),
+  data: z.record(z.unknown()).optional(),
 });
 
 // A quote can be edited while it is still being worked — not after it is
@@ -61,6 +64,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
   }
   const { notes, termsAndConditions, validUntil, items } = parsed.data;
+  const mergedData = mergeCustomData(existing.data, parsed.data.data);
 
   const totals = computeQuotation(
     items.map((i) => ({ unitCost: i.unitCost, quantity: i.quantity, markupPct: i.markupPct, discountPct: i.discountPct, taxPct: i.taxPct }))
@@ -75,6 +79,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         notes: notes ?? null,
         termsAndConditions: termsAndConditions ?? null,
         validUntil: newValidUntil,
+        ...(mergedData !== undefined ? { data: mergedData as Prisma.InputJsonValue } : {}),
         baseCost: totals.baseCost,
         markupAmount: totals.markupAmount,
         discountAmount: totals.discountAmount,
