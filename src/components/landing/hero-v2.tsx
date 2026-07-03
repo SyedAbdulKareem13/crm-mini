@@ -171,6 +171,10 @@ class HeroEngine {
   stream?: { n: number; ts: Float32Array; sp: Float32Array; jx: Float32Array; jy: Float32Array; jz: Float32Array; geo: THREE.BufferGeometry; pts: THREE.Points };
   points?: THREE.Points;
   fx?: { t0: number; wave: THREE.Mesh } | null;
+  // Ambient scene garnish: beacon ripple pulses, orbiting sparks, shooting stars.
+  pulses: { mesh: THREE.Mesh; ph: number }[] = [];
+  orbiters: { mesh: THREE.Mesh; r: number; sp: number; ph: number; tilt: number }[] = [];
+  comets: { mesh: THREE.Mesh; born: number; dur: number; from: THREE.Vector3; vel: THREE.Vector3; next: number }[] = [];
   P0!: THREE.Vector3;
   P1!: THREE.Vector3;
   _scratch!: THREE.Vector3;
@@ -414,6 +418,43 @@ class HeroEngine {
     );
     bg.add(rays);
     this.beacon.rays = rays;
+
+    // Ambient energy ripples expanding from the beacon (staggered phases).
+    this.pulses = [];
+    const pulseCount = m === "Calm" ? 2 : 3;
+    for (let i = 0; i < pulseCount; i++) {
+      const ring = new T.Mesh(
+        new T.RingGeometry(0.55, 0.585, 64),
+        new T.MeshBasicMaterial({ color: acc, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })
+      );
+      bg.add(ring);
+      this.pulses.push({ mesh: ring, ph: i / pulseCount });
+    }
+
+    // Tiny glowing sparks orbiting the destination at different radii/tilts.
+    this.orbiters = [];
+    const orbCount = m === "Calm" ? 2 : m === "Showcase" ? 4 : 3;
+    for (let i = 0; i < orbCount; i++) {
+      const spark = new T.Mesh(
+        new T.SphereGeometry(0.034, 12, 12),
+        new T.MeshBasicMaterial({ color: i % 2 ? 0xffffff : acc, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false })
+      );
+      bg.add(spark);
+      this.orbiters.push({ mesh: spark, r: 0.78 + i * 0.26, sp: (0.5 + i * 0.22) * (i % 2 ? -1 : 1), ph: i * 2.1, tilt: 0.35 + i * 0.3 });
+    }
+
+    // Shooting stars: occasional comets streaking across the deep background.
+    this.comets = [];
+    const cometCount = m === "Calm" ? 1 : 2;
+    for (let i = 0; i < cometCount; i++) {
+      const cometMesh = new T.Mesh(
+        new T.PlaneGeometry(1.7, 0.05),
+        new T.MeshBasicMaterial({ map: glowTex, color: 0xffffff, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false })
+      );
+      rig.add(cometMesh);
+      this.comets.push({ mesh: cometMesh, born: 0, dur: 1300, from: new T.Vector3(), vel: new T.Vector3(), next: performance.now() + 2600 + i * 4300 });
+    }
+
     this.placeBeacon();
 
     // Auto-traveling deal cards
@@ -598,6 +639,55 @@ class HeroEngine {
         else { this.fx.wave.scale.setScalar(0.2 + e * 3); (this.fx.wave.material as THREE.MeshBasicMaterial).opacity = (1 - e) * 0.85; baseGlow += (1 - e) * 0.7; }
       }
       (this.beacon.glow.material as THREE.MeshBasicMaterial).opacity = baseGlow;
+    }
+
+    // Ambient ripple pulses breathing outward from the beacon.
+    if (this.pulses.length) {
+      const period = 2.9;
+      this.pulses.forEach((p) => {
+        const e = ((t / period) + p.ph) % 1;
+        p.mesh.scale.setScalar(0.4 + e * 3.4);
+        (p.mesh.material as THREE.MeshBasicMaterial).opacity =
+          Math.sin(Math.min(1, e / 0.14) * Math.PI * 0.5) * (1 - e) * 0.45;
+      });
+    }
+
+    // Sparks orbiting the destination.
+    if (this.orbiters.length) {
+      this.orbiters.forEach((o) => {
+        const a = t * o.sp + o.ph;
+        o.mesh.position.set(
+          Math.cos(a) * o.r,
+          Math.sin(a) * o.r * Math.sin(o.tilt),
+          Math.sin(a) * o.r * Math.cos(o.tilt) * 0.35
+        );
+        (o.mesh.material as THREE.MeshBasicMaterial).opacity = 0.55 + 0.4 * Math.sin(a * 2);
+      });
+    }
+
+    // Occasional shooting stars across the deep background.
+    if (this.comets.length) {
+      this.comets.forEach((c) => {
+        if (c.born === 0 && now >= c.next) {
+          c.born = now;
+          const dir = Math.random() < 0.5 ? 1 : -1;
+          c.from.set(-dir * (2.5 + Math.random() * 4), 2.4 + Math.random() * 1.5, -2.6);
+          c.vel.set(dir * (3.4 + Math.random() * 1.8), -(0.9 + Math.random() * 0.8), 0);
+          c.dur = 1100 + Math.random() * 650;
+          c.mesh.rotation.z = Math.atan2(c.vel.y * (dir > 0 ? 1 : -1), Math.abs(c.vel.x)) * (dir > 0 ? 1 : -1);
+        }
+        if (c.born > 0) {
+          const e = (now - c.born) / c.dur;
+          if (e >= 1) {
+            c.born = 0;
+            c.next = now + 3200 + Math.random() * 5200;
+            (c.mesh.material as THREE.MeshBasicMaterial).opacity = 0;
+          } else {
+            c.mesh.position.set(c.from.x + c.vel.x * e, c.from.y + c.vel.y * e, c.from.z);
+            (c.mesh.material as THREE.MeshBasicMaterial).opacity = Math.sin(e * Math.PI) * 0.7;
+          }
+        }
+      });
     }
 
     if (this.trav.length && this.beacon) {
@@ -821,9 +911,12 @@ const HERO_CSS = `
 .mzh-signin{transition:border-color .2s, transform .1s}
 .mzh-signin:hover{border-color:var(--line-3)}
 .mzh-signin:active{transform:scale(.97)}
-.mzh-primary{transition:transform .12s, box-shadow .2s}
+.mzh-primary{transition:transform .12s, box-shadow .2s;position:relative;overflow:hidden}
 .mzh-primary:hover{transform:translateY(-2px)}
 .mzh-primary:active{transform:translateY(0) scale(.97)}
+@keyframes mzh-cta-sheen{0%,58%{transform:translateX(-140%) skewX(-16deg)}100%{transform:translateX(260%) skewX(-16deg)}}
+.mzh-primary::after{content:"";position:absolute;top:0;bottom:0;left:0;width:42%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.34),transparent);animation:mzh-cta-sheen 3.8s ease-in-out infinite;pointer-events:none}
+@media (prefers-reduced-motion:reduce){.mzh-primary::after{animation:none;opacity:0}}
 .mzh-ghost{transition:border-color .2s, transform .12s}
 .mzh-ghost:hover{border-color:var(--line-3);transform:translateY(-2px)}
 .mzh-ghost:active{transform:translateY(0) scale(.97)}
