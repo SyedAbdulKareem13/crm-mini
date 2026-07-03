@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit, diffFields } from "@/lib/audit";
+import { mergeCustomData } from "@/lib/field-config";
 
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
@@ -15,6 +17,7 @@ const updateSchema = z.object({
   notes: z.string().optional(),
   status: z.enum(["NEW", "CONTACTED", "QUALIFIED", "UNQUALIFIED", "CONVERTED", "LOST"]).optional(),
   expectedRevenue: z.coerce.number().optional(),
+  data: z.record(z.unknown()).optional(),
 });
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -33,9 +36,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   });
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const { data: customData, ...core } = parsed.data;
+  const mergedData = mergeCustomData(before.data, customData);
   const lead = await prisma.lead.update({
     where: { id, organizationId: session.user.organizationId },
-    data: parsed.data,
+    data: {
+      ...core,
+      ...(mergedData !== undefined ? { data: mergedData as Prisma.InputJsonValue } : {}),
+    },
   });
 
   const changes = diffFields(before as Record<string, unknown>, parsed.data as Record<string, unknown>, [

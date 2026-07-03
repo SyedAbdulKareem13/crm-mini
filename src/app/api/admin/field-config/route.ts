@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getModuleConfig, MODULES } from "@/lib/field-config";
@@ -31,6 +32,7 @@ const patchSchema = z.object({
   required: z.boolean().optional(),
   helpText: z.string().nullable().optional(),
   options: z.array(z.string()).nullable().optional(),
+  appliesTo: z.array(z.string()).nullable().optional(),
 });
 
 export async function PATCH(req: Request) {
@@ -48,7 +50,12 @@ export async function PATCH(req: Request) {
       ...(rest.active !== undefined ? { active: rest.active } : {}),
       ...(rest.required !== undefined ? { required: rest.required } : {}),
       ...(rest.helpText !== undefined ? { helpText: rest.helpText } : {}),
-      ...(rest.options !== undefined ? { options: rest.options ?? undefined } : {}),
+      ...(rest.options !== undefined
+        ? { options: rest.options === null ? Prisma.JsonNull : rest.options }
+        : {}),
+      ...(rest.appliesTo !== undefined
+        ? { appliesTo: rest.appliesTo === null || rest.appliesTo.length === 0 ? Prisma.JsonNull : rest.appliesTo }
+        : {}),
     },
   });
   return NextResponse.json({ field });
@@ -61,6 +68,7 @@ const addSchema = z.object({
   fieldType: z.enum(["text", "textarea", "number", "currency", "date", "email", "phone", "select"]).default("text"),
   required: z.boolean().default(false),
   options: z.array(z.string()).optional(),
+  appliesTo: z.array(z.string()).optional(),
 });
 const reorderSchema = z.object({ module: moduleEnum, order: z.array(z.string()).min(1) });
 
@@ -102,6 +110,7 @@ export async function POST(req: Request) {
       fieldType: parsed.data.fieldType,
       required: parsed.data.required,
       options: parsed.data.options ?? undefined,
+      appliesTo: parsed.data.appliesTo?.length ? parsed.data.appliesTo : undefined,
       isCustom: true,
       active: true,
       position: (max._max.position ?? 0) + 1,

@@ -12,6 +12,7 @@ import { OpportunityStage } from "@/components/opportunities/opportunity-stage";
 import { OpportunityEditButton } from "@/components/opportunities/opportunity-edit-button";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { ActivityPanel } from "@/components/activity/activity-panel";
+import { getModuleConfig } from "@/lib/field-config";
 
 export const dynamic = "force-dynamic";
 
@@ -52,7 +53,17 @@ export default async function OpportunityDetailPage({
     expectedCloseDate: opp.expectedCloseDate ? opp.expectedCloseDate.toISOString() : null,
     stage: opp.stage,
     notes: opp.notes,
+    data: (opp.data as Record<string, unknown> | null) ?? null,
   };
+
+  // Admin-defined custom field values, labelled from the OPPORTUNITY field config.
+  const oppConfig = await getModuleConfig(session.user.organizationId, "OPPORTUNITY");
+  const customEntries = Object.entries(oppForEdit.data ?? {})
+    .filter(([, v]) => v !== null && v !== undefined && v !== "")
+    .map(([k, v]) => ({
+      label: oppConfig.find((f) => f.fieldKey === k)?.label ?? k.replace(/^custom_/, "").replace(/_/g, " "),
+      value: String(v),
+    }));
 
   return (
     <div>
@@ -83,6 +94,9 @@ export default async function OpportunityDetailPage({
               <Info label="Revenue owner" value={opp.revenueOwner?.name ?? "Unassigned"} />
               <Info label="Created" value={formatDate(opp.createdAt)} />
               <Info label="Updated" value={formatDate(opp.updatedAt)} />
+              {customEntries.map((e) => (
+                <Info key={e.label} label={e.label} value={e.value} />
+              ))}
             </CardContent>
           </Card>
 

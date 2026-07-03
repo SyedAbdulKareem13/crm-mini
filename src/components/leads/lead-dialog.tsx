@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -23,11 +23,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LEAD_SOURCES, INDUSTRIES } from "@/lib/constants";
+import {
+  CustomFieldsGrid,
+  buildCustomData,
+  missingRequiredCustom,
+  seedCustomValues,
+  type ConfigField as SharedConfigField,
+} from "@/components/config/custom-fields";
 
 const LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "UNQUALIFIED", "CONVERTED", "LOST"] as const;
 
-/** Core Lead fields whose values the Lead API persists. Custom fields are
- * configurable in Admin but not stored on Lead yet, so they are not rendered. */
+/** Core Lead fields persisted as columns; admin-defined custom fields are
+ * rendered below them and persisted into Lead.data. */
 const PERSISTED_KEYS = new Set([
   "name",
   "company",
@@ -42,6 +49,7 @@ const PERSISTED_KEYS = new Set([
 ]);
 
 type ConfigField = {
+  id?: string;
   fieldKey: string;
   label: string;
   active: boolean;
@@ -49,6 +57,8 @@ type ConfigField = {
   position: number;
   fieldType: string;
   isCustom: boolean;
+  options?: string[] | null;
+  appliesTo?: string[] | null;
   helpText: string | null;
 };
 
@@ -78,6 +88,7 @@ export type LeadForEdit = {
   status: string;
   notes: string | null;
   expectedRevenue: string | number | null;
+  data?: Record<string, unknown> | null;
 };
 
 export function LeadDialog({
@@ -100,6 +111,7 @@ export function LeadDialog({
   const [industry, setIndustry] = useState<string>(lead?.industry ?? "");
   const [status, setStatus] = useState<string>(lead?.status ?? "NEW");
   const [fields, setFields] = useState<ConfigField[]>(FALLBACK_FIELDS);
+  const [custom, setCustom] = useState<Record<string, string>>({});
 
   // Pull the live Leads field configuration (label / active / required / order).
   useEffect(() => {
@@ -115,6 +127,29 @@ export function LeadDialog({
       alive = false;
     };
   }, [open]);
+
+  // Admin-defined custom fields (values live in Lead.data).
+  const customVisible = useMemo(
+    () =>
+      fields
+        .filter((f) => f.active && f.isCustom)
+        .sort((a, b) => a.position - b.position)
+        .map((f) => ({
+          ...f,
+          id: f.id ?? f.fieldKey,
+          module: "LEAD",
+          options: f.options ?? null,
+          appliesTo: f.appliesTo ?? null,
+        })) as SharedConfigField[],
+    [fields]
+  );
+
+  // Seed custom values when the dialog opens / config resolves.
+  useEffect(() => {
+    if (!open) return;
+    setCustom(seedCustomValues(customVisible, lead?.data ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, lead, customVisible.length]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -147,9 +182,18 @@ export function LeadDialog({
       toast.error(`${missing.label} is required`);
       return;
     }
+    const missingCustom = missingRequiredCustom(customVisible, custom);
+    if (missingCustom) {
+      toast.error(`${missingCustom.label} is required`);
+      return;
+    }
 
     // An empty optional number would coerce to 0 server-side — drop it instead.
     if (payload.expectedRevenue === "") delete payload.expectedRevenue;
+
+    // Admin-defined custom field values → Lead.data (server merges per key).
+    const customData = buildCustomData(customVisible, custom);
+    if (customData) payload.data = customData;
 
     setLoading(true);
     try {
@@ -326,6 +370,12 @@ export function LeadDialog({
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {visible.map(renderField)}
+          <CustomFieldsGrid
+            fields={customVisible}
+            values={custom}
+            onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
+            idPrefix="lead-cf"
+          />
           <DialogFooter className="sm:col-span-2 mt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel

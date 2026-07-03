@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -24,6 +24,13 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { OPP_STAGES } from "@/lib/constants";
+import {
+  CustomFieldsGrid,
+  buildCustomData,
+  missingRequiredCustom,
+  seedCustomValues,
+  useModuleConfig,
+} from "@/components/config/custom-fields";
 
 type Customer = { id: string; name: string };
 
@@ -36,6 +43,7 @@ export type OppForEdit = {
   expectedCloseDate: string | null;
   stage: string;
   notes: string | null;
+  data?: Record<string, unknown> | null;
 };
 
 export function OpportunityDialog({
@@ -56,6 +64,30 @@ export function OpportunityDialog({
   const [loading, setLoading] = useState(false);
   const [customerId, setCustomerId] = useState(opportunity?.customerId ?? "");
   const [stage, setStage] = useState(opportunity?.stage ?? "QUALIFICATION");
+  const [custom, setCustom] = useState<Record<string, string>>({});
+
+  // Live OPPORTUNITY field configuration (label / active / required + custom fields).
+  const { fields, customFields } = useModuleConfig("OPPORTUNITY", open);
+
+  const cfg = useMemo(() => {
+    const m = new Map<string, (typeof fields)[number]>();
+    for (const f of fields) m.set(f.fieldKey, f);
+    return m;
+  }, [fields]);
+
+  /** Config lookups with safe fallbacks (config not yet loaded = show everything). */
+  const shown = (key: string) => {
+    const f = cfg.get(key);
+    return f ? f.active : true;
+  };
+  const labelOf = (key: string, fallback: string) => cfg.get(key)?.label ?? fallback;
+  const requiredOf = (key: string, fallback = false) => cfg.get(key)?.required ?? fallback;
+
+  useEffect(() => {
+    if (!open) return;
+    setCustom(seedCustomValues(customFields, opportunity?.data ?? null));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, opportunity, customFields.length]);
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -74,6 +106,25 @@ export function OpportunityDialog({
     };
     const close = String(form.get("expectedCloseDate") ?? "");
     if (close) payload.expectedCloseDate = close;
+
+    // Configured `required` on core fields rendered without native validation.
+    if (requiredOf("expectedCloseDate") && !close) {
+      toast.error(`${labelOf("expectedCloseDate", "Expected close date")} is required`);
+      return;
+    }
+    if (requiredOf("notes") && !String(form.get("notes") ?? "").trim()) {
+      toast.error(`${labelOf("notes", "Notes")} is required`);
+      return;
+    }
+    const missingCustom = missingRequiredCustom(customFields, custom);
+    if (missingCustom) {
+      toast.error(`${missingCustom.label} is required`);
+      return;
+    }
+
+    // Admin-defined custom field values → Opportunity.data (server merges per key).
+    const customData = buildCustomData(customFields, custom);
+    if (customData) payload.data = customData;
 
     setLoading(true);
     try {
@@ -118,11 +169,17 @@ export function OpportunityDialog({
         ) : (
           <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="sm:col-span-2">
-              <Label htmlFor="name">Opportunity name</Label>
+              <Label htmlFor="name">
+                {labelOf("title", "Opportunity name")}
+                <span className="text-destructive"> *</span>
+              </Label>
               <Input id="name" name="name" required defaultValue={opportunity?.name ?? ""} className="mt-1.5" />
             </div>
             <div>
-              <Label>Customer</Label>
+              <Label>
+                {labelOf("customerId", "Customer")}
+                <span className="text-destructive"> *</span>
+              </Label>
               <Select value={customerId} onValueChange={setCustomerId}>
                 <SelectTrigger className="mt-1.5">
                   <SelectValue placeholder="Select customer" />
@@ -136,57 +193,85 @@ export function OpportunityDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div>
-              <Label>Stage</Label>
-              <Select value={stage} onValueChange={setStage}>
-                <SelectTrigger className="mt-1.5">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {OPP_STAGES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="expectedRevenue">Expected revenue (₹)</Label>
-              <Input
-                id="expectedRevenue"
-                name="expectedRevenue"
-                type="number"
-                defaultValue={opportunity ? Number(opportunity.expectedRevenue) : ""}
-                className="mt-1.5"
-              />
-            </div>
-            <div>
-              <Label htmlFor="probability">Probability %</Label>
-              <Input
-                id="probability"
-                name="probability"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={opportunity?.probability ?? 20}
-                className="mt-1.5"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Label>Expected close date</Label>
-              <div className="mt-1.5">
-                <DatePicker
-                  name="expectedCloseDate"
-                  defaultValue={opportunity?.expectedCloseDate ? opportunity.expectedCloseDate.slice(0, 10) : ""}
-                  placeholder="Select close date"
+            {shown("stage") && (
+              <div>
+                <Label>{labelOf("stage", "Stage")}</Label>
+                <Select value={stage} onValueChange={setStage}>
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {OPP_STAGES.map((s) => (
+                      <SelectItem key={s.value} value={s.value}>
+                        {s.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {shown("expectedRevenue") && (
+              <div>
+                <Label htmlFor="expectedRevenue">
+                  {labelOf("expectedRevenue", "Expected revenue (₹)")}
+                  {requiredOf("expectedRevenue") && <span className="text-destructive"> *</span>}
+                </Label>
+                <Input
+                  id="expectedRevenue"
+                  name="expectedRevenue"
+                  type="number"
+                  required={requiredOf("expectedRevenue")}
+                  defaultValue={opportunity ? Number(opportunity.expectedRevenue) : ""}
+                  className="mt-1.5"
                 />
               </div>
-            </div>
-            <div className="sm:col-span-2">
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea id="notes" name="notes" defaultValue={opportunity?.notes ?? ""} className="mt-1.5" />
-            </div>
+            )}
+            {shown("probability") && (
+              <div>
+                <Label htmlFor="probability">
+                  {labelOf("probability", "Probability %")}
+                </Label>
+                <Input
+                  id="probability"
+                  name="probability"
+                  type="number"
+                  min={0}
+                  max={100}
+                  defaultValue={opportunity?.probability ?? 20}
+                  className="mt-1.5"
+                />
+              </div>
+            )}
+            {shown("expectedCloseDate") && (
+              <div className="sm:col-span-2">
+                <Label>
+                  {labelOf("expectedCloseDate", "Expected close date")}
+                  {requiredOf("expectedCloseDate") && <span className="text-destructive"> *</span>}
+                </Label>
+                <div className="mt-1.5">
+                  <DatePicker
+                    name="expectedCloseDate"
+                    defaultValue={opportunity?.expectedCloseDate ? opportunity.expectedCloseDate.slice(0, 10) : ""}
+                    placeholder="Select close date"
+                  />
+                </div>
+              </div>
+            )}
+            {shown("notes") && (
+              <div className="sm:col-span-2">
+                <Label htmlFor="notes">
+                  {labelOf("notes", "Notes")}
+                  {requiredOf("notes") && <span className="text-destructive"> *</span>}
+                </Label>
+                <Textarea id="notes" name="notes" defaultValue={opportunity?.notes ?? ""} className="mt-1.5" />
+              </div>
+            )}
+            <CustomFieldsGrid
+              fields={customFields}
+              values={custom}
+              onChange={(k, v) => setCustom((prev) => ({ ...prev, [k]: v }))}
+              idPrefix="opp-cf"
+            />
             <DialogFooter className="sm:col-span-2 mt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
                 Cancel

@@ -78,6 +78,7 @@ model FieldConfig {
   isCustom   Boolean @default(false)
   fieldType  String  @default("text") // text|textarea|number|date|email|phone|select|currency
   options    Json?   // for select fields: string[]
+  appliesTo  Json?   // ACTIVITY module only: activity-type keys this field applies to (null/[] = all types)
   helpText   String?
 
   createdAt  DateTime @default(now())
@@ -249,6 +250,7 @@ model Customer {
   country        String?
   region         String?
   website        String?
+  data           Json?    // values for admin-defined custom fields
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -313,6 +315,7 @@ model Lead {
   notes          String?    @db.Text
   status         LeadStatus @default(NEW)
   expectedRevenue Decimal?   @db.Decimal(14, 2)
+  data           Json?      // values for admin-defined custom fields
 
   territoryId    String?
   territory      Territory? @relation(fields: [territoryId], references: [id])
@@ -382,6 +385,7 @@ model Opportunity {
   stageEnteredAt   DateTime @default(now())
   lostReason       String?
   notes            String?  @db.Text
+  data             Json?    // values for admin-defined custom fields
 
   fromLead         Lead?    @relation("LeadToOpp")
   rfqs             RFQ[]
@@ -435,6 +439,7 @@ model RFQ {
   terms           String?   @db.Text
   remarks         String?   @db.Text
   status          RFQStatus @default(DRAFT)
+  data            Json?     // values for admin-defined custom fields
 
   lineItems       RFQLineItem[]
   quotations      Quotation[]
@@ -566,6 +571,7 @@ model Quotation {
   validUntil      DateTime?
   notes           String?  @db.Text
   termsAndConditions String? @db.Text
+  data            Json?    // values for admin-defined custom fields
 
   // computed totals (kept on row for fast reads)
   baseCost        Decimal  @default(0) @db.Decimal(14, 2)

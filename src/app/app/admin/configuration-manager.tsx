@@ -57,6 +57,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 /* ------------------------------------------------------------------ *
@@ -92,6 +93,8 @@ type FieldConfig = {
   isCustom: boolean;
   fieldType: FieldType;
   options: string[] | null;
+  /** ACTIVITY module: activity-type keys this field applies to (null/[] = all types). */
+  appliesTo: string[] | null;
   helpText: string | null;
 };
 
@@ -299,6 +302,25 @@ function FieldsPanel() {
     void load(module);
   }, [module, load]);
 
+  // Activity types — used for the "Applies to" scoping control on ACTIVITY fields.
+  const [actTypes, setActTypes] = useState<ActivityType[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetch("/api/admin/activity-types")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (alive && data?.types) {
+          setActTypes(
+            [...(data.types as ActivityType[])].sort((a, b) => a.position - b.position)
+          );
+        }
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   const setPending = useCallback((id: string, on: boolean) => {
     setPendingIds((prev) => {
       const next = new Set(prev);
@@ -312,7 +334,7 @@ function FieldsPanel() {
    * On failure we re-fetch the module rather than restoring a captured
    * snapshot: a stale snapshot would clobber other rows edited concurrently. */
   const patchField = useCallback(
-    async (id: string, patch: Partial<Pick<FieldConfig, "label" | "active" | "required" | "helpText" | "options">>) => {
+    async (id: string, patch: Partial<Pick<FieldConfig, "label" | "active" | "required" | "helpText" | "options" | "appliesTo">>) => {
       setFields((prev) => prev.map((f) => (f.id === id ? { ...f, ...patch } : f)));
       setPending(id, true);
       try {
@@ -497,12 +519,14 @@ function FieldsPanel() {
           <p className="mt-2 flex items-start gap-1.5 text-xs text-muted-foreground">
             <Sparkles className="mt-0.5 h-3 w-3 shrink-0" />
             {module === "ACTIVITY" ? (
-              <span>Custom fields appear on the {moduleLabel} form and their values are saved. Remove anytime.</span>
+              <span>
+                Custom fields appear when logging or editing an activity and their values are saved. Use{" "}
+                <em>Applies to</em> on a field to show it only for specific activity types.
+              </span>
             ) : (
               <span>
-                Showing, hiding, relabelling, reordering and requiring the core fields above is fully live for{" "}
-                {moduleLabel}. Capturing values for <em>custom</em> fields on the {moduleLabel} form is rolling out —
-                today it’s live for Activities.
+                Custom fields appear on the {moduleLabel} form and their values are saved with the record. Core
+                fields honour show/hide, label, required and order live.
               </span>
             )}
           </p>
@@ -533,6 +557,8 @@ function FieldsPanel() {
                   onActive={(active) => void patchField(f.id, { active })}
                   onRequired={(required) => void patchField(f.id, { required })}
                   onDelete={() => void deleteField(f.id)}
+                  activityTypes={module === "ACTIVITY" ? actTypes : undefined}
+                  onAppliesTo={(keys) => void patchField(f.id, { appliesTo: keys })}
                 />
               ))}
             </AnimatePresence>
@@ -554,6 +580,8 @@ function FieldRow({
   onActive,
   onRequired,
   onDelete,
+  activityTypes,
+  onAppliesTo,
 }: {
   field: FieldConfig;
   index: number;
@@ -565,6 +593,9 @@ function FieldRow({
   onActive: (active: boolean) => void;
   onRequired: (required: boolean) => void;
   onDelete: () => void;
+  /** Provided only for the ACTIVITY module — enables per-type field scoping. */
+  activityTypes?: ActivityType[];
+  onAppliesTo?: (keys: string[]) => void;
 }) {
   const [label, setLabelState] = useState(field.label);
   useEffect(() => setLabelState(field.label), [field.label]);
@@ -655,6 +686,15 @@ function FieldRow({
         </Badge>
       )}
 
+      {/* Applies-to (ACTIVITY module): scope this field to specific activity types */}
+      {activityTypes && onAppliesTo && field.fieldKey !== "type" && field.fieldKey !== "subject" && (
+        <AppliesToPicker
+          types={activityTypes}
+          value={field.appliesTo ?? []}
+          onChange={onAppliesTo}
+        />
+      )}
+
       {/* Active */}
       <div className="flex items-center gap-1.5">
         <span className="hidden text-xs text-muted-foreground lg:inline">Active</span>
@@ -688,6 +728,104 @@ function FieldRow({
         ) : null}
       </div>
     </motion.li>
+  );
+}
+
+/* ------------------------------------------------------------------ *
+ * APPLIES-TO PICKER — scope an ACTIVITY field to specific types
+ * ------------------------------------------------------------------ */
+
+function AppliesToPicker({
+  types,
+  value,
+  onChange,
+}: {
+  types: ActivityType[];
+  value: string[];
+  onChange: (keys: string[]) => void;
+}) {
+  const all = value.length === 0;
+  const label = all
+    ? "All types"
+    : value.length === 1
+      ? types.find((t) => t.key === value[0])?.label ?? "1 type"
+      : `${value.length} types`;
+
+  function toggle(key: string) {
+    // "All" renders every chip as on, so toggling from "all" removes that one type.
+    const base = value.length === 0 ? types.map((t) => t.key) : value;
+    const next = base.includes(key) ? base.filter((k) => k !== key) : [...base, key];
+    if (next.length === 0) return; // keep at least one type selected
+    // Selecting every type is the same as "all" — store it as unscoped.
+    onChange(next.length >= types.length ? [] : next);
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          className={cn(
+            "hidden items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium transition-colors sm:inline-flex",
+            all
+              ? "border-border bg-background/60 text-muted-foreground hover:text-foreground"
+              : "border-primary/40 bg-primary/10 text-primary"
+          )}
+          title="Which activity types show this field"
+        >
+          <ListFilter className="h-3 w-3" />
+          {label}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-60 p-3" align="end">
+        <div className="mb-2 flex items-center justify-between">
+          <p className="text-xs font-medium text-muted-foreground">Show this field for</p>
+          {!all && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-xs font-medium text-primary hover:underline"
+            >
+              All types
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-1.5">
+          {types.map((t) => {
+            const Ico = ICON_MAP[t.icon] ?? ActivityIcon;
+            const on = all || value.includes(t.key);
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => toggle(t.key)}
+                aria-pressed={on}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium transition-all",
+                  on
+                    ? "border-transparent text-foreground shadow-sm ring-1 ring-offset-1 ring-offset-background"
+                    : "border-border bg-background/60 text-muted-foreground opacity-60 hover:opacity-100"
+                )}
+                style={
+                  on
+                    ? ({
+                        backgroundColor: `${t.color}1f`,
+                        ["--tw-ring-color" as string]: t.color,
+                      } as React.CSSProperties)
+                    : undefined
+                }
+              >
+                <Ico className="h-3 w-3" style={{ color: t.color }} aria-hidden />
+                {t.label}
+              </button>
+            );
+          })}
+        </div>
+        <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+          Unselected types won&apos;t show this field when logging or editing an activity.
+        </p>
+      </PopoverContent>
+    </Popover>
   );
 }
 

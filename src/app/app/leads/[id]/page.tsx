@@ -9,6 +9,7 @@ import { ConvertLeadButton } from "./convert-button";
 import { LeadEditButton } from "@/components/leads/lead-edit-button";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { ActivityPanel } from "@/components/activity/activity-panel";
+import { getModuleConfig } from "@/lib/field-config";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -40,7 +41,17 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     status: lead.status,
     notes: lead.notes,
     expectedRevenue: lead.expectedRevenue != null ? Number(lead.expectedRevenue) : null,
+    data: (lead.data as Record<string, unknown> | null) ?? null,
   };
+
+  // Admin-defined custom field values, labelled from the LEAD field config.
+  const leadConfig = await getModuleConfig(session.user.organizationId, "LEAD");
+  const customEntries = Object.entries(leadForEdit.data ?? {})
+    .filter(([, v]) => v !== null && v !== undefined && v !== "")
+    .map(([k, v]) => ({
+      label: leadConfig.find((f) => f.fieldKey === k)?.label ?? k.replace(/^custom_/, "").replace(/_/g, " "),
+      value: String(v),
+    }));
 
   return (
     <div>
@@ -74,6 +85,9 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
               <Info label="Expected" value={formatCompactCurrency(lead.expectedRevenue ? Number(lead.expectedRevenue) : 0)} />
               <Info label="Created" value={formatDate(lead.createdAt)} />
               <Info label="Updated" value={formatDate(lead.updatedAt)} />
+              {customEntries.map((e) => (
+                <Info key={e.label} label={e.label} value={e.value} />
+              ))}
             </CardContent>
           </Card>
 
