@@ -171,8 +171,7 @@ class HeroEngine {
   stream?: { n: number; ts: Float32Array; sp: Float32Array; jx: Float32Array; jy: Float32Array; jz: Float32Array; geo: THREE.BufferGeometry; pts: THREE.Points };
   points?: THREE.Points;
   fx?: { t0: number; wave: THREE.Mesh } | null;
-  // Ambient scene garnish: beacon ripple pulses, orbiting sparks, shooting stars.
-  pulses: { mesh: THREE.Mesh; ph: number }[] = [];
+  // Ambient scene garnish: one orbiting spark, rare shooting stars.
   orbiters: { mesh: THREE.Mesh; r: number; sp: number; ph: number; tilt: number }[] = [];
   comets: { mesh: THREE.Mesh; born: number; dur: number; from: THREE.Vector3; vel: THREE.Vector3; next: number }[] = [];
   P0!: THREE.Vector3;
@@ -419,33 +418,23 @@ class HeroEngine {
     bg.add(rays);
     this.beacon.rays = rays;
 
-    // Ambient energy ripples expanding from the beacon (staggered phases).
-    this.pulses = [];
-    const pulseCount = m === "Calm" ? 2 : 3;
-    for (let i = 0; i < pulseCount; i++) {
-      const ring = new T.Mesh(
-        new T.RingGeometry(0.55, 0.585, 64),
-        new T.MeshBasicMaterial({ color: acc, transparent: true, opacity: 0, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide })
-      );
-      bg.add(ring);
-      this.pulses.push({ mesh: ring, ph: i / pulseCount });
-    }
-
-    // Tiny glowing sparks orbiting the destination at different radii/tilts.
+    // A single, subtle spark orbiting the destination — kept sparse so the
+    // beacon reads calm rather than busy (no extra rings around it).
     this.orbiters = [];
-    const orbCount = m === "Calm" ? 2 : m === "Showcase" ? 4 : 3;
+    const orbCount = m === "Calm" ? 1 : 2;
     for (let i = 0; i < orbCount; i++) {
       const spark = new T.Mesh(
-        new T.SphereGeometry(0.034, 12, 12),
-        new T.MeshBasicMaterial({ color: i % 2 ? 0xffffff : acc, transparent: true, opacity: 0.9, blending: T.AdditiveBlending, depthWrite: false })
+        new T.SphereGeometry(0.03, 12, 12),
+        new T.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, blending: T.AdditiveBlending, depthWrite: false })
       );
       bg.add(spark);
-      this.orbiters.push({ mesh: spark, r: 0.78 + i * 0.26, sp: (0.5 + i * 0.22) * (i % 2 ? -1 : 1), ph: i * 2.1, tilt: 0.35 + i * 0.3 });
+      this.orbiters.push({ mesh: spark, r: 1.05 + i * 0.3, sp: 0.35 * (i % 2 ? -1 : 1), ph: i * 2.1, tilt: 0.4 + i * 0.25 });
     }
 
-    // Shooting stars: occasional comets streaking across the deep background.
+    // Shooting stars: rare comets streaking across the deep background (away
+    // from the beacon), spaced well apart so at most one is ever visible.
     this.comets = [];
-    const cometCount = m === "Calm" ? 1 : 2;
+    const cometCount = 1;
     for (let i = 0; i < cometCount; i++) {
       const cometMesh = new T.Mesh(
         new T.PlaneGeometry(1.7, 0.05),
@@ -641,18 +630,7 @@ class HeroEngine {
       (this.beacon.glow.material as THREE.MeshBasicMaterial).opacity = baseGlow;
     }
 
-    // Ambient ripple pulses breathing outward from the beacon.
-    if (this.pulses.length) {
-      const period = 2.9;
-      this.pulses.forEach((p) => {
-        const e = ((t / period) + p.ph) % 1;
-        p.mesh.scale.setScalar(0.4 + e * 3.4);
-        (p.mesh.material as THREE.MeshBasicMaterial).opacity =
-          Math.sin(Math.min(1, e / 0.14) * Math.PI * 0.5) * (1 - e) * 0.45;
-      });
-    }
-
-    // Sparks orbiting the destination.
+    // Sparks orbiting the destination — sparse and slow, no extra rings.
     if (this.orbiters.length) {
       this.orbiters.forEach((o) => {
         const a = t * o.sp + o.ph;
@@ -661,7 +639,7 @@ class HeroEngine {
           Math.sin(a) * o.r * Math.sin(o.tilt),
           Math.sin(a) * o.r * Math.cos(o.tilt) * 0.35
         );
-        (o.mesh.material as THREE.MeshBasicMaterial).opacity = 0.55 + 0.4 * Math.sin(a * 2);
+        (o.mesh.material as THREE.MeshBasicMaterial).opacity = 0.45 + 0.3 * Math.sin(a * 2);
       });
     }
 
