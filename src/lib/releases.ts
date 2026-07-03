@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.9.0";
+export const CURRENT_VERSION = "0.10.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,19 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.10.0",
+    date: "2026-06-29",
+    title: "Per-type activity fields, custom fields everywhere & global search",
+    summary: "Each activity type can have its own field set, custom fields now save on every module form, the whole app is searchable from ⌘K, and navigation got a buttery motion pass.",
+    items: [
+      { type: "new", text: "Per-activity-type fields — scope any activity field (core or custom) to specific types with the new “Applies to” picker in Admin → Configuration; logging a Call, Meeting or Note now shows only that type's fields, with smooth animated swaps." },
+      { type: "new", text: "Custom fields with saved values on Leads, Opportunities and Customers — admin-defined fields render on the forms, honour required, and display on the record with their configured labels." },
+      { type: "improved", text: "Opportunity and Customer forms are now config-driven (label, show/hide, required) like the Lead form." },
+      { type: "new", text: "Global search in the ⌘K palette — live results across leads, opportunities, customers, RFQs and quotations; jump straight to any record." },
+      { type: "improved", text: "Motion pass: soft page transitions, staggered dashboard cards and hover-lift throughout — honouring reduced-motion preferences." },
+    ],
+  },
   {
     version: "0.9.0",
     date: "2026-06-26",
