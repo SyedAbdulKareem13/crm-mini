@@ -1,153 +1,59 @@
 package com.manzilone.app;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.webkit.WebView;
 
 import com.getcapacitor.Bridge;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+
 /**
- * Stock Capacitor activity + a native mobile shim.
+ * Capacitor activity + an OVER-THE-AIR mobile shim.
  *
- * The app loads the live Manzil One website, so responsive tweaks and the
- * mobile navigation menu would normally need a website redeploy. Instead we
- * inject CSS + a full navigation drawer into every page the WebView finishes
- * loading (works cross-origin because the host app injects it, not page
- * script). This keeps every section reachable on phones and ships in the APK.
+ * All mobile UI fixes live in one file — www/mz-shim.js — which is:
+ *   1. bundled into the APK (offline fallback), and
+ *   2. re-fetched from the repo at every launch (SHIM_URL) and cached,
+ * then injected into every page the WebView loads (page-load event + a
+ * periodic idempotent re-inject).
+ *
+ * Result: shipping a mobile UI fix = pushing mz-shim.js to the branch.
+ * The installed app picks it up on next launch — NO new APK required.
  */
 public class MainActivity extends BridgeActivity {
 
-    private static final String INJECT_JS = """
-        (function(){
-          try{
-            if (location.pathname.indexOf('/app') !== 0) {
-              // not an in-app page (loader/login) — only apply the CSS shim
-            }
-            if (!document.getElementById('mz-style')) {
-              var css = ''
-                + '@media (max-width:1023px){'
-                + 'html,body{overflow-x:hidden !important;max-width:100% !important}'
-                + '[role=dialog]{width:calc(100vw - 24px) !important;max-width:32rem !important;max-height:86dvh !important;overflow-y:auto !important;overscroll-behavior:contain !important}'
-                + 'main{padding-bottom:7.5rem !important;overflow-x:clip !important}'
-                + '}'
-                + '@media (max-width:640px){'
-                + 'header > button:first-child{flex:1 1 auto !important;min-width:0 !important;max-width:none !important}'
-                + 'header > div:last-child{flex:0 0 auto !important}'
-                + 'input,textarea,select{font-size:16px !important}'
-                + '}'
-                + '#mz-fab{position:fixed;right:16px;bottom:calc(88px + env(safe-area-inset-bottom));z-index:2147483000;width:54px;height:54px;border:0;border-radius:17px;background:linear-gradient(180deg,#ff8a65,#ff5c5c);color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 14px 30px -8px rgba(255,92,92,.6)}'
-                + '#mz-fab:active{transform:scale(.94)}'
-                + '#mz-fab svg{width:24px;height:24px;stroke:#fff;stroke-width:2.4;fill:none;stroke-linecap:round}'
-                + '#mz-ov{position:fixed;inset:0;z-index:2147483001;display:none;flex-direction:column;justify-content:flex-end;background:rgba(20,21,26,.40);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}'
-                + '#mz-ov.mz-open{display:flex}'
-                + '#mz-sheet{background:#f7f7f0;border-radius:24px 24px 0 0;max-height:84vh;overflow-y:auto;padding:14px 14px calc(22px + env(safe-area-inset-bottom));box-shadow:0 -22px 54px -22px rgba(20,21,26,.45);animation:mzup .28s cubic-bezier(.16,1,.3,1)}'
-                + '@keyframes mzup{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}'
-                + '#mz-sheet .mz-h{display:flex;align-items:center;justify-content:space-between;margin:6px 6px 12px}'
-                + '#mz-sheet .mz-h b{font:700 17px/1 -apple-system,Roboto,system-ui,sans-serif;color:#14151a}'
-                + '#mz-x{border:0;background:#ecebe4;color:#14151a;border-radius:10px;width:34px;height:34px;font-size:19px;line-height:1}'
-                + '#mz-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}'
-                + '#mz-grid a{display:flex;align-items:center;gap:10px;padding:13px 12px;border-radius:14px;background:#fff;border:1px solid rgba(20,21,26,.08);color:#14151a;text-decoration:none;font:600 13.5px/1.15 -apple-system,Roboto,system-ui,sans-serif}'
-                + '#mz-grid a:active{background:#fff2ec}'
-                + '#mz-grid .mz-e{font-size:17px;width:22px;text-align:center}'
-                // Manz AI: stop the spinning halo border (the stray diagonal line)
-                + '.manz-halo::before{animation:none !important;opacity:.25 !important}';
-              var st=document.createElement('style');st.id='mz-style';st.appendChild(document.createTextNode(css));
-              (document.head||document.documentElement).appendChild(st);
-            }
+    private static final String SHIM_URL =
+        "https://raw.githubusercontent.com/SyedAbdulKareem13/crm-mini/claude/manzilone-mobile-app-yjajl7/mobile/www/mz-shim.js";
+    private static final String PREFS = "mz_shim";
+    private static final String KEY_JS = "js";
 
-            if (location.pathname.indexOf('/app') !== 0) return;
-
-            var ITEMS = [
-              ['/app','Dashboard','\\uD83D\\uDCCA'],
-              ['/app/ai','Manz AI','\\u2728'],
-              ['/app/leads','Leads','\\uD83D\\uDC65'],
-              ['/app/opportunities','Opportunities','\\uD83C\\uDFAF'],
-              ['/app/pipeline','Pipeline','\\uD83D\\uDDC2'],
-              ['/app/rfqs','RFQs','\\uD83D\\uDCC4'],
-              ['/app/quotations','Quotations','\\uD83E\\uDDFE'],
-              ['/app/customers','Customers','\\uD83C\\uDFE2'],
-              ['/app/activities','Activities','\\uD83D\\uDCC5'],
-              ['/app/rate-cards','Rate Cards','\\uD83D\\uDCB2'],
-              ['/app/approvals','Approvals','\\u2705'],
-              ['/app/reports','Reports','\\uD83D\\uDCC8'],
-              ['/app/audit','Audit Log','\\uD83D\\uDD52'],
-              ['/app/releases','What is New','\\uD83D\\uDE80'],
-              ['/app/admin','Admin','\\u2699\\uFE0F'],
-              ['/app/settings','Settings','\\uD83D\\uDD27']
-            ];
-
-            function build(){
-              if (location.pathname.indexOf('/app') !== 0) return;
-              if (document.getElementById('mz-fab')) return;
-              if (window.innerWidth >= 1024) return;
-
-              var fab=document.createElement('button');
-              fab.id='mz-fab';fab.setAttribute('aria-label','All sections');
-              fab.innerHTML='<svg viewBox=\\"0 0 24 24\\"><line x1=\\"4\\" y1=\\"7\\" x2=\\"20\\" y2=\\"7\\"/><line x1=\\"4\\" y1=\\"12\\" x2=\\"20\\" y2=\\"12\\"/><line x1=\\"4\\" y1=\\"17\\" x2=\\"20\\" y2=\\"17\\"/></svg>';
-
-              var ov=document.createElement('div');ov.id='mz-ov';
-              var sheet=document.createElement('div');sheet.id='mz-sheet';
-              var head=document.createElement('div');head.className='mz-h';
-              var title=document.createElement('b');title.textContent='All sections';
-              var x=document.createElement('button');x.id='mz-x';x.innerHTML='\\u00D7';
-              head.appendChild(title);head.appendChild(x);
-              var grid=document.createElement('div');grid.id='mz-grid';
-              ITEMS.forEach(function(it){
-                var a=document.createElement('a');a.href=it[0];
-                var e=document.createElement('span');e.className='mz-e';e.textContent=it[2];
-                var t=document.createElement('span');t.textContent=it[1];
-                a.appendChild(e);a.appendChild(t);
-                a.addEventListener('click',function(ev){ev.preventDefault();ov.classList.remove('mz-open');location.href=it[0];});
-                grid.appendChild(a);
-              });
-              sheet.appendChild(head);sheet.appendChild(grid);ov.appendChild(sheet);
-
-              function close(){ov.classList.remove('mz-open');}
-              fab.addEventListener('click',function(){ov.classList.add('mz-open');});
-              x.addEventListener('click',close);
-              ov.addEventListener('click',function(ev){if(ev.target===ov)close();});
-
-              document.body.appendChild(fab);
-              document.body.appendChild(ov);
-            }
-
-            build();
-
-            // Manz AI: replace the overflowing animated placeholder with a clean
-            // static one so it can't bleed behind the buttons on phones.
-            try {
-              var ai=document.querySelector('input[aria-label="Ask Manz AI"]');
-              if (ai && ai.getAttribute('data-mzph') !== '1') {
-                ai.setAttribute('placeholder','Ask Manz AI...');
-                ai.setAttribute('data-mzph','1');
-                var pp=ai.parentElement;
-                var ov=pp ? pp.querySelector('[aria-hidden]') : null;
-                if (ov) ov.style.display='none';
-              }
-            } catch(e){}
-
-            // Rebuild after Next.js client-side route changes (wrap once).
-            if (!window.__mzWrap) {
-              window.__mzWrap = 1;
-              var _ps=history.pushState;
-              history.pushState=function(){_ps.apply(this,arguments);setTimeout(build,60);};
-              window.addEventListener('popstate',function(){setTimeout(build,60);});
-            }
-          }catch(e){}
-        })();
-        """;
+    private volatile String shimJs = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        // Load order: cached remote copy -> bundled copy. Then refresh from
+        // the network in the background for next injections/launches.
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        String cached = prefs.getString(KEY_JS, null);
+        shimJs = (cached != null && !cached.isEmpty()) ? cached : loadBundledShim();
+        fetchRemoteShim(prefs);
 
         final Bridge bridge = this.getBridge();
         if (bridge == null) return;
         final WebView webView = bridge.getWebView();
         if (webView == null) return;
 
-        // (1) Inject on each full page load.
         try {
             webView.setWebViewClient(new BridgeWebViewClient(bridge) {
                 @Override
@@ -159,10 +65,9 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception ignored) {
         }
 
-        // (2) Safety net: re-inject on a timer (idempotent via in-page guards),
-        //     so the menu + CSS appear even if onPageFinished is missed or the
-        //     app does a client-side route change.
-        final android.os.Handler h = new android.os.Handler(android.os.Looper.getMainLooper());
+        // Periodic idempotent re-inject: survives missed load events and
+        // client-side route changes.
+        final Handler h = new Handler(Looper.getMainLooper());
         h.postDelayed(new Runnable() {
             @Override
             public void run() {
@@ -173,9 +78,54 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void inject(WebView view) {
+        final String js = shimJs;
+        if (js == null || js.isEmpty()) return;
         try {
-            view.evaluateJavascript(INJECT_JS, null);
+            view.evaluateJavascript(js, null);
         } catch (Exception ignored) {
         }
+    }
+
+    /** Bundled fallback: the copy of mz-shim.js packaged into the APK. */
+    private String loadBundledShim() {
+        try (InputStream in = getAssets().open("public/mz-shim.js")) {
+            BufferedReader r = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            String line;
+            while ((line = r.readLine()) != null) sb.append(line).append('\n');
+            return sb.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    /** Refresh the shim from the repo; sanity-check before trusting it. */
+    private void fetchRemoteShim(final SharedPreferences prefs) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection c = null;
+                try {
+                    c = (HttpURLConnection) new URL(SHIM_URL).openConnection();
+                    c.setConnectTimeout(6000);
+                    c.setReadTimeout(6000);
+                    if (c.getResponseCode() != 200) return;
+                    BufferedReader r = new BufferedReader(
+                        new InputStreamReader(c.getInputStream(), StandardCharsets.UTF_8));
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = r.readLine()) != null) sb.append(line).append('\n');
+                    String body = sb.toString();
+                    // Only accept something that looks like our shim.
+                    if (body.length() > 200 && body.contains("mz-shim-version")) {
+                        prefs.edit().putString(KEY_JS, body).apply();
+                        shimJs = body;
+                    }
+                } catch (Exception ignored) {
+                } finally {
+                    if (c != null) c.disconnect();
+                }
+            }
+        }).start();
     }
 }

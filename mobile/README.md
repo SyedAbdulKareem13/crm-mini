@@ -33,6 +33,20 @@ bespoke **glass + fluid launch animation**.
 
 ---
 
+## 🔄 Over-the-air mobile UI fixes (no new APK)
+
+All mobile UI fixes live in **one file: `www/mz-shim.js`**. The app bundles a
+copy (offline fallback) and **re-fetches the latest from this repo at every
+launch**, caching it locally. So:
+
+> **Shipping a mobile UI fix = editing `mz-shim.js` and pushing.**
+> Installed apps pick it up on their next launch — no rebuild, no reinstall.
+
+A new APK is only needed for native changes (icon, splash, plugins, the
+remote URL, or the shim-fetch mechanism itself).
+
+---
+
 ## 🔧 Configure your backend (one line)
 
 The app loads your **deployed** Manzil One web app. Point it at your URL:
