@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { FolderKanban, ArrowRight } from "lucide-react";
+import { FolderKanban, ArrowRight, Users2 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
@@ -56,6 +56,12 @@ export default async function ProjectsPage() {
             SAP transformation projects converted from opportunities — each runs a configurable Activate roadmap.
           </p>
         </div>
+        <Link
+          href="/app/projects/workload"
+          className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border bg-card/60 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+        >
+          <Users2 className="h-4 w-4 text-primary" /> Workload
+        </Link>
       </div>
 
       {projects.length > 0 && (() => {

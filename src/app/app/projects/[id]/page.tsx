@@ -27,7 +27,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         include: {
           deliverables: {
             orderBy: { position: "asc" },
-            include: { owner: { select: { id: true, name: true } } },
+            include: {
+              owner: { select: { id: true, name: true } },
+              predecessors: { select: { predecessorId: true } },
+            },
           },
         },
       },
@@ -90,6 +93,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         ownerName: d.owner?.name ?? null,
         startDate: d.startDate ? d.startDate.toISOString() : null,
         endDate: d.endDate ? d.endDate.toISOString() : null,
+        progressPct: d.progressPct,
+        estimateHours: d.estimateHours,
+        actualHours: d.actualHours,
+        predecessorIds: d.predecessors.map((x) => x.predecessorId),
       })),
     })),
   };

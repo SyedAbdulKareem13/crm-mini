@@ -6,13 +6,17 @@ import {
   ChevronRight,
   Download,
   Flag,
+  GitBranch,
   Loader2,
+  Route,
+  X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -41,15 +45,45 @@ export type ScheduledPhase = PlannerPhase & {
   pct: number;
 };
 
+const taskProgress = (d: PlannerDeliverable) => (d.status === "DONE" ? 100 : d.progressPct ?? 0);
+
+/** Topological order over items connected by predecessorIds (Kahn). Returns
+ *  null on a cycle (the API prevents them; render defensively anyway). */
+function topoOrder(items: ScheduledDeliverable[]): ScheduledDeliverable[] | null {
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const indeg = new Map<string, number>(items.map((i) => [i.id, 0]));
+  const succ = new Map<string, string[]>();
+  for (const i of items) {
+    for (const pid of i.predecessorIds ?? []) {
+      if (!byId.has(pid)) continue;
+      indeg.set(i.id, (indeg.get(i.id) ?? 0) + 1);
+      (succ.get(pid) ?? succ.set(pid, []).get(pid)!).push(i.id);
+    }
+  }
+  const queue = items.filter((i) => (indeg.get(i.id) ?? 0) === 0).map((i) => i.id);
+  const order: ScheduledDeliverable[] = [];
+  while (queue.length) {
+    const id = queue.shift()!;
+    order.push(byId.get(id)!);
+    for (const s of succ.get(id) ?? []) {
+      indeg.set(s, (indeg.get(s) ?? 1) - 1);
+      if ((indeg.get(s) ?? 0) === 0) queue.push(s);
+    }
+  }
+  return order.length === items.length ? order : null;
+}
+
 /**
  * Derive the schedule from configuration: phases run back-to-back from the
  * project start date using their configured durations; explicit start/end
- * dates on a phase or deliverable override the derived window.
+ * dates on a phase or deliverable override the derived window. Finish-to-start
+ * dependencies then pull successors forward so no task starts before its
+ * predecessors end (mirrors the server-side auto-shift).
  */
 export function computeSchedule(project: PlannerProject): ScheduledPhase[] {
   const anchor = startOfDay(project.startDate ? new Date(project.startDate) : new Date());
   let cursor = anchor;
-  return project.phases.map((phase) => {
+  const phases = project.phases.map((phase) => {
     const start = phase.startDate ? startOfDay(new Date(phase.startDate)) : cursor;
     const end = phase.endDate
       ? startOfDay(new Date(phase.endDate))
@@ -60,15 +94,80 @@ export function computeSchedule(project: PlannerProject): ScheduledPhase[] {
       const de = d.endDate ? startOfDay(new Date(d.endDate)) : d.startDate ? addDays(ds, 7) : end;
       return { ...d, start: ds, end: de < ds ? addDays(ds, 1) : de };
     });
-    const done = items.filter((i) => i.status === "DONE").length;
-    return {
-      ...phase,
-      start,
-      end: end <= start ? addDays(start, 7) : end,
-      items,
-      pct: items.length ? Math.round((done / items.length) * 100) : phase.status === "COMPLETED" ? 100 : 0,
-    };
+    return { ...phase, start, end: end <= start ? addDays(start, 7) : end, items, pct: 0 };
   });
+
+  // FS constraint pass: successors start after their latest predecessor ends.
+  const all = phases.flatMap((p) => p.items);
+  const byId = new Map(all.map((i) => [i.id, i]));
+  const order = topoOrder(all);
+  if (order) {
+    for (const item of order) {
+      const preds = (item.predecessorIds ?? []).map((pid) => byId.get(pid)).filter(Boolean) as ScheduledDeliverable[];
+      if (!preds.length) continue;
+      const maxPredEnd = new Date(Math.max(...preds.map((p) => p.end.getTime())));
+      if (maxPredEnd >= item.start) {
+        const duration = Math.max(DAY, item.end.getTime() - item.start.getTime());
+        item.start = addDays(startOfDay(maxPredEnd), 1);
+        item.end = new Date(item.start.getTime() + duration);
+      }
+    }
+  }
+
+  for (const p of phases) {
+    p.pct = p.items.length
+      ? Math.round(p.items.reduce((n, i) => n + taskProgress(i), 0) / p.items.length)
+      : p.status === "COMPLETED"
+        ? 100
+        : 0;
+  }
+  return phases;
+}
+
+/**
+ * Critical path (CPM): among tasks connected by FS links, the chain with the
+ * longest total duration. Returns the ids of every task on a maximal chain.
+ */
+export function computeCriticalPath(phases: ScheduledPhase[]): Set<string> {
+  const items = phases.flatMap((p) => p.items);
+  const byId = new Map(items.map((i) => [i.id, i]));
+  const linked = new Set<string>();
+  for (const i of items) {
+    for (const pid of i.predecessorIds ?? []) {
+      if (byId.has(pid)) {
+        linked.add(i.id);
+        linked.add(pid);
+      }
+    }
+  }
+  if (!linked.size) return new Set();
+  const order = topoOrder(items);
+  if (!order) return new Set();
+  const dur = (i: ScheduledDeliverable) => Math.max(1, Math.round((i.end.getTime() - i.start.getTime()) / DAY));
+
+  // Longest chain ending at / starting from each node (own duration included).
+  const to = new Map<string, number>();
+  for (const i of order) {
+    const preds = (i.predecessorIds ?? []).filter((p) => byId.has(p));
+    to.set(i.id, dur(i) + Math.max(0, ...preds.map((p) => to.get(p) ?? 0)));
+  }
+  const succ = new Map<string, string[]>();
+  for (const i of items) {
+    for (const pid of i.predecessorIds ?? []) {
+      if (byId.has(pid)) (succ.get(pid) ?? succ.set(pid, []).get(pid)!).push(i.id);
+    }
+  }
+  const from = new Map<string, number>();
+  for (const i of [...order].reverse()) {
+    const succs = succ.get(i.id) ?? [];
+    from.set(i.id, dur(i) + Math.max(0, ...succs.map((s) => from.get(s) ?? 0)));
+  }
+  const maxChain = Math.max(...items.filter((i) => linked.has(i.id)).map((i) => (to.get(i.id) ?? 0) + (from.get(i.id) ?? 0) - dur(i)));
+  return new Set(
+    items
+      .filter((i) => linked.has(i.id) && (to.get(i.id) ?? 0) + (from.get(i.id) ?? 0) - dur(i) === maxChain)
+      .map((i) => i.id)
+  );
 }
 
 /* ------------------------------- helpers ------------------------------ */
@@ -101,17 +200,33 @@ export function ProjectGantt({
   members,
   busy,
   onPatch,
+  onDependency,
 }: {
   project: PlannerProject;
   members: { id: string; name: string | null }[];
   busy: Set<string>;
   onPatch: (body: Record<string, unknown>, busyKey: string) => Promise<boolean>;
+  onDependency?: (
+    action: "add" | "remove",
+    predecessorId: string,
+    successorId: string
+  ) => Promise<boolean>;
 }) {
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
   const [weekPx, setWeekPx] = React.useState(44);
+  const [showCritical, setShowCritical] = React.useState(false);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const phases = React.useMemo(() => computeSchedule(project), [project]);
+  const critical = React.useMemo(() => computeCriticalPath(phases), [phases]);
+  const hasDeps = React.useMemo(
+    () => phases.some((p) => p.items.some((i) => (i.predecessorIds ?? []).length > 0)),
+    [phases]
+  );
+  const allTasks = React.useMemo(
+    () => phases.flatMap((p) => p.items.map((i) => ({ id: i.id, name: i.name, phaseName: p.name }))),
+    [phases]
+  );
   const today = startOfDay(new Date());
 
   // Time range: from the earliest start to the latest end (today always visible), padded a week each side.
@@ -161,20 +276,26 @@ export function ProjectGantt({
   /* ------------------------------ export ------------------------------ */
 
   function exportCsv() {
+    const nameOf = (tid: string) => allTasks.find((t) => t.id === tid)?.name ?? tid;
     const rows: string[][] = [
-      ["Type", "Phase", "Item", "Status", "Priority", "Assignee", "Start", "End", "Duration (days)"],
+      ["Type", "Phase", "Item", "Status", "% Complete", "Priority", "Assignee", "Start", "End", "Duration (days)", "Est. hours", "Actual hours", "Predecessors", "Critical path"],
     ];
     for (const p of phases) {
       rows.push([
-        "Phase", p.name, "", p.status, "", "",
+        "Phase", p.name, "", p.status, `${p.pct}`, "", "",
         fmtFull(p.start), fmtFull(p.end),
         String(Math.round((p.end.getTime() - p.start.getTime()) / DAY)),
+        "", "", "", "",
       ]);
       for (const i of p.items) {
         rows.push([
-          "Deliverable", p.name, i.name, i.status, i.priority ?? "MEDIUM", i.ownerName ?? "",
+          "Deliverable", p.name, i.name, i.status, `${taskProgress(i)}`, i.priority ?? "MEDIUM", i.ownerName ?? "",
           fmtFull(i.start), fmtFull(i.end),
           String(Math.round((i.end.getTime() - i.start.getTime()) / DAY)),
+          i.estimateHours != null ? String(i.estimateHours) : "",
+          i.actualHours != null ? String(i.actualHours) : "",
+          (i.predecessorIds ?? []).map(nameOf).join("; "),
+          critical.has(i.id) ? "YES" : "",
         ]);
       }
     }
@@ -197,6 +318,29 @@ export function ProjectGantt({
     if (!collapsed.has(p.id)) for (const i of p.items) rows.push({ kind: "item", phase: p, item: i });
   }
 
+  // Dependency connectors between visible rows (skip when a phase is collapsed).
+  const itemsById = new Map(phases.flatMap((p) => p.items).map((i) => [i.id, i]));
+  const rowY = new Map<string, number>();
+  rows.forEach((r, idx) => {
+    if (r.kind === "item") rowY.set(r.item!.id, idx * ROW_H + ROW_H / 2);
+  });
+  const connectors: { x1: number; y1: number; x2: number; y2: number; onCritical: boolean }[] = [];
+  for (const i of itemsById.values()) {
+    for (const pid of i.predecessorIds ?? []) {
+      const pred = itemsById.get(pid);
+      const y1 = rowY.get(pid);
+      const y2 = rowY.get(i.id);
+      if (!pred || y1 === undefined || y2 === undefined) continue;
+      connectors.push({
+        x1: x(pred.end),
+        y1,
+        x2: x(i.start),
+        y2,
+        onCritical: critical.has(i.id) && critical.has(pid),
+      });
+    }
+  }
+
   if (phases.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed py-12 text-center text-sm text-muted-foreground">
@@ -213,6 +357,20 @@ export function ProjectGantt({
           {fmtFull(phases[0].start)} → {fmtFull(phases[phases.length - 1].end)}
         </span>
         <div className="ml-auto flex items-center gap-1.5">
+          <Button
+            variant={showCritical ? "default" : "outline"}
+            size="sm"
+            className="h-8"
+            onClick={() => setShowCritical((v) => !v)}
+            disabled={!hasDeps}
+            title={
+              hasDeps
+                ? "Highlight the longest dependency chain"
+                : "Link tasks (predecessors) to compute the critical path"
+            }
+          >
+            <Route className="h-3.5 w-3.5" /> Critical path
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -280,6 +438,9 @@ export function ProjectGantt({
                   members={members}
                   busy={busy}
                   onPatch={onPatch}
+                  onDependency={onDependency}
+                  allTasks={allTasks}
+                  isCritical={critical.has(r.item!.id)}
                   rowH={ROW_H}
                 />
               )
@@ -328,6 +489,45 @@ export function ProjectGantt({
                   </div>
                 )}
 
+                {/* dependency connectors (finish → start) */}
+                {connectors.length > 0 && (
+                  <svg
+                    aria-hidden
+                    className="pointer-events-none absolute left-0 top-0 z-[6]"
+                    width={totalWidth}
+                    height={rows.length * ROW_H}
+                  >
+                    <defs>
+                      <marker id="depArrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+                        <path d="M0 0 L8 4 L0 8 Z" fill="currentColor" />
+                      </marker>
+                    </defs>
+                    {connectors.map((c, idx) => {
+                      const elbow = 8;
+                      const d =
+                        c.x2 >= c.x1 + elbow * 2
+                          ? `M ${c.x1} ${c.y1} H ${c.x1 + elbow} V ${c.y2} H ${c.x2 - 2}`
+                          : `M ${c.x1} ${c.y1} H ${c.x1 + elbow} V ${c.y2 - ROW_H / 2} H ${c.x2 - elbow} V ${c.y2} H ${c.x2 - 2}`;
+                      return (
+                        <path
+                          key={idx}
+                          d={d}
+                          fill="none"
+                          markerEnd="url(#depArrow)"
+                          className={cn(
+                            showCritical && c.onCritical
+                              ? "text-destructive"
+                              : "text-muted-foreground",
+                          )}
+                          stroke="currentColor"
+                          strokeWidth={showCritical && c.onCritical ? 1.8 : 1.2}
+                          opacity={showCritical ? (c.onCritical ? 0.95 : 0.18) : 0.5}
+                        />
+                      );
+                    })}
+                  </svg>
+                )}
+
                 {rows.map((r) => {
                   if (r.kind === "phase") {
                     const p = r.phase;
@@ -361,27 +561,40 @@ export function ProjectGantt({
                   }
                   const i = r.item!;
                   const overdue = i.status !== "DONE" && i.end < today;
+                  const pct = taskProgress(i);
+                  const isCritical = critical.has(i.id);
                   return (
                     <div key={i.id} className="relative border-b" style={{ height: ROW_H }}>
                       <div
                         className={cn(
-                          "absolute top-1/2 flex h-4 -translate-y-1/2 items-center rounded-full pr-1 transition-shadow",
-                          overdue && "ring-1 ring-destructive/70"
+                          "absolute top-1/2 flex h-4 -translate-y-1/2 items-center overflow-hidden rounded-full pr-1 transition-all",
+                          overdue && "ring-1 ring-destructive/70",
+                          showCritical && isCritical && "ring-2 ring-destructive",
+                          showCritical && !isCritical && "opacity-35"
                         )}
                         style={{
                           left: x(i.start),
                           width: w(i.start, i.end),
                           backgroundColor:
-                            i.status === "DONE"
-                              ? `${r.phase.color}CC`
-                              : i.status === "IN_PROGRESS"
-                                ? `${r.phase.color}66`
-                                : "hsl(var(--muted))",
+                            i.status === "DONE" ? `${r.phase.color}CC` : `${r.phase.color}2E`,
                         }}
-                        title={`${i.name} · ${fmtFull(i.start)} → ${fmtFull(i.end)}${i.ownerName ? ` · ${i.ownerName}` : ""}${overdue ? " · OVERDUE" : ""}`}
+                        title={`${i.name} · ${fmtFull(i.start)} → ${fmtFull(i.end)} · ${pct}%${i.estimateHours != null ? ` · est ${i.estimateHours}h` : ""}${i.actualHours != null ? ` · actual ${i.actualHours}h` : ""}${i.ownerName ? ` · ${i.ownerName}` : ""}${isCritical ? " · CRITICAL PATH" : ""}${overdue ? " · OVERDUE" : ""}`}
                       >
+                        {/* % complete fill */}
+                        {i.status !== "DONE" && pct > 0 && (
+                          <div
+                            aria-hidden
+                            className="absolute inset-y-0 left-0 rounded-full transition-[width] duration-300"
+                            style={{ width: `${pct}%`, backgroundColor: `${r.phase.color}99` }}
+                          />
+                        )}
+                        {w(i.start, i.end) > 64 && i.status !== "DONE" && pct > 0 && (
+                          <span className="relative z-[1] ml-1.5 text-[8px] font-bold tabular-nums text-foreground/70">
+                            {pct}%
+                          </span>
+                        )}
                         {i.ownerName && w(i.start, i.end) > 46 && (
-                          <span className="ml-auto flex h-3.5 w-3.5 items-center justify-center rounded-full bg-background text-[7px] font-bold text-foreground/80">
+                          <span className="relative z-[1] ml-auto flex h-3.5 w-3.5 items-center justify-center rounded-full bg-background text-[7px] font-bold text-foreground/80">
                             {initials(i.ownerName)}
                           </span>
                         )}
@@ -405,7 +618,9 @@ export function ProjectGantt({
 
       <p className="text-[11px] text-muted-foreground">
         Schedule derives from the configured phase durations (project start → back-to-back phases). Set explicit
-        dates on any phase or deliverable to override; clearing them returns to the derived schedule.
+        dates on any phase or deliverable to override; clearing them returns to the derived schedule. Link
+        predecessors on a task to enforce finish-to-start sequencing — successors auto-shift when a predecessor
+        moves, and <span className="font-medium text-foreground">Critical path</span> highlights the longest chain.
       </p>
     </div>
   );
@@ -419,6 +634,9 @@ function DeliverableNameCell({
   members,
   busy,
   onPatch,
+  onDependency,
+  allTasks,
+  isCritical,
   rowH,
 }: {
   item: ScheduledDeliverable;
@@ -426,14 +644,55 @@ function DeliverableNameCell({
   members: { id: string; name: string | null }[];
   busy: Set<string>;
   onPatch: (body: Record<string, unknown>, busyKey: string) => Promise<boolean>;
+  onDependency?: (
+    action: "add" | "remove",
+    predecessorId: string,
+    successorId: string
+  ) => Promise<boolean>;
+  allTasks: { id: string; name: string; phaseName: string }[];
+  isCritical: boolean;
   rowH: number;
 }) {
   const prio = PRIORITY_META[item.priority ?? "MEDIUM"] ?? PRIORITY_META.MEDIUM;
-  const isBusy = busy.has(item.id);
+  const isBusy = busy.has(item.id) || busy.has(`dep-${item.id}`);
   const NONE = "__none__";
+  const ADD = "__add__";
+
+  const pct = taskProgress(item);
+  const [pctDraft, setPctDraft] = React.useState(String(pct));
+  const [estDraft, setEstDraft] = React.useState(item.estimateHours != null ? String(item.estimateHours) : "");
+  const [actDraft, setActDraft] = React.useState(item.actualHours != null ? String(item.actualHours) : "");
+  React.useEffect(() => setPctDraft(String(pct)), [pct]);
+  React.useEffect(
+    () => setEstDraft(item.estimateHours != null ? String(item.estimateHours) : ""),
+    [item.estimateHours]
+  );
+  React.useEffect(
+    () => setActDraft(item.actualHours != null ? String(item.actualHours) : ""),
+    [item.actualHours]
+  );
 
   const patchDel = (data: Record<string, unknown>) =>
     void onPatch({ deliverable: { id: item.id, ...data } }, item.id);
+
+  const commitPct = () => {
+    const n = Math.max(0, Math.min(100, Math.round(Number(pctDraft))));
+    if (!Number.isFinite(n)) return setPctDraft(String(pct));
+    if (n !== pct) patchDel({ progressPct: n });
+  };
+  const commitHours = (key: "estimateHours" | "actualHours", raw: string, current: number | null | undefined) => {
+    if (raw.trim() === "") {
+      if (current != null) patchDel({ [key]: null });
+      return;
+    }
+    const n = Number(raw);
+    if (!Number.isFinite(n) || n < 0) return;
+    if (n !== current) patchDel({ [key]: n });
+  };
+
+  const predIds = item.predecessorIds ?? [];
+  const predOptions = allTasks.filter((t) => t.id !== item.id && !predIds.includes(t.id));
+  const taskName = (tid: string) => allTasks.find((t) => t.id === tid)?.name ?? "task";
 
   return (
     <Popover>
@@ -458,11 +717,85 @@ function DeliverableNameCell({
           )}
         </button>
       </PopoverTrigger>
-      <PopoverContent className="w-72 space-y-3 p-3" align="start" side="right">
+      <PopoverContent className="w-80 space-y-3 p-3" align="start" side="right">
         <div>
-          <div className="text-sm font-semibold">{item.name}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold">{item.name}</span>
+            {isCritical && (
+              <Badge variant="outline" className="border-destructive/50 text-[9px] text-destructive">
+                Critical path
+              </Badge>
+            )}
+          </div>
           <div className="text-xs text-muted-foreground">
             {phase.name} · {fmtFull(item.start)} → {fmtFull(item.end)}
+          </div>
+        </div>
+
+        {/* % complete */}
+        <div>
+          <div className="flex items-center justify-between">
+            <Label className="text-xs">% complete</Label>
+            <span className="text-[11px] font-semibold tabular-nums">{pct}%</span>
+          </div>
+          <div className="mt-1 flex items-center gap-1.5">
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={pctDraft}
+              onChange={(e) => setPctDraft(e.target.value)}
+              onBlur={commitPct}
+              onKeyDown={(e) => e.key === "Enter" && commitPct()}
+              className="h-8 w-16 text-xs tabular-nums"
+            />
+            {[25, 50, 75, 100].map((q) => (
+              <button
+                key={q}
+                type="button"
+                onClick={() => patchDel({ progressPct: q })}
+                className={cn(
+                  "flex-1 rounded-md border px-1 py-1 text-[10px] tabular-nums transition-colors hover:bg-muted",
+                  pct === q && "border-primary/50 bg-primary/10 text-primary"
+                )}
+              >
+                {q}%
+              </button>
+            ))}
+          </div>
+          <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+            <div
+              className="h-full rounded-full bg-primary transition-[width] duration-300"
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+
+        {/* effort */}
+        <div className="grid grid-cols-2 gap-2">
+          <div>
+            <Label className="text-xs">Est. hours</Label>
+            <Input
+              type="number"
+              min={0}
+              placeholder="—"
+              value={estDraft}
+              onChange={(e) => setEstDraft(e.target.value)}
+              onBlur={() => commitHours("estimateHours", estDraft, item.estimateHours)}
+              className="mt-1 h-8 text-xs tabular-nums"
+            />
+          </div>
+          <div>
+            <Label className="text-xs">Actual hours</Label>
+            <Input
+              type="number"
+              min={0}
+              placeholder="—"
+              value={actDraft}
+              onChange={(e) => setActDraft(e.target.value)}
+              onBlur={() => commitHours("actualHours", actDraft, item.actualHours)}
+              className="mt-1 h-8 text-xs tabular-nums"
+            />
           </div>
         </div>
         <div className="grid grid-cols-2 gap-2">
@@ -535,6 +868,58 @@ function DeliverableNameCell({
             </div>
           </div>
         </div>
+        {/* predecessors (finish-to-start) */}
+        {onDependency && (
+          <div>
+            <Label className="flex items-center gap-1 text-xs">
+              <GitBranch className="h-3 w-3" /> Predecessors (finish → start)
+            </Label>
+            {predIds.length > 0 && (
+              <ul className="mt-1.5 space-y-1">
+                {predIds.map((pid) => (
+                  <li
+                    key={pid}
+                    className="flex items-center justify-between gap-2 rounded-md border bg-muted/30 px-2 py-1 text-xs"
+                  >
+                    <span className="truncate">{taskName(pid)}</span>
+                    <button
+                      type="button"
+                      onClick={() => void onDependency("remove", pid, item.id)}
+                      className="shrink-0 rounded p-0.5 text-muted-foreground/60 hover:text-destructive"
+                      aria-label={`Remove dependency on ${taskName(pid)}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Select
+              value={ADD}
+              onValueChange={(v) => {
+                if (v !== ADD) void onDependency("add", v, item.id);
+              }}
+            >
+              <SelectTrigger className="mt-1.5 h-8 text-xs">
+                <SelectValue placeholder="Add predecessor…" />
+              </SelectTrigger>
+              <SelectContent className="max-h-64">
+                <SelectItem value={ADD} className="text-muted-foreground">
+                  Add predecessor…
+                </SelectItem>
+                {predOptions.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>
+                    {t.phaseName} · {t.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <p className="mt-1 text-[10px] text-muted-foreground">
+              This task can only start after every predecessor ends — dates auto-shift to comply.
+            </p>
+          </div>
+        )}
+
         <div className="flex items-center justify-between text-[11px] text-muted-foreground">
           <span>Blank dates follow the phase window.</span>
           {item.ownerName && <Badge variant="soft" className="text-[10px]">{item.ownerName}</Badge>}

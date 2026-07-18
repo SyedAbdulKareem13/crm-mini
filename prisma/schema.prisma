@@ -1008,7 +1008,32 @@ model ProjectDeliverable {
   startDate DateTime?
   endDate   DateTime?
 
+  // Progress + effort (item 4): granular completion and hours tracking.
+  progressPct   Int   @default(0) // 0-100; kept coherent with status
+  estimateHours Float?
+  actualHours   Float?
+
+  // Finish-to-start dependency links (item 3).
+  successors   ProjectTaskDependency[] @relation("DepPredecessor")
+  predecessors ProjectTaskDependency[] @relation("DepSuccessor")
+
   @@index([phaseId])
+  @@index([ownerId])
+}
+
+/// Finish-to-start link between two deliverables of the same project:
+/// the successor cannot start before the predecessor ends.
+model ProjectTaskDependency {
+  id            String @id @default(cuid())
+  predecessorId String
+  predecessor   ProjectDeliverable @relation("DepPredecessor", fields: [predecessorId], references: [id], onDelete: Cascade)
+  successorId   String
+  successor     ProjectDeliverable @relation("DepSuccessor", fields: [successorId], references: [id], onDelete: Cascade)
+  type          String   @default("FS") // finish-to-start (only type today; column future-proofs SS/FF/SF)
+  createdAt     DateTime @default(now())
+
+  @@unique([predecessorId, successorId])
+  @@index([successorId])
 }
 
 model PipelineGateConfig {

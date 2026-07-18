@@ -9,6 +9,7 @@ import {
   DELIVERABLE_STATUSES,
   getPipelineGates,
 } from "@/lib/sap-config";
+import { enforceProjectDependencies, type ShiftedTask } from "@/lib/task-dependencies";
 
 /** With sequential execution on, work can't start/finish in a phase while an
  *  earlier phase is still open. Returns a human-readable reason or null. */
@@ -50,6 +51,9 @@ const patchSchema = z
         ownerId: z.string().nullable().optional(),
         startDate: z.string().nullable().optional(),
         endDate: z.string().nullable().optional(),
+        progressPct: z.coerce.number().int().min(0).max(100).optional(),
+        estimateHours: z.coerce.number().min(0).max(100000).nullable().optional(),
+        actualHours: z.coerce.number().min(0).max(100000).nullable().optional(),
       })
       .optional(),
   })
@@ -128,7 +132,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     if (d.phase.status === "COMPLETED") {
       await prisma.projectDeliverable.updateMany({
         where: { phaseId: phase.id, NOT: { status: "DONE" } },
-        data: { status: "DONE" },
+        data: { status: "DONE", progressPct: 100 },
       });
     }
   }
@@ -140,11 +144,12 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       select: { id: true, phaseId: true, name: true, ownerId: true },
     });
     if (!del) return NextResponse.json({ error: "Deliverable not found" }, { status: 404 });
-    // Governance: sequential phase execution also guards starting deliverables early.
+    // Governance: sequential phase execution also guards starting deliverables early
+    // (recording progress counts as starting work).
     if (
       gates.sequentialPhases &&
-      d.deliverable.status !== undefined &&
-      d.deliverable.status !== "PENDING"
+      ((d.deliverable.status !== undefined && d.deliverable.status !== "PENDING") ||
+        (d.deliverable.progressPct !== undefined && d.deliverable.progressPct > 0))
     ) {
       const reason = await sequentialBlockReason(project.id, del.phaseId);
       if (reason) return NextResponse.json({ error: reason, code: "gate" }, { status: 409 });
@@ -156,10 +161,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       });
       if (!member) return NextResponse.json({ error: "Assignee not found in this organization" }, { status: 404 });
     }
+    // Keep status and % complete coherent: an explicit status implies a
+    // progress floor/ceiling; an explicit progress derives the status.
+    let status = d.deliverable.status;
+    let progressPct = d.deliverable.progressPct;
+    if (progressPct !== undefined && status === undefined) {
+      status = progressPct >= 100 ? "DONE" : progressPct > 0 ? "IN_PROGRESS" : "PENDING";
+    } else if (status !== undefined && progressPct === undefined) {
+      if (status === "DONE") progressPct = 100;
+      else if (status === "PENDING") progressPct = 0;
+      // IN_PROGRESS keeps whatever progress is already recorded.
+    }
     await prisma.projectDeliverable.update({
       where: { id: del.id },
       data: {
-        ...(d.deliverable.status !== undefined ? { status: d.deliverable.status } : {}),
+        ...(status !== undefined ? { status } : {}),
+        ...(progressPct !== undefined ? { progressPct } : {}),
+        ...(d.deliverable.estimateHours !== undefined ? { estimateHours: d.deliverable.estimateHours } : {}),
+        ...(d.deliverable.actualHours !== undefined ? { actualHours: d.deliverable.actualHours } : {}),
         ...(d.deliverable.priority !== undefined ? { priority: d.deliverable.priority } : {}),
         ...(d.deliverable.ownerId !== undefined ? { ownerId: d.deliverable.ownerId } : {}),
         ...(d.deliverable.startDate !== undefined
@@ -188,8 +207,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         })
         .catch(() => null);
     }
-    // Keep the parent phase status coherent when the deliverable status changed.
-    if (d.deliverable.status !== undefined) {
+    // Keep the parent phase status coherent when the deliverable status changed
+    // (directly or derived from a progress update).
+    if (status !== undefined) {
       const siblings = await prisma.projectDeliverable.findMany({
         where: { phaseId: del.phaseId },
         select: { status: true },
@@ -203,6 +223,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
   }
 
+  // A schedule change anywhere (project start, phase duration/dates, task
+  // dates) can violate finish-to-start links — auto-shift successors forward.
+  const scheduleTouched =
+    d.startDate !== undefined ||
+    (d.phase && (d.phase.durationWeeks !== undefined || d.phase.startDate !== undefined || d.phase.endDate !== undefined)) ||
+    (d.deliverable && (d.deliverable.startDate !== undefined || d.deliverable.endDate !== undefined));
+
   // Core field updates.
   const statusChanged = d.status !== undefined && d.status !== project.status;
   const updated = await prisma.project.update({
@@ -214,13 +241,27 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       ...(d.targetEndDate !== undefined ? { targetEndDate: d.targetEndDate ? new Date(d.targetEndDate) : null } : {}),
       ...(d.notes !== undefined ? { notes: d.notes } : {}),
     },
+    select: { id: true },
+  });
+
+  let shifted: ShiftedTask[] = [];
+  if (scheduleTouched) {
+    shifted = await enforceProjectDependencies(project.id);
+  }
+
+  // Re-read after enforcement so the response reflects any auto-shifts.
+  const fresh = await prisma.project.findUnique({
+    where: { id: updated.id },
     include: {
       phases: {
         orderBy: { position: "asc" },
         include: {
           deliverables: {
             orderBy: { position: "asc" },
-            include: { owner: { select: { id: true, name: true } } },
+            include: {
+              owner: { select: { id: true, name: true } },
+              predecessors: { select: { predecessorId: true } },
+            },
           },
         },
       },
@@ -246,7 +287,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     });
   }
 
-  return NextResponse.json({ project: updated });
+  return NextResponse.json({ project: fresh, shifted });
 }
 
 /** POST — add a task/deliverable to one of the project's phases. */
@@ -276,7 +317,10 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
   const deliverable = await prisma.projectDeliverable.create({
     data: { phaseId: phase.id, name: parsed.data.name, position: (max._max.position ?? 0) + 1 },
-    include: { owner: { select: { id: true, name: true } } },
+    include: {
+      owner: { select: { id: true, name: true } },
+      predecessors: { select: { predecessorId: true } },
+    },
   });
   await recordAudit({
     organizationId: orgId,

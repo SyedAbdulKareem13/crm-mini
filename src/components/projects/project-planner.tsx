@@ -50,6 +50,10 @@ export type PlannerDeliverable = {
   ownerName?: string | null;
   startDate?: string | null;
   endDate?: string | null;
+  progressPct?: number;
+  estimateHours?: number | null;
+  actualHours?: number | null;
+  predecessorIds?: string[];
 };
 export type PlannerPhase = {
   id: string;
@@ -119,8 +123,15 @@ export function ProjectPlanner({
   const health = computeProjectHealth(project.status, project.startDate, project.phases);
   const healthMeta = HEALTH_META[health];
   const doneCount = allDeliverables.filter((d) => d.status === "DONE").length;
+  // Overall completion is the average task % complete (DONE = 100 even when
+  // rows predate the progress column).
   const overallPct = allDeliverables.length
-    ? Math.round((doneCount / allDeliverables.length) * 100)
+    ? Math.round(
+        allDeliverables.reduce(
+          (n, d) => n + (d.status === "DONE" ? 100 : d.progressPct ?? 0),
+          0
+        ) / allDeliverables.length
+      )
     : 0;
 
   const mark = (id: string, on: boolean) =>
@@ -142,15 +153,22 @@ export function ProjectPlanner({
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? "Update failed");
       if (data?.project?.phases) {
-        // Normalize the API shape (owner relation → ownerName) for both views.
+        // Normalize the API shape (owner relation → ownerName, predecessor
+        // rows → id array) for all views.
         const phases = (data.project.phases as any[]).map((ph) => ({
           ...ph,
           deliverables: (ph.deliverables as any[]).map((del) => ({
             ...del,
             ownerName: del.owner?.name ?? null,
+            predecessorIds: (del.predecessors as any[] | undefined)?.map((p) => p.predecessorId) ?? [],
           })),
         })) as PlannerPhase[];
         setProject((prev) => ({ ...prev, phases }));
+      }
+      if (Array.isArray(data?.shifted) && data.shifted.length > 0) {
+        toast.info(
+          `${data.shifted.length} dependent task${data.shifted.length === 1 ? "" : "s"} auto-shifted to respect dependencies`
+        );
       }
       return true;
     } catch (err: any) {
@@ -227,6 +245,8 @@ export function ProjectPlanner({
       const del: PlannerDeliverable = {
         ...data.deliverable,
         ownerName: data.deliverable?.owner?.name ?? null,
+        predecessorIds:
+          (data.deliverable?.predecessors as any[] | undefined)?.map((p) => p.predecessorId) ?? [],
       };
       setProject((p) => ({
         ...p,
@@ -250,6 +270,60 @@ export function ProjectPlanner({
     if (ok) {
       setNewTask((prev) => ({ ...prev, [phase.id]: "" }));
       toast.success(`Added “${name}”`);
+    }
+  }
+
+  /** Add/remove a finish-to-start link; applies auto-shifted dates locally. */
+  async function mutateDependency(
+    action: "add" | "remove",
+    predecessorId: string,
+    successorId: string
+  ): Promise<boolean> {
+    const key = `dep-${successorId}`;
+    if (busy.has(key)) return false;
+    mark(key, true);
+    try {
+      const res =
+        action === "add"
+          ? await fetch(`/api/projects/${project.id}/dependencies`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ predecessorId, successorId }),
+            })
+          : await fetch(
+              `/api/projects/${project.id}/dependencies?predecessorId=${predecessorId}&successorId=${successorId}`,
+              { method: "DELETE" }
+            );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Dependency update failed");
+      const shifted = (data?.shifted ?? []) as { id: string; startDate: string; endDate: string }[];
+      setProject((p) => ({
+        ...p,
+        phases: p.phases.map((ph) => ({
+          ...ph,
+          deliverables: ph.deliverables.map((d) => {
+            let next = d;
+            if (d.id === successorId) {
+              const ids = new Set(d.predecessorIds ?? []);
+              if (action === "add") ids.add(predecessorId);
+              else ids.delete(predecessorId);
+              next = { ...next, predecessorIds: [...ids] };
+            }
+            const sh = shifted.find((s) => s.id === next.id);
+            if (sh) next = { ...next, startDate: sh.startDate, endDate: sh.endDate };
+            return next;
+          }),
+        })),
+      }));
+      if (shifted.length > 0) {
+        toast.info(`${shifted.length} task${shifted.length === 1 ? "" : "s"} auto-shifted to respect dependencies`);
+      }
+      return true;
+    } catch (err: any) {
+      toast.error(err?.message || "Dependency update failed");
+      return false;
+    } finally {
+      mark(key, false);
     }
   }
 
@@ -418,7 +492,13 @@ export function ProjectPlanner({
         </CardHeader>
         {view === "gantt" ? (
           <CardContent>
-            <ProjectGantt project={project} members={members} busy={busy} onPatch={patch} />
+            <ProjectGantt
+              project={project}
+              members={members}
+              busy={busy}
+              onPatch={patch}
+              onDependency={mutateDependency}
+            />
           </CardContent>
         ) : view === "estimator" ? (
           <CardContent>
@@ -572,6 +652,11 @@ export function ProjectPlanner({
                             <span className={cn("truncate", del.status === "DONE" && "line-through")}>
                               {del.name}
                             </span>
+                            {del.status === "IN_PROGRESS" && (del.progressPct ?? 0) > 0 && (
+                              <span className="shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground">
+                                {del.progressPct}%
+                              </span>
+                            )}
                             {del.ownerName && (
                               <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
                                 {del.ownerName}
