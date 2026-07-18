@@ -11,6 +11,8 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { getPipelineGates } from "@/lib/sap-config";
+import { parseCalendar, nextWorkingDay } from "@/lib/workdays";
 
 const DAY = 86_400_000;
 const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
@@ -61,6 +63,7 @@ export async function enforceProjectDependencies(projectId: string): Promise<Shi
     where: { id: projectId },
     select: {
       startDate: true,
+      organizationId: true,
       phases: {
         orderBy: { position: "asc" },
         select: {
@@ -79,6 +82,10 @@ export async function enforceProjectDependencies(projectId: string): Promise<Shi
 
   const edges = await projectDependencyEdges(projectId);
   if (edges.length === 0) return [];
+
+  // Org working-day calendar: auto-shifted tasks never land on a weekend/holiday.
+  const gates = await getPipelineGates(project.organizationId);
+  const cal = parseCalendar(gates.workingDays, gates.holidays);
 
   // Resolve windows the same way the Gantt derives them.
   type Win = { id: string; name: string; start: Date; end: Date; explicit: boolean };
@@ -136,7 +143,7 @@ export async function enforceProjectDependencies(projectId: string): Promise<Shi
     const maxPredEnd = new Date(Math.max(...myPreds.map((p) => windows.get(p)!.end.getTime())));
     if (maxPredEnd >= mine.start) {
       const duration = Math.max(DAY, mine.end.getTime() - mine.start.getTime());
-      const newStart = addDays(startOfDay(maxPredEnd), 1);
+      const newStart = nextWorkingDay(addDays(startOfDay(maxPredEnd), 1), cal);
       const newEnd = new Date(newStart.getTime() + duration);
       windows.set(id, { ...mine, start: newStart, end: newEnd, explicit: true });
       shifted.push({

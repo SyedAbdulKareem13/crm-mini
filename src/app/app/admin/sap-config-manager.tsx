@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   Route,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -61,10 +62,23 @@ type Gates = {
   projectRequiredStage: string | null;
   sequentialPhases: boolean;
   completeRequiresAllPhases: boolean;
+  workingDays: string;
+  holidays: string[];
 };
 
 const GATE_STAGES = OPP_STAGES.filter((s) => s.value !== "LOST");
 const OFF = "__off__";
+
+/** ISO weekday chips (Mon=1 … Sun=7) for the working-calendar editor. */
+const WEEKDAYS: { iso: number; label: string }[] = [
+  { iso: 1, label: "Mon" },
+  { iso: 2, label: "Tue" },
+  { iso: 3, label: "Wed" },
+  { iso: 4, label: "Thu" },
+  { iso: 5, label: "Fri" },
+  { iso: 6, label: "Sat" },
+  { iso: 7, label: "Sun" },
+];
 
 /* ------------------------------ component ----------------------------- */
 
@@ -77,7 +91,10 @@ export function SapConfigManager() {
     projectRequiredStage: null,
     sequentialPhases: false,
     completeRequiresAllPhases: true,
+    workingDays: "1,2,3,4,5",
+    holidays: [],
   });
+  const [newHoliday, setNewHoliday] = React.useState("");
   const [openMeth, setOpenMeth] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState<Set<string>>(new Set());
   const [newDeliverable, setNewDeliverable] = React.useState<Record<string, string>>({});
@@ -103,6 +120,8 @@ export function SapConfigManager() {
         projectRequiredStage: data.gates?.projectRequiredStage ?? null,
         sequentialPhases: data.gates?.sequentialPhases ?? false,
         completeRequiresAllPhases: data.gates?.completeRequiresAllPhases ?? true,
+        workingDays: data.gates?.workingDays ?? "1,2,3,4,5",
+        holidays: Array.isArray(data.gates?.holidays) ? data.gates.holidays : [],
       });
     } catch {
       toast.error("Could not load SAP project configuration");
@@ -154,6 +173,54 @@ export function SapConfigManager() {
     const ok = await patch({ gates: { [key]: value } }, `gate-${key}`);
     if (!ok) setGates((g) => ({ ...g, [key]: prev }));
     else toast.success("Governance updated");
+  }
+
+  /* ------------------------ working calendar ------------------------- */
+
+  async function toggleWorkday(iso: number) {
+    const current = new Set(
+      gates.workingDays.split(",").map((s) => parseInt(s, 10)).filter((n) => n >= 1 && n <= 7)
+    );
+    if (current.has(iso)) {
+      if (current.size <= 1) return toast.error("Keep at least one working day");
+      current.delete(iso);
+    } else {
+      current.add(iso);
+    }
+    const next = [...current].sort().join(",");
+    const prev = gates.workingDays;
+    setGates((g) => ({ ...g, workingDays: next }));
+    const ok = await patch({ gates: { workingDays: next } }, "gate-workingDays");
+    if (!ok) setGates((g) => ({ ...g, workingDays: prev }));
+    else toast.success("Working days updated");
+  }
+
+  async function addHoliday() {
+    const date = newHoliday.trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return toast.error("Pick a valid date");
+    if (gates.holidays.includes(date)) {
+      setNewHoliday("");
+      return toast.error("That date is already a holiday");
+    }
+    if (gates.holidays.length >= 200) return toast.error("Too many holidays (max 200)");
+    const next = [...gates.holidays, date].sort();
+    const prev = gates.holidays;
+    setGates((g) => ({ ...g, holidays: next }));
+    const ok = await patch({ gates: { holidays: next } }, "gate-holidays");
+    if (!ok) setGates((g) => ({ ...g, holidays: prev }));
+    else {
+      setNewHoliday("");
+      toast.success(`Added ${date}`);
+    }
+  }
+
+  async function removeHoliday(date: string) {
+    const next = gates.holidays.filter((h) => h !== date);
+    const prev = gates.holidays;
+    setGates((g) => ({ ...g, holidays: next }));
+    const ok = await patch({ gates: { holidays: next } }, "gate-holidays");
+    if (!ok) setGates((g) => ({ ...g, holidays: prev }));
+    else toast.success(`Removed ${date}`);
   }
 
   /* --------------------------- methodology --------------------------- */
@@ -425,6 +492,91 @@ export function SapConfigManager() {
               checked={gates.completeRequiresAllPhases}
               onCheckedChange={(v) => void setGovernance("completeRequiresAllPhases", v)}
             />
+          </div>
+
+          {/* working calendar — weekends & holidays used by scheduling */}
+          <div className="rounded-xl border bg-card/60 p-3 sm:col-span-2">
+            <div className="text-sm font-medium">Working calendar</div>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              Weekends and holidays are shaded on project Gantts, and auto-shifted or dragged task dates
+              snap to the next working day.
+            </p>
+            <div className="mt-3">
+              <Label className="text-xs">Working days</Label>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {WEEKDAYS.map((d) => {
+                  const on = gates.workingDays.split(",").includes(String(d.iso));
+                  return (
+                    <button
+                      key={d.iso}
+                      type="button"
+                      onClick={() => void toggleWorkday(d.iso)}
+                      disabled={pending.has("gate-workingDays")}
+                      aria-pressed={on}
+                      className={cn(
+                        "rounded-lg border px-2.5 py-1 text-xs font-medium transition-colors disabled:opacity-60",
+                        on
+                          ? "border-primary/50 bg-primary/10 text-primary"
+                          : "border-input bg-background text-muted-foreground hover:bg-muted"
+                      )}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="mt-3">
+              <Label className="text-xs">Holidays</Label>
+              {gates.holidays.length > 0 && (
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {gates.holidays.map((h) => (
+                    <span
+                      key={h}
+                      className="flex items-center gap-1 rounded-lg border bg-background px-2 py-1 text-xs tabular-nums"
+                    >
+                      {h}
+                      <button
+                        type="button"
+                        onClick={() => void removeHoliday(h)}
+                        className="rounded p-0.5 text-muted-foreground/60 hover:text-destructive"
+                        aria-label={`Remove holiday ${h}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="mt-1.5 flex items-center gap-2">
+                <Input
+                  type="date"
+                  value={newHoliday}
+                  onChange={(e) => setNewHoliday(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      void addHoliday();
+                    }
+                  }}
+                  className="h-9 w-44 text-sm"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-9"
+                  disabled={pending.has("gate-holidays") || !newHoliday}
+                  onClick={() => void addHoliday()}
+                >
+                  {pending.has("gate-holidays") ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Plus className="h-3.5 w-3.5" />
+                  )}
+                  Add
+                </Button>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>

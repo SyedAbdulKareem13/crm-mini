@@ -45,6 +45,16 @@ export default async function ProjectProposalPage({ params }: { params: Promise<
   if (!draft) {
     const est = data.estimator as { inputs: EstimatorInputs; result: EstimateResult } | undefined;
     if (est?.result?.roles?.length) {
+      // Open RAID risks (most severe first) lead the risk table.
+      const SEVERITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+      const raidRisksRaw = await prisma.projectRaidItem.findMany({
+        where: { projectId: project.id, type: "RISK", NOT: { status: "CLOSED" } },
+        select: { title: true, mitigation: true, severity: true },
+      });
+      const raidRisks = raidRisksRaw
+        .sort((a, b) => (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0))
+        .map((r) => ({ title: r.title, mitigation: r.mitigation, severity: r.severity }));
+
       draft = buildProposal({
         projectName: project.name,
         projectNumber: project.projectNumber,
@@ -58,6 +68,7 @@ export default async function ProjectProposalPage({ params }: { params: Promise<
           name: p.name,
           deliverables: p.deliverables.map((d) => d.name),
         })),
+        raidRisks,
       });
       draft.generatedAt = new Date().toISOString();
     }

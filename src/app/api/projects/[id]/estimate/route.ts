@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import { estimate, ESTIMATOR_FIELDS, type EstimatorInputs } from "@/lib/estimator";
+import { computeCalibration } from "@/lib/estimator-calibration";
 
 const inputsSchema = z.object(
   Object.fromEntries(
@@ -35,12 +36,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const cards = await prisma.manpowerRateCard.findMany({
-    where: { organizationId: orgId },
-    select: { designation: true, monthlyRate: true },
-  });
+  const [cards, calibration] = await Promise.all([
+    prisma.manpowerRateCard.findMany({
+      where: { organizationId: orgId },
+      select: { designation: true, monthlyRate: true },
+    }),
+    computeCalibration(orgId),
+  ]);
 
-  const result = estimate(inputs, project.phases, cards);
+  const result = estimate(inputs, project.phases, cards, calibration);
 
   const prevData =
     project.data && typeof project.data === "object" && !Array.isArray(project.data)

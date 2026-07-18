@@ -59,6 +59,9 @@ export type ProposalContext = {
   inputs: EstimatorInputs;
   result: EstimateResult;
   phaseDeliverables: { name: string; deliverables: string[] }[]; // from the live roadmap
+  // Open risks from the project's live RAID register (severity desc). When
+  // present, these lead the proposal's risk table ahead of the static ones.
+  raidRisks?: { title: string; mitigation: string | null; severity: string }[];
 };
 
 const n = (v: unknown) => Number(v) || 0;
@@ -146,6 +149,31 @@ export function buildProposal(ctx: ProposalContext): ProposalData {
     offshore: r.offshore,
   }));
 
+  // Risk table: lead with live RAID risks (if any), then top up with the
+  // standard engagement risks — no duplicates by title, ~6 total.
+  const RAID_MITIGATION_FALLBACK = "Mitigation being defined — tracked in the project RAID register.";
+  const staticRisks: { risk: string; mitigation: string }[] = [
+    { risk: "Source data quality delays migration", mitigation: "Early mock loads, data cleansing tracker owned jointly from Explore." },
+    { risk: "Key client SMEs unavailable at peak phases", mitigation: "Named SMEs with booked calendars agreed at Prepare; escalation via steering committee." },
+    { risk: "Scope creep on custom developments", mitigation: "RICEFW catalogue baselined at Explore exit; changes via change control with impact assessment." },
+    { risk: "Third-party interface partners not ready", mitigation: "Interface register with partner readiness dates tracked from Explore; stubs for SIT." },
+    { risk: "Low end-user adoption at go-live", mitigation: "Role-based training, hypercare floor-walking and adoption metrics during Run." },
+  ];
+  const risks: { risk: string; mitigation: string }[] = [];
+  const seen = new Set<string>();
+  for (const r of ctx.raidRisks ?? []) {
+    const title = r.title.trim();
+    if (!title || seen.has(title.toLowerCase())) continue;
+    seen.add(title.toLowerCase());
+    risks.push({ risk: title, mitigation: r.mitigation?.trim() || RAID_MITIGATION_FALLBACK });
+  }
+  for (const r of staticRisks) {
+    if (risks.length >= 6) break;
+    if (seen.has(r.risk.toLowerCase())) continue;
+    seen.add(r.risk.toLowerCase());
+    risks.push(r);
+  }
+
   return {
     generatedAt: "", // stamped by the caller
     executiveSummary,
@@ -168,13 +196,7 @@ export function buildProposal(ctx: ProposalContext): ProposalData {
         { label: "Hypercare exit", pct: 10 },
       ],
     },
-    risks: [
-      { risk: "Source data quality delays migration", mitigation: "Early mock loads, data cleansing tracker owned jointly from Explore." },
-      { risk: "Key client SMEs unavailable at peak phases", mitigation: "Named SMEs with booked calendars agreed at Prepare; escalation via steering committee." },
-      { risk: "Scope creep on custom developments", mitigation: "RICEFW catalogue baselined at Explore exit; changes via change control with impact assessment." },
-      { risk: "Third-party interface partners not ready", mitigation: "Interface register with partner readiness dates tracked from Explore; stubs for SIT." },
-      { risk: "Low end-user adoption at go-live", mitigation: "Role-based training, hypercare floor-walking and adoption metrics during Run." },
-    ],
+    risks,
     acceptanceCriteria: [
       "Each phase exits only when its deliverables are approved (stage-gate sign-off).",
       "SIT exit: all planned test cycles executed, no open critical/high defects.",

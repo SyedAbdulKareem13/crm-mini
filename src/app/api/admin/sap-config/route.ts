@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getMethodologies, getTransformationTypes, getPipelineGates } from "@/lib/sap-config";
@@ -35,6 +36,8 @@ const patchSchema = z.object({
       projectRequiredStage: z.string().nullable().optional(),
       sequentialPhases: z.boolean().optional(),
       completeRequiresAllPhases: z.boolean().optional(),
+      workingDays: z.string().regex(/^[1-7](,[1-7])*$/).optional(),
+      holidays: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(200).optional(),
     })
     .optional(),
   methodology: z
@@ -95,6 +98,8 @@ export async function PATCH(req: Request) {
         ...(d.gates.completeRequiresAllPhases !== undefined
           ? { completeRequiresAllPhases: d.gates.completeRequiresAllPhases }
           : {}),
+        ...(d.gates.workingDays !== undefined ? { workingDays: d.gates.workingDays } : {}),
+        ...(d.gates.holidays !== undefined ? { holidays: d.gates.holidays as Prisma.InputJsonValue } : {}),
       },
       create: {
         organizationId: orgId,
@@ -102,6 +107,8 @@ export async function PATCH(req: Request) {
         projectRequiredStage: d.gates.projectRequiredStage ?? null,
         sequentialPhases: d.gates.sequentialPhases ?? false,
         completeRequiresAllPhases: d.gates.completeRequiresAllPhases ?? true,
+        ...(d.gates.workingDays !== undefined ? { workingDays: d.gates.workingDays } : {}),
+        ...(d.gates.holidays !== undefined ? { holidays: d.gates.holidays as Prisma.InputJsonValue } : {}),
       },
     });
   }

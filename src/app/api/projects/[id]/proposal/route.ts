@@ -51,6 +51,17 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     );
   }
 
+  // Open risks from the live RAID register, most severe first, to lead the
+  // proposal's risk table.
+  const SEVERITY_RANK: Record<string, number> = { CRITICAL: 4, HIGH: 3, MEDIUM: 2, LOW: 1 };
+  const raidRisksRaw = await prisma.projectRaidItem.findMany({
+    where: { projectId: project.id, type: "RISK", NOT: { status: "CLOSED" } },
+    select: { title: true, mitigation: true, severity: true },
+  });
+  const raidRisks = raidRisksRaw
+    .sort((a, b) => (SEVERITY_RANK[b.severity] ?? 0) - (SEVERITY_RANK[a.severity] ?? 0))
+    .map((r) => ({ title: r.title, mitigation: r.mitigation, severity: r.severity }));
+
   const proposal = buildProposal({
     projectName: project.name,
     projectNumber: project.projectNumber,
@@ -64,6 +75,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
       name: p.name,
       deliverables: p.deliverables.map((d) => d.name),
     })),
+    raidRisks,
   });
   proposal.generatedAt = new Date().toISOString();
 

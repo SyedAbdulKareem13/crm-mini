@@ -36,6 +36,13 @@ export const EMPTY_INPUTS: EstimatorInputs = Object.fromEntries(
   ESTIMATOR_FIELDS.map((f) => [f.key, 0])
 ) as EstimatorInputs;
 
+/* ---------------------------- calibration ----------------------------- */
+
+/** Self-tuning factors learned from closed projects' actual vs. estimated
+ *  delivery. Defined here (not in estimator-calibration.ts) so this module
+ *  stays client-safe — the calibration module imports prisma and this type. */
+export type Calibration = { durationFactor: number; effortFactor: number; samples: number };
+
 /* ------------------------------- outputs ------------------------------ */
 
 export type EstimateRole = {
@@ -63,6 +70,7 @@ export type EstimateResult = {
     marginPct: number;
   };
   assumptions: string[];
+  calibration?: { durationFactor: number; effortFactor: number; samples: number } | null;
 };
 
 const MARKUP_PCT = 35;
@@ -84,8 +92,13 @@ const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v
 export function estimate(
   inputs: EstimatorInputs,
   roadmap: { name: string; durationWeeks: number }[],
-  cards: RateCardRow[]
+  cards: RateCardRow[],
+  calibration?: Calibration | null
 ): EstimateResult {
+  // Calibration factors self-tune the model from delivered projects (1 = neutral).
+  const durationFactor = calibration?.durationFactor ?? 1;
+  const effortFactor = calibration?.effortFactor ?? 1;
+
   // Complexity: weighted characteristic points → 1.0 (trivial) … 3.0 (very complex).
   const points = ESTIMATOR_FIELDS.reduce(
     (sum, f) => sum + (Number(inputs[f.key]) || 0) * f.weight,
@@ -94,19 +107,20 @@ export function estimate(
   const complexity = clamp(1 + points / 900, 1, 3);
 
   // Duration: the configured roadmap scales with the square root of complexity
-  // (throughput grows with team size, so duration grows sub-linearly).
+  // (throughput grows with team size, so duration grows sub-linearly), then bends
+  // toward what past projects actually took via the calibrated duration factor.
   const baseWeeks = roadmap.reduce((n, p) => n + p.durationWeeks, 0) || 45;
-  const durationWeeks = Math.round(baseWeeks * Math.sqrt(complexity));
+  const durationWeeks = Math.round(baseWeeks * Math.sqrt(complexity) * durationFactor);
   const durationMonths = Math.max(1, Math.round(durationWeeks / 4.33));
 
-  // Effort: baseline 24 person-months scaled by complexity, plus support.
-  const buildEffortPM = Math.round(24 * complexity * 10) / 10;
+  // Effort: baseline 24 person-months scaled by complexity and calibration, plus support.
+  const buildEffortPM = Math.round(24 * complexity * effortFactor * 10) / 10;
   const supportPM = (Number(inputs.supportMonths) || 0) * 1.5; // support team of ~1.5 FTE
   const totalEffortPM = Math.round((buildEffortPM + supportPM) * 10) / 10;
 
   const effortByPhase = roadmap.map((p) => ({
     name: p.name,
-    weeks: Math.round(p.durationWeeks * Math.sqrt(complexity)),
+    weeks: Math.round(p.durationWeeks * Math.sqrt(complexity) * durationFactor),
     effortPM: Math.round(buildEffortPM * (PHASE_EFFORT_SPLIT[p.name] ?? 1 / roadmap.length) * 10) / 10,
   }));
 
@@ -164,6 +178,10 @@ export function estimate(
       roles.some((r) => r.rateSource === "card")
         ? "Rates matched to your manpower rate cards where a designation matched; others use indicative estimates."
         : "All rates are indicative estimates — add manpower rate cards for grounded pricing.",
+      calibration
+        ? `Calibrated ×${calibration.durationFactor} duration / ×${calibration.effortFactor} effort from ${calibration.samples} completed project${calibration.samples === 1 ? "" : "s"}.`
+        : "Uncalibrated — factors will self-tune as projects complete.",
     ],
+    calibration: calibration ?? null,
   };
 }

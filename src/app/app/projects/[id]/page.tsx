@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { ProjectPlanner, type PlannerProject } from "@/components/projects/project-planner";
+import type { RaidItem } from "@/components/projects/raid-register";
 import type { SavedEstimate } from "@/components/projects/project-estimator";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +45,27 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+
+  // RAID register — the project is already org-scoped above.
+  const raidItems = await prisma.projectRaidItem.findMany({
+    where: { projectId: id },
+    include: { owner: { select: { id: true, name: true } } },
+    orderBy: [{ status: "asc" }, { severity: "desc" }, { createdAt: "desc" }],
+  });
+  const raid: RaidItem[] = raidItems.map((r) => ({
+    id: r.id,
+    type: r.type,
+    title: r.title,
+    description: r.description,
+    severity: r.severity,
+    probability: r.probability,
+    status: r.status,
+    mitigation: r.mitigation,
+    ownerId: r.ownerId,
+    ownerName: r.owner?.name ?? null,
+    dueDate: r.dueDate ? r.dueDate.toISOString() : null,
+    createdAt: r.createdAt.toISOString(),
+  }));
 
   // Saved estimator run + schedule baseline live in the project's JSON data column.
   const rawData =
@@ -117,6 +139,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           members={members}
           estimate={estimate}
           baseline={baseline}
+          raid={raid}
           viewer={{ id: session.user.id, name: session.user.name ?? "Member" }}
         />
         <RecordAuditTrail

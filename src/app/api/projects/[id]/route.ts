@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
@@ -108,7 +109,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: orgId },
-    select: { id: true, projectNumber: true, name: true, status: true },
+    select: {
+      id: true,
+      projectNumber: true,
+      name: true,
+      status: true,
+      data: true,
+      startDate: true,
+      createdAt: true,
+    },
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
@@ -259,6 +268,46 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   // Core field updates.
   const statusChanged = d.status !== undefined && d.status !== project.status;
+
+  // On the transition into COMPLETED, freeze an actuals snapshot into
+  // Project.data.actuals — this is what the estimator self-calibrates from.
+  // Re-opening later leaves the snapshot intact (history is history).
+  let dataPatch: Prisma.InputJsonValue | undefined;
+  if (statusChanged && d.status === "COMPLETED") {
+    const now = Date.now();
+    const start = project.startDate ?? project.createdAt;
+    const actualWeeks = Math.max(
+      1,
+      Math.round(((now - start.getTime()) / (7 * 24 * 60 * 60 * 1000)) * 10) / 10
+    );
+    // One aggregation for logged hours across every deliverable in the project.
+    const hours = await prisma.projectDeliverable.aggregate({
+      where: { phase: { projectId: project.id } },
+      _sum: { actualHours: true },
+    });
+    const totalHours = hours._sum.actualHours ?? 0;
+    const actualEffortPM = totalHours > 0 ? Math.round((totalHours / 160) * 10) / 10 : undefined;
+
+    const prevData =
+      project.data && typeof project.data === "object" && !Array.isArray(project.data)
+        ? (project.data as Record<string, unknown>)
+        : {};
+    const estResult = (
+      prevData.estimator as { result?: { durationWeeks?: number; totalEffortPM?: number } } | undefined
+    )?.result;
+
+    dataPatch = {
+      ...prevData,
+      actuals: {
+        completedAt: new Date(now).toISOString(),
+        actualWeeks,
+        ...(actualEffortPM !== undefined ? { actualEffortPM } : {}),
+        ...(estResult?.durationWeeks !== undefined ? { estimatedWeeks: estResult.durationWeeks } : {}),
+        ...(estResult?.totalEffortPM !== undefined ? { estimatedEffortPM: estResult.totalEffortPM } : {}),
+      },
+    } as Prisma.InputJsonValue;
+  }
+
   const updated = await prisma.project.update({
     where: { id: project.id },
     data: {
@@ -267,6 +316,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       ...(d.startDate !== undefined ? { startDate: d.startDate ? new Date(d.startDate) : null } : {}),
       ...(d.targetEndDate !== undefined ? { targetEndDate: d.targetEndDate ? new Date(d.targetEndDate) : null } : {}),
       ...(d.notes !== undefined ? { notes: d.notes } : {}),
+      ...(dataPatch !== undefined ? { data: dataPatch } : {}),
     },
     select: { id: true },
   });

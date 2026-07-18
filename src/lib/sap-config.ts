@@ -194,6 +194,10 @@ export async function getPipelineGates(orgId: string) {
     projectRequiredStage: g?.projectRequiredStage ?? null,
     sequentialPhases: g?.sequentialPhases ?? false,
     completeRequiresAllPhases: g?.completeRequiresAllPhases ?? true,
+    workingDays: g?.workingDays ?? "1,2,3,4,5",
+    holidays: Array.isArray(g?.holidays)
+      ? (g!.holidays as unknown[]).filter((h): h is string => typeof h === "string")
+      : [],
   };
 }
 

@@ -37,6 +37,7 @@ import {
 import { ProjectGantt, type BaselineData } from "./project-gantt";
 import { ProjectEstimator, type SavedEstimate } from "./project-estimator";
 import { ResourceOptimizer } from "./resource-optimizer";
+import { RaidRegister, type RaidItem } from "./raid-register";
 import { joinProjectChannel, type PresencePeer } from "@/lib/realtime";
 
 /* ------------------------------- types -------------------------------- */
@@ -104,12 +105,14 @@ export function ProjectPlanner({
   members = [],
   estimate = null,
   baseline: initialBaseline = null,
+  raid = [],
   viewer,
 }: {
   project: PlannerProject;
   members?: { id: string; name: string | null }[];
   estimate?: SavedEstimate;
   baseline?: BaselineData | null;
+  raid?: RaidItem[];
   viewer?: { id: string; name: string };
 }) {
   const router = useRouter();
@@ -118,7 +121,7 @@ export function ProjectPlanner({
   const [savingCore, setSavingCore] = React.useState(false);
   const [editingNotes, setEditingNotes] = React.useState(false);
   const [notesDraft, setNotesDraft] = React.useState(initial.notes ?? "");
-  const [view, setView] = React.useState<"roadmap" | "gantt" | "estimator" | "resources">("roadmap");
+  const [view, setView] = React.useState<"roadmap" | "gantt" | "estimator" | "resources" | "raid">("roadmap");
   const [savedEstimate, setSavedEstimate] = React.useState<SavedEstimate>(estimate);
   const [baseline, setBaseline] = React.useState<BaselineData | null>(initialBaseline);
   const [peers, setPeers] = React.useState<PresencePeer[]>([]);
@@ -189,6 +192,7 @@ export function ProjectPlanner({
   const allDeliverables = project.phases.flatMap((p) => p.deliverables);
   const health = computeProjectHealth(project.status, project.startDate, project.phases);
   const healthMeta = HEALTH_META[health];
+  const openRisks = raid.filter((r) => r.type === "RISK" && r.status !== "CLOSED").length;
   const doneCount = allDeliverables.filter((d) => d.status === "DONE").length;
   // Overall completion is the average task % complete (DONE = 100 even when
   // rows predate the progress column).
@@ -464,6 +468,11 @@ export function ProjectPlanner({
               >
                 {healthMeta.label}
               </Badge>
+              {openRisks > 0 && (
+                <Badge variant="outline" className="border-destructive/50 text-destructive">
+                  {openRisks} open risk{openRisks === 1 ? "" : "s"}
+                </Badge>
+              )}
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {project.transformationType && (
@@ -585,6 +594,7 @@ export function ProjectPlanner({
                   { key: "gantt", label: "Gantt" },
                   { key: "estimator", label: "Estimator" },
                   { key: "resources", label: "Resources" },
+                  { key: "raid", label: "RAID" },
                 ] as const
               ).map((v) => (
                 <button
@@ -636,6 +646,15 @@ export function ProjectPlanner({
               estimate={savedEstimate}
               phases={project.phases}
               onAddToPhase={createTask}
+            />
+          </CardContent>
+        ) : view === "raid" ? (
+          <CardContent>
+            <RaidRegister
+              projectId={project.id}
+              initial={raid ?? []}
+              members={members}
+              onMutated={broadcast}
             />
           </CardContent>
         ) : (

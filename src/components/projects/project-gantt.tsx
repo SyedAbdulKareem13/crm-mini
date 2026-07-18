@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { PlannerProject, PlannerPhase, PlannerDeliverable } from "./project-planner";
+import { parseCalendar, isWorkingDay, nextWorkingDay, type WorkCalendar } from "@/lib/workdays";
 
 /* ----------------------------- scheduling ----------------------------- */
 
@@ -246,7 +247,27 @@ export function ProjectGantt({
   const [showCritical, setShowCritical] = React.useState(false);
   const [showBaseline, setShowBaseline] = React.useState(true);
   const [drag, setDrag] = React.useState<DragState | null>(null);
+  const [cal, setCal] = React.useState<WorkCalendar | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
+
+  // Working-day calendar (weekends/holidays). Read once; on any failure the
+  // feature stays silently off (cal remains null).
+  React.useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/sap-config");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (alive) setCal(parseCalendar(data.gates?.workingDays, data.gates?.holidays));
+      } catch {
+        /* feature silently off */
+      }
+    })();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const phases = React.useMemo(() => computeSchedule(project), [project]);
   const critical = React.useMemo(() => computeCriticalPath(phases), [phases]);
@@ -310,6 +331,11 @@ export function ProjectGantt({
       ne = new Date(item.end.getTime() + shift);
     } else {
       ne = new Date(Math.max(item.start.getTime() + DAY, item.end.getTime() + shift));
+    }
+    // Snap dragged dates forward onto working days (weekends/holidays skipped).
+    if (cal) {
+      ns = nextWorkingDay(ns, cal);
+      ne = nextWorkingDay(ne, cal);
     }
     void onPatch(
       { deliverable: { id: item.id, startDate: toDateInput(ns), endDate: toDateInput(ne) } },
@@ -614,6 +640,22 @@ export function ProjectGantt({
                     <div key={i} className="h-full border-r border-border/40" style={{ width: weekPx }} />
                   ))}
                 </div>
+                {/* non-working-day shading (weekends + holidays) */}
+                {cal && (
+                  <div aria-hidden className="pointer-events-none absolute inset-0">
+                    {Array.from({ length: range.weeks * 7 }).flatMap((_, i) => {
+                      const day = addDays(range.from, i);
+                      if (isWorkingDay(day, cal)) return [];
+                      return [
+                        <div
+                          key={i}
+                          className="absolute inset-y-0 bg-muted-foreground/[0.06]"
+                          style={{ left: (i * weekPx) / 7, width: weekPx / 7 }}
+                        />,
+                      ];
+                    })}
+                  </div>
+                )}
                 {/* today line */}
                 {todayX >= 0 && todayX <= totalWidth && (
                   <div aria-hidden className="pointer-events-none absolute inset-y-0 z-10" style={{ left: todayX }}>
@@ -798,6 +840,9 @@ export function ProjectGantt({
         moves, and <span className="font-medium text-foreground">Critical path</span> highlights the longest chain.
         Drag a bar to move it, drag its right edge to resize; the grey line under a bar is the{" "}
         <span className="font-medium text-foreground">baseline</span> (planned vs actual).
+        {cal && (
+          <> Weekends and holidays are shaded, and dragged dates snap to the next working day (configurable in Admin → SAP Projects).</>
+        )}
       </p>
     </div>
   );

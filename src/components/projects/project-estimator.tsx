@@ -152,6 +152,25 @@ export function ProjectEstimator({
               Deterministic model — duration scales the configured roadmap, rates come from your
               manpower rate cards.
             </p>
+            {result &&
+              (result.calibration ? (
+                <Badge
+                  variant="success"
+                  className="mt-2 text-[10px]"
+                  title={`Duration ×${result.calibration.durationFactor} · Effort ×${result.calibration.effortFactor}`}
+                >
+                  Calibrated · {result.calibration.samples} completed project
+                  {result.calibration.samples === 1 ? "" : "s"}
+                </Badge>
+              ) : (
+                <Badge
+                  variant="outline"
+                  className="mt-2 text-[10px]"
+                  title="Completes as projects close with actual hours logged"
+                >
+                  Uncalibrated
+                </Badge>
+              ))}
           </div>
           <div className="flex items-center gap-3">
             {savedAt && (
