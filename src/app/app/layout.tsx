@@ -28,7 +28,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <div className="pointer-events-none absolute inset-0 -z-10 bg-gradient-mesh opacity-50" />
       <div className="flex">
         <Sidebar />
-        <div className="flex min-h-screen w-full flex-col">
+        {/* min-w-0: as a flex item beside the sidebar this column must be able
+            to shrink below its content's intrinsic width (wide Gantt/tables
+            scroll internally instead of stretching the page). */}
+        <div className="flex min-h-screen w-full min-w-0 flex-col">
           <Topbar user={topbarUser} />
           <main className="flex-1 px-4 py-6 lg:px-8">
             <div className="mx-auto w-full max-w-[1480px]">{children}</div>

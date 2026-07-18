@@ -1,5 +1,7 @@
 import { auth } from "@/lib/auth";
 import { getDashboardData } from "@/lib/dashboard-data";
+import { getExecDashboard } from "@/lib/exec-dashboard";
+import { ExecPanel } from "@/components/dashboard/exec-panel";
 import { PageHeader } from "@/components/app/page-header";
 import { KpiCard } from "@/components/dashboard/kpi-card";
 import { MonthlyRevenueChart, LeadSourcesChart } from "@/components/dashboard/charts-lazy";
@@ -18,7 +20,10 @@ export default async function DashboardPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
 
-  const data = await getDashboardData(session.user.organizationId);
+  const [data, exec] = await Promise.all([
+    getDashboardData(session.user.organizationId),
+    getExecDashboard(session.user.organizationId),
+  ]);
 
   return (
     <>
@@ -51,6 +56,8 @@ export default async function DashboardPage() {
         <KpiCard label="Pipeline Value" value={data.kpi.pipelineValue} icon="Coins" money tone="info" />
         <KpiCard label="Revenue Forecast" value={data.kpi.revenueForecast} icon="TrendingUp" money tone="success" />
       </div>
+
+      <ExecPanel data={exec} />
 
       <div className="mt-6 grid gap-4 lg:grid-cols-3">
         <MonthlyRevenueChart data={data.monthlyRevenue} className="lg:col-span-2" />
