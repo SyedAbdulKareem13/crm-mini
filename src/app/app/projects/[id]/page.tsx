@@ -45,12 +45,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     orderBy: { name: "asc" },
   });
 
-  // Saved estimator run lives in the project's JSON data column.
-  const rawData = project.data;
-  const estimate: SavedEstimate =
-    rawData && typeof rawData === "object" && !Array.isArray(rawData) && "estimator" in rawData
-      ? ((rawData as Record<string, unknown>).estimator as SavedEstimate)
-      : null;
+  // Saved estimator run + schedule baseline live in the project's JSON data column.
+  const rawData =
+    project.data && typeof project.data === "object" && !Array.isArray(project.data)
+      ? (project.data as Record<string, unknown>)
+      : {};
+  const estimate: SavedEstimate = (rawData.estimator as SavedEstimate) ?? null;
+  const baseline = (rawData.baseline as import("@/components/projects/project-gantt").BaselineData | undefined) ?? null;
 
   const planner: PlannerProject = {
     id: project.id,
@@ -111,7 +112,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       </Link>
 
       <div className="mt-4 space-y-6">
-        <ProjectPlanner project={planner} members={members} estimate={estimate} />
+        <ProjectPlanner
+          project={planner}
+          members={members}
+          estimate={estimate}
+          baseline={baseline}
+          viewer={{ id: session.user.id, name: session.user.name ?? "Member" }}
+        />
         <RecordAuditTrail
           organizationId={session.user.organizationId}
           entityType="PROJECT"

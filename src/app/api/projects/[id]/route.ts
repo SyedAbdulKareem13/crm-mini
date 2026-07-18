@@ -11,6 +11,33 @@ import {
 } from "@/lib/sap-config";
 import { enforceProjectDependencies, type ShiftedTask } from "@/lib/task-dependencies";
 
+/** GET — fresh planner payload (used by realtime sync to pull a peer's edit). */
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const project = await prisma.project.findFirst({
+    where: { id, organizationId: session.user.organizationId },
+    include: {
+      phases: {
+        orderBy: { position: "asc" },
+        include: {
+          deliverables: {
+            orderBy: { position: "asc" },
+            include: {
+              owner: { select: { id: true, name: true } },
+              predecessors: { select: { predecessorId: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+  if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  return NextResponse.json({ project });
+}
+
 /** With sequential execution on, work can't start/finish in a phase while an
  *  earlier phase is still open. Returns a human-readable reason or null. */
 async function sequentialBlockReason(projectId: string, phaseId: string): Promise<string | null> {

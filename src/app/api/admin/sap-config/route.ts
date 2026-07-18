@@ -156,11 +156,31 @@ export async function PATCH(req: Request) {
   return NextResponse.json({ ok: true });
 }
 
-/** POST — add a deliverable to a methodology phase (template editing). */
-const addSchema = z.object({
-  phaseId: z.string().min(1),
-  name: z.string().min(1),
-});
+/** POST — create template entities: a phase deliverable (legacy shape), or
+ *  via `action`: a whole methodology, a phase, or a transformation type.
+ *  This is what makes non-SAP project templates fully self-serviceable. */
+const addSchema = z.union([
+  z.object({ phaseId: z.string().min(1), name: z.string().min(1) }),
+  z.object({ action: z.literal("createMethodology"), name: z.string().min(2) }),
+  z.object({
+    action: z.literal("createPhase"),
+    methodologyId: z.string().min(1),
+    name: z.string().min(1),
+    durationWeeks: z.coerce.number().int().min(1).max(200).default(4),
+    color: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("createTransformationType"),
+    name: z.string().min(2),
+    subtitle: z.string().nullable().optional(),
+    methodologyId: z.string().min(1),
+  }),
+]);
+
+const slugKey = (name: string) =>
+  name.toUpperCase().replace(/[^A-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 40) || "CUSTOM";
+
+const PHASE_PALETTE = ["#6366F1", "#0EA5E9", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#14B8A6"];
 
 export async function POST(req: Request) {
   const a = await requireAdmin();
@@ -168,9 +188,82 @@ export async function POST(req: Request) {
   const orgId = a.orgId!;
   const parsed = addSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
+  const d = parsed.data;
 
+  // New methodology from scratch (generic — SAP or otherwise).
+  if ("action" in d && d.action === "createMethodology") {
+    const base = slugKey(d.name);
+    let key = base;
+    for (let i = 2; await prisma.methodology.findFirst({ where: { organizationId: orgId, key }, select: { id: true } }); i++) {
+      key = `${base}_${i}`;
+    }
+    const max = await prisma.methodology.aggregate({ where: { organizationId: orgId }, _max: { position: true } });
+    const methodology = await prisma.methodology.create({
+      data: {
+        organizationId: orgId,
+        key,
+        name: d.name,
+        position: (max._max.position ?? 0) + 1,
+        phases: {
+          create: [{ name: "Phase 1", color: PHASE_PALETTE[0], durationWeeks: 4, position: 1 }],
+        },
+      },
+      include: { phases: { include: { deliverables: true }, orderBy: { position: "asc" } } },
+    });
+    return NextResponse.json({ methodology });
+  }
+
+  // New phase on an existing methodology.
+  if ("action" in d && d.action === "createPhase") {
+    const m = await prisma.methodology.findFirst({
+      where: { id: d.methodologyId, organizationId: orgId },
+      select: { id: true, _count: { select: { phases: true } } },
+    });
+    if (!m) return NextResponse.json({ error: "Methodology not found" }, { status: 404 });
+    const max = await prisma.methodologyPhase.aggregate({ where: { methodologyId: m.id }, _max: { position: true } });
+    const phase = await prisma.methodologyPhase.create({
+      data: {
+        methodologyId: m.id,
+        name: d.name,
+        color: d.color ?? PHASE_PALETTE[m._count.phases % PHASE_PALETTE.length],
+        durationWeeks: d.durationWeeks,
+        position: (max._max.position ?? 0) + 1,
+      },
+      include: { deliverables: true },
+    });
+    return NextResponse.json({ phase });
+  }
+
+  // New transformation type in the catalog.
+  if ("action" in d && d.action === "createTransformationType") {
+    const m = await prisma.methodology.findFirst({
+      where: { id: d.methodologyId, organizationId: orgId },
+      select: { id: true },
+    });
+    if (!m) return NextResponse.json({ error: "Methodology not found" }, { status: 404 });
+    const base = slugKey(d.name);
+    let key = base;
+    for (let i = 2; await prisma.transformationType.findFirst({ where: { organizationId: orgId, key }, select: { id: true } }); i++) {
+      key = `${base}_${i}`;
+    }
+    const max = await prisma.transformationType.aggregate({ where: { organizationId: orgId }, _max: { position: true } });
+    const transformationType = await prisma.transformationType.create({
+      data: {
+        organizationId: orgId,
+        key,
+        name: d.name,
+        subtitle: d.subtitle ?? null,
+        methodologyId: m.id,
+        position: (max._max.position ?? 0) + 1,
+      },
+    });
+    return NextResponse.json({ transformationType });
+  }
+
+  // Legacy shape: add a deliverable to a phase.
+  if (!("phaseId" in d)) return NextResponse.json({ error: "Invalid" }, { status: 400 });
   const phase = await prisma.methodologyPhase.findFirst({
-    where: { id: parsed.data.phaseId, methodology: { organizationId: orgId } },
+    where: { id: d.phaseId, methodology: { organizationId: orgId } },
     select: { id: true },
   });
   if (!phase) return NextResponse.json({ error: "Phase not found" }, { status: 404 });
@@ -180,16 +273,77 @@ export async function POST(req: Request) {
     _max: { position: true },
   });
   const deliverable = await prisma.methodologyDeliverable.create({
-    data: { phaseId: phase.id, name: parsed.data.name, position: (max._max.position ?? 0) + 1 },
+    data: { phaseId: phase.id, name: d.name, position: (max._max.position ?? 0) + 1 },
   });
   return NextResponse.json({ deliverable });
 }
 
+/** DELETE — remove template entities. In-use guards: a methodology or
+ *  transformation type referenced by projects can't be deleted (deactivate it
+ *  instead); project phases/tasks are copies, so template edits never touch
+ *  running projects. */
 export async function DELETE(req: Request) {
   const a = await requireAdmin();
   if (a.error) return a.error;
   const orgId = a.orgId!;
-  const id = new URL(req.url).searchParams.get("deliverableId") ?? "";
+  const params = new URL(req.url).searchParams;
+
+  const methodologyId = params.get("methodologyId");
+  if (methodologyId) {
+    const row = await prisma.methodology.findFirst({
+      where: { id: methodologyId, organizationId: orgId },
+      select: { id: true, name: true, _count: { select: { projects: true, transformationTypes: true } } },
+    });
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (row._count.projects > 0) {
+      return NextResponse.json(
+        { error: `“${row.name}” is used by ${row._count.projects} project${row._count.projects === 1 ? "" : "s"} — deactivate it instead of deleting.` },
+        { status: 409 }
+      );
+    }
+    if (row._count.transformationTypes > 0) {
+      return NextResponse.json(
+        { error: `“${row.name}” is the roadmap for ${row._count.transformationTypes} transformation type${row._count.transformationTypes === 1 ? "" : "s"} — remap them first.` },
+        { status: 409 }
+      );
+    }
+    await prisma.methodology.delete({ where: { id: row.id } });
+    return NextResponse.json({ ok: true });
+  }
+
+  const phaseId = params.get("phaseId");
+  if (phaseId) {
+    const row = await prisma.methodologyPhase.findFirst({
+      where: { id: phaseId, methodology: { organizationId: orgId } },
+      select: { id: true, methodologyId: true },
+    });
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    const siblings = await prisma.methodologyPhase.count({ where: { methodologyId: row.methodologyId } });
+    if (siblings <= 1) {
+      return NextResponse.json({ error: "A methodology needs at least one phase." }, { status: 409 });
+    }
+    await prisma.methodologyPhase.delete({ where: { id: row.id } });
+    return NextResponse.json({ ok: true });
+  }
+
+  const transformationTypeId = params.get("transformationTypeId");
+  if (transformationTypeId) {
+    const row = await prisma.transformationType.findFirst({
+      where: { id: transformationTypeId, organizationId: orgId },
+      select: { id: true, name: true, _count: { select: { projects: true } } },
+    });
+    if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (row._count.projects > 0) {
+      return NextResponse.json(
+        { error: `“${row.name}” is used by ${row._count.projects} project${row._count.projects === 1 ? "" : "s"} — deactivate it instead.` },
+        { status: 409 }
+      );
+    }
+    await prisma.transformationType.delete({ where: { id: row.id } });
+    return NextResponse.json({ ok: true });
+  }
+
+  const id = params.get("deliverableId") ?? "";
   const row = await prisma.methodologyDeliverable.findFirst({
     where: { id, phase: { methodology: { organizationId: orgId } } },
     select: { id: true },

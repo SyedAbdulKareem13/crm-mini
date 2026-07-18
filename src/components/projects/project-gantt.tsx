@@ -2,17 +2,28 @@
 
 import * as React from "react";
 import {
+  Camera,
   ChevronDown,
   ChevronRight,
   Download,
+  FileText,
   Flag,
   GitBranch,
+  History,
   Loader2,
   Route,
   X,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import Link from "next/link";
+import { buildMspdiXml, buildExcelXml, downloadText } from "@/lib/plan-export";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +47,13 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
 const addDays = (d: Date, n: number) => new Date(d.getTime() + n * DAY);
 /** Monday of the week containing d. */
 const startOfWeek = (d: Date) => addDays(startOfDay(d), -((d.getDay() + 6) % 7));
+
+export type BaselineData = {
+  takenAt: string;
+  takenBy?: string | null;
+  tasks: Record<string, { start: string; end: string }>;
+  phases: Record<string, { start: string; end: string }>;
+};
 
 export type ScheduledDeliverable = PlannerDeliverable & { start: Date; end: Date };
 export type ScheduledPhase = PlannerPhase & {
@@ -195,12 +213,21 @@ function initials(name: string | null): string {
 
 /* ------------------------------ component ----------------------------- */
 
+type DragState = {
+  id: string;
+  mode: "move" | "end";
+  startX: number;
+  dxDays: number;
+};
+
 export function ProjectGantt({
   project,
   members,
   busy,
   onPatch,
   onDependency,
+  baseline = null,
+  onBaseline,
 }: {
   project: PlannerProject;
   members: { id: string; name: string | null }[];
@@ -211,10 +238,14 @@ export function ProjectGantt({
     predecessorId: string,
     successorId: string
   ) => Promise<boolean>;
+  baseline?: BaselineData | null;
+  onBaseline?: (action: "set" | "clear") => Promise<boolean>;
 }) {
   const [collapsed, setCollapsed] = React.useState<Set<string>>(new Set());
   const [weekPx, setWeekPx] = React.useState(44);
   const [showCritical, setShowCritical] = React.useState(false);
+  const [showBaseline, setShowBaseline] = React.useState(true);
+  const [drag, setDrag] = React.useState<DragState | null>(null);
   const scrollRef = React.useRef<HTMLDivElement>(null);
 
   const phases = React.useMemo(() => computeSchedule(project), [project]);
@@ -244,6 +275,47 @@ export function ProjectGantt({
   const x = (d: Date) => ((d.getTime() - range.from.getTime()) / (7 * DAY)) * weekPx;
   const w = (a: Date, b: Date) => Math.max(6, x(b) - x(a));
   const todayX = x(today) + weekPx / 14; // centre of today within its week
+
+  /* --------------------- drag-to-reschedule (bars) --------------------- */
+  const pxPerDay = weekPx / 7;
+  const dragRef = React.useRef<DragState | null>(null);
+  const updateDrag = (d: DragState | null) => {
+    dragRef.current = d;
+    setDrag(d);
+  };
+  function barPointerDown(e: React.PointerEvent, item: ScheduledDeliverable) {
+    if (busy.has(item.id) || e.button !== 0) return;
+    e.preventDefault();
+    const el = e.currentTarget as HTMLElement;
+    const rect = el.getBoundingClientRect();
+    const mode: "move" | "end" = e.clientX > rect.right - 12 ? "end" : "move";
+    el.setPointerCapture(e.pointerId);
+    updateDrag({ id: item.id, mode, startX: e.clientX, dxDays: 0 });
+  }
+  function barPointerMove(e: React.PointerEvent) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = Math.round((e.clientX - d.startX) / pxPerDay);
+    if (dx !== d.dxDays) updateDrag({ ...d, dxDays: dx });
+  }
+  function barPointerUp(item: ScheduledDeliverable) {
+    const d = dragRef.current;
+    updateDrag(null);
+    if (!d || d.id !== item.id || d.dxDays === 0) return;
+    const shift = d.dxDays * DAY;
+    let ns = item.start;
+    let ne = item.end;
+    if (d.mode === "move") {
+      ns = new Date(item.start.getTime() + shift);
+      ne = new Date(item.end.getTime() + shift);
+    } else {
+      ne = new Date(Math.max(item.start.getTime() + DAY, item.end.getTime() + shift));
+    }
+    void onPatch(
+      { deliverable: { id: item.id, startDate: toDateInput(ns), endDate: toDateInput(ne) } },
+      item.id
+    );
+  }
 
   // Month header spans.
   const months = React.useMemo(() => {
@@ -397,9 +469,72 @@ export function ProjectGantt({
           >
             <ZoomIn className="h-3.5 w-3.5" />
           </Button>
-          <Button variant="outline" size="sm" className="h-8" onClick={exportCsv}>
-            <Download className="h-3.5 w-3.5" /> CSV
-          </Button>
+          {onBaseline && (
+            <>
+              {baseline && (
+                <Button
+                  variant={showBaseline ? "default" : "outline"}
+                  size="sm"
+                  className="h-8"
+                  onClick={() => setShowBaseline((v) => !v)}
+                  title={`Baseline taken ${new Date(baseline.takenAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}${baseline.takenBy ? ` by ${baseline.takenBy}` : ""}`}
+                >
+                  <History className="h-3.5 w-3.5" /> Baseline
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8"
+                onClick={() => void onBaseline("set")}
+                title={baseline ? "Replace the baseline with the current schedule" : "Snapshot the current schedule as the baseline"}
+              >
+                <Camera className="h-3.5 w-3.5" /> {baseline ? "Re-baseline" : "Set baseline"}
+              </Button>
+            </>
+          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8">
+                <Download className="h-3.5 w-3.5" /> Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={exportCsv}>CSV (.csv)</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  downloadText(
+                    `${project.projectNumber}.xml`,
+                    "application/xml",
+                    buildMspdiXml(project.name, project.projectNumber, phases)
+                  )
+                }
+              >
+                MS Project (.xml)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  downloadText(
+                    `${project.projectNumber}-schedule.xls`,
+                    "application/vnd.ms-excel",
+                    buildExcelXml(
+                      project.name,
+                      project.projectNumber,
+                      phases,
+                      (tid) => allTasks.find((t) => t.id === tid)?.name ?? tid
+                    )
+                  )
+                }
+              >
+                Excel (.xls)
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/app/projects/${project.id}/plan`}>
+                  <FileText className="h-3.5 w-3.5" /> PDF (print view)
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -531,8 +666,21 @@ export function ProjectGantt({
                 {rows.map((r) => {
                   if (r.kind === "phase") {
                     const p = r.phase;
+                    const pBase = showBaseline && baseline ? baseline.phases[p.id] : undefined;
                     return (
                       <div key={p.id} className="relative border-b bg-muted/20" style={{ height: ROW_H }}>
+                        {pBase && (
+                          <div
+                            aria-hidden
+                            className="absolute h-[3px] rounded-full bg-muted-foreground/40"
+                            style={{
+                              left: x(new Date(pBase.start)),
+                              width: w(new Date(pBase.start), new Date(pBase.end)),
+                              top: "calc(50% + 13px)",
+                            }}
+                            title={`Baseline: ${fmtFull(new Date(pBase.start))} → ${fmtFull(new Date(pBase.end))}`}
+                          />
+                        )}
                         <div
                           className="absolute top-1/2 h-5 -translate-y-1/2 rounded-md"
                           style={{ left: x(p.start), width: w(p.start, p.end), backgroundColor: `${p.color}30` }}
@@ -563,22 +711,44 @@ export function ProjectGantt({
                   const overdue = i.status !== "DONE" && i.end < today;
                   const pct = taskProgress(i);
                   const isCritical = critical.has(i.id);
+                  const base = showBaseline && baseline ? baseline.tasks[i.id] : undefined;
+                  const baseStart = base ? new Date(base.start) : null;
+                  const baseEnd = base ? new Date(base.end) : null;
+                  const slip = baseEnd ? Math.round((i.end.getTime() - baseEnd.getTime()) / DAY) : 0;
+                  const isDragging = drag?.id === i.id;
+                  const dLeft = isDragging && drag!.mode === "move" ? drag!.dxDays * pxPerDay : 0;
+                  const dWidth = isDragging && drag!.mode === "end" ? drag!.dxDays * pxPerDay : 0;
                   return (
                     <div key={i.id} className="relative border-b" style={{ height: ROW_H }}>
+                      {/* baseline ghost (planned) */}
+                      {baseStart && baseEnd && (
+                        <div
+                          aria-hidden
+                          className="absolute h-[3px] rounded-full bg-muted-foreground/40"
+                          style={{ left: x(baseStart), width: w(baseStart, baseEnd), top: "calc(50% + 11px)" }}
+                          title={`Baseline: ${fmtFull(baseStart)} → ${fmtFull(baseEnd)}`}
+                        />
+                      )}
                       <div
+                        onPointerDown={(e) => barPointerDown(e, i)}
+                        onPointerMove={barPointerMove}
+                        onPointerUp={() => barPointerUp(i)}
+                        onPointerCancel={() => updateDrag(null)}
                         className={cn(
-                          "absolute top-1/2 flex h-4 -translate-y-1/2 items-center overflow-hidden rounded-full pr-1 transition-all",
+                          "absolute top-1/2 flex h-4 -translate-y-1/2 touch-none select-none items-center overflow-hidden rounded-full pr-1 transition-all",
+                          isDragging ? "cursor-grabbing ring-2 ring-primary/60" : "cursor-grab",
                           overdue && "ring-1 ring-destructive/70",
                           showCritical && isCritical && "ring-2 ring-destructive",
                           showCritical && !isCritical && "opacity-35"
                         )}
                         style={{
-                          left: x(i.start),
-                          width: w(i.start, i.end),
+                          left: x(i.start) + dLeft,
+                          width: Math.max(10, w(i.start, i.end) + dWidth),
                           backgroundColor:
                             i.status === "DONE" ? `${r.phase.color}CC` : `${r.phase.color}2E`,
+                          transition: isDragging ? "none" : undefined,
                         }}
-                        title={`${i.name} · ${fmtFull(i.start)} → ${fmtFull(i.end)} · ${pct}%${i.estimateHours != null ? ` · est ${i.estimateHours}h` : ""}${i.actualHours != null ? ` · actual ${i.actualHours}h` : ""}${i.ownerName ? ` · ${i.ownerName}` : ""}${isCritical ? " · CRITICAL PATH" : ""}${overdue ? " · OVERDUE" : ""}`}
+                        title={`${i.name} · ${fmtFull(i.start)} → ${fmtFull(i.end)} · ${pct}%${i.estimateHours != null ? ` · est ${i.estimateHours}h` : ""}${i.actualHours != null ? ` · actual ${i.actualHours}h` : ""}${i.ownerName ? ` · ${i.ownerName}` : ""}${isCritical ? " · CRITICAL PATH" : ""}${overdue ? " · OVERDUE" : ""}${baseEnd ? (slip > 0 ? ` · ${slip}d behind baseline` : slip < 0 ? ` · ${-slip}d ahead of baseline` : " · on baseline") : ""} — drag to move, drag right edge to resize`}
                       >
                         {/* % complete fill */}
                         {i.status !== "DONE" && pct > 0 && (
@@ -598,6 +768,11 @@ export function ProjectGantt({
                             {initials(i.ownerName)}
                           </span>
                         )}
+                        {/* resize grip (drag right edge) */}
+                        <span
+                          aria-hidden
+                          className="absolute inset-y-0 right-0 w-2 cursor-ew-resize rounded-r-full bg-foreground/10"
+                        />
                       </div>
                       {overdue && (
                         <span
@@ -621,6 +796,8 @@ export function ProjectGantt({
         dates on any phase or deliverable to override; clearing them returns to the derived schedule. Link
         predecessors on a task to enforce finish-to-start sequencing — successors auto-shift when a predecessor
         moves, and <span className="font-medium text-foreground">Critical path</span> highlights the longest chain.
+        Drag a bar to move it, drag its right edge to resize; the grey line under a bar is the{" "}
+        <span className="font-medium text-foreground">baseline</span> (planned vs actual).
       </p>
     </div>
   );

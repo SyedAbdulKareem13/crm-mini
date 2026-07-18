@@ -233,6 +233,86 @@ export function SapConfigManager() {
     }
   }
 
+  /* ---------------- template creation / deletion (generic) ------------ */
+
+  const [newMeth, setNewMeth] = React.useState("");
+  const [newPhase, setNewPhase] = React.useState<Record<string, string>>({});
+  const [newType, setNewType] = React.useState({ name: "", subtitle: "", methodologyId: "" });
+
+  async function create(body: Record<string, unknown>, busyKey: string, okMsg: string): Promise<boolean> {
+    if (pending.has(busyKey)) return false;
+    mark(busyKey, true);
+    try {
+      const res = await fetch("/api/admin/sap-config", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Create failed");
+      toast.success(okMsg);
+      await load();
+      return true;
+    } catch (err: any) {
+      toast.error(err?.message || "Create failed");
+      return false;
+    } finally {
+      mark(busyKey, false);
+    }
+  }
+
+  async function remove(param: string, id: string, okMsg: string) {
+    if (pending.has(id)) return;
+    mark(id, true);
+    try {
+      const res = await fetch(`/api/admin/sap-config?${param}=${id}`, { method: "DELETE" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Delete failed");
+      toast.success(okMsg);
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || "Delete failed");
+    } finally {
+      mark(id, false);
+    }
+  }
+
+  async function createMethodology() {
+    const name = newMeth.trim();
+    if (name.length < 2) return toast.error("Give the methodology a name");
+    if (await create({ action: "createMethodology", name }, "new-meth", `Methodology “${name}” created — add its phases below`)) {
+      setNewMeth("");
+    }
+  }
+
+  async function createPhase(m: Methodology) {
+    const name = (newPhase[m.id] ?? "").trim();
+    if (!name) return toast.error("Give the phase a name");
+    if (await create({ action: "createPhase", methodologyId: m.id, name }, `new-phase-${m.id}`, `Phase “${name}” added`)) {
+      setNewPhase((prev) => ({ ...prev, [m.id]: "" }));
+    }
+  }
+
+  async function createType() {
+    const name = newType.name.trim();
+    if (name.length < 2) return toast.error("Give the transformation type a name");
+    if (!newType.methodologyId) return toast.error("Pick its default roadmap");
+    if (
+      await create(
+        {
+          action: "createTransformationType",
+          name,
+          subtitle: newType.subtitle.trim() || null,
+          methodologyId: newType.methodologyId,
+        },
+        "new-type",
+        `“${name}” added to the catalog`
+      )
+    ) {
+      setNewType({ name: "", subtitle: "", methodologyId: "" });
+    }
+  }
+
   /* ------------------------ transformation types --------------------- */
 
   async function patchType(t: TransformationType, data: { active?: boolean; methodologyId?: string }) {
@@ -353,39 +433,82 @@ export function SapConfigManager() {
       <Card className="luxury-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Route className="h-4 w-4 text-primary" /> SAP Activate roadmap templates
+            <Route className="h-4 w-4 text-primary" /> Methodology templates
           </CardTitle>
           <CardDescription>
-            Phases, durations and deliverables used when a project is created. New projects copy the template;
-            existing projects keep their instantiated roadmap.
+            Phases, durations and deliverables used when a project is created — SAP Activate ships seeded, and
+            you can build any methodology from scratch. New projects copy the template; existing projects keep
+            their instantiated roadmap.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
+          {/* create a methodology from scratch */}
+          <div className="flex items-center gap-2 rounded-2xl border border-dashed p-3">
+            <Input
+              placeholder="New methodology name (e.g. Agile Delivery, Waterfall, Oracle OUM)…"
+              value={newMeth}
+              onChange={(e) => setNewMeth(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void createMethodology();
+                }
+              }}
+              className="h-9 flex-1 text-sm"
+            />
+            <Button size="sm" variant="gradient" className="h-9" disabled={pending.has("new-meth")} onClick={() => void createMethodology()}>
+              {pending.has("new-meth") ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              New methodology
+            </Button>
+          </div>
           {methodologies.map((m) => {
             const isOpen = openMeth === m.id;
             const totalWeeks = m.phases.reduce((n, p) => n + (p.active ? p.durationWeeks : 0), 0);
             return (
               <div key={m.id} className="rounded-2xl border bg-card/60">
-                <button
-                  type="button"
-                  onClick={() => setOpenMeth(isOpen ? null : m.id)}
-                  className="flex w-full items-center justify-between gap-3 p-4 text-left"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate font-medium">{m.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {m.phases.length} phases · {totalWeeks} weeks · {m.key}
+                <div className="flex items-center gap-1 pr-2">
+                  <button
+                    type="button"
+                    onClick={() => setOpenMeth(isOpen ? null : m.id)}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 p-4 text-left"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate font-medium">{m.name}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {m.phases.length} phases · {totalWeeks} weeks · {m.key}
+                      </div>
                     </div>
-                  </div>
-                  <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
-                </button>
+                    <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition-transform", isOpen && "rotate-180")} />
+                  </button>
+                  {pending.has(m.id) ? (
+                    <Loader2 className="h-4 w-4 shrink-0 animate-spin text-muted-foreground" />
+                  ) : (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => void remove("methodologyId", m.id, `“${m.name}” deleted`)}
+                      aria-label={`Delete ${m.name}`}
+                      title="Delete methodology (blocked while projects or catalog entries use it)"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
+                </div>
                 {isOpen && (
                   <div className="space-y-3 border-t px-4 pb-4 pt-3">
                     {m.phases.map((p) => (
                       <div key={p.id} className="rounded-xl border bg-background/60 p-3">
                         <div className="flex flex-wrap items-center gap-3">
-                          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: p.color }} />
-                          <span className="font-medium">{p.name}</span>
+                          <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: p.color }} />
+                          <Input
+                            defaultValue={p.name}
+                            onBlur={(e) => {
+                              const v = e.target.value.trim();
+                              if (v && v !== p.name) void patchPhase(p, { name: v });
+                            }}
+                            className="h-8 w-40 border-transparent bg-transparent px-2 font-medium shadow-none hover:border-input focus:border-input focus:bg-background"
+                          />
                           <div className="ml-auto flex items-center gap-3">
                             <div className="flex items-center gap-1.5">
                               <Input
@@ -410,6 +533,20 @@ export function SapConfigManager() {
                                 onCheckedChange={(v) => void patchPhase(p, { active: v })}
                               />
                             </div>
+                            {pending.has(p.id) ? (
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                            ) : (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                onClick={() => void remove("phaseId", p.id, `Phase “${p.name}” deleted`)}
+                                aria-label={`Delete phase ${p.name}`}
+                                title="Delete phase from the template (existing projects keep their copy)"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            )}
                           </div>
                         </div>
                         <ul className="mt-2 space-y-1">
@@ -477,6 +614,36 @@ export function SapConfigManager() {
                         </div>
                       </div>
                     ))}
+
+                    {/* add a phase to this methodology */}
+                    <div className="flex items-center gap-2">
+                      <Input
+                        placeholder="Add phase (e.g. Design, Build, Hypercare)…"
+                        value={newPhase[m.id] ?? ""}
+                        onChange={(e) => setNewPhase((prev) => ({ ...prev, [m.id]: e.target.value }))}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            void createPhase(m);
+                          }
+                        }}
+                        className="h-8 flex-1 text-sm"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-8"
+                        disabled={pending.has(`new-phase-${m.id}`)}
+                        onClick={() => void createPhase(m)}
+                      >
+                        {pending.has(`new-phase-${m.id}`) ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Plus className="h-3.5 w-3.5" />
+                        )}
+                        Add phase
+                      </Button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -529,10 +696,58 @@ export function SapConfigManager() {
                   <span className="hidden text-xs text-muted-foreground sm:inline">Active</span>
                   <Switch checked={t.active} onCheckedChange={(v) => void patchType(t, { active: v })} />
                 </div>
-                {pending.has(t.id) && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                {pending.has(t.id) ? (
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                ) : (
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                    onClick={() => void remove("transformationTypeId", t.id, `“${t.name}” removed from the catalog`)}
+                    aria-label={`Delete ${t.name}`}
+                    title="Delete from the catalog (blocked while projects use it)"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
               </li>
             ))}
           </ul>
+
+          {/* add a catalog entry */}
+          <div className="mt-3 flex flex-wrap items-center gap-2 rounded-2xl border border-dashed p-3">
+            <Input
+              placeholder="New type (e.g. BTP Extension)…"
+              value={newType.name}
+              onChange={(e) => setNewType((p) => ({ ...p, name: e.target.value }))}
+              className="h-9 w-44 flex-1 text-sm"
+            />
+            <Input
+              placeholder="Subtitle (optional)"
+              value={newType.subtitle}
+              onChange={(e) => setNewType((p) => ({ ...p, subtitle: e.target.value }))}
+              className="h-9 w-44 flex-1 text-sm"
+            />
+            <Select
+              value={newType.methodologyId || undefined}
+              onValueChange={(v) => setNewType((p) => ({ ...p, methodologyId: v }))}
+            >
+              <SelectTrigger className="h-9 w-56 text-xs">
+                <SelectValue placeholder="Default roadmap" />
+              </SelectTrigger>
+              <SelectContent>
+                {methodologies.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>
+                    {m.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="gradient" className="h-9" disabled={pending.has("new-type")} onClick={() => void createType()}>
+              {pending.has("new-type") ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
+              Add type
+            </Button>
+          </div>
           <p className="mt-3 flex items-center gap-1.5 text-xs text-muted-foreground">
             <Badge variant="soft" className="text-[10px]">Note</Badge>
             SAP Roadmap Viewer has no public API — these templates model the published SAP Activate structure

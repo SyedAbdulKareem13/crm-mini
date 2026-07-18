@@ -34,9 +34,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ProjectGantt } from "./project-gantt";
+import { ProjectGantt, type BaselineData } from "./project-gantt";
 import { ProjectEstimator, type SavedEstimate } from "./project-estimator";
 import { ResourceOptimizer } from "./resource-optimizer";
+import { joinProjectChannel, type PresencePeer } from "@/lib/realtime";
 
 /* ------------------------------- types -------------------------------- */
 
@@ -102,10 +103,14 @@ export function ProjectPlanner({
   project: initial,
   members = [],
   estimate = null,
+  baseline: initialBaseline = null,
+  viewer,
 }: {
   project: PlannerProject;
   members?: { id: string; name: string | null }[];
   estimate?: SavedEstimate;
+  baseline?: BaselineData | null;
+  viewer?: { id: string; name: string };
 }) {
   const router = useRouter();
   const [project, setProject] = React.useState(initial);
@@ -115,6 +120,68 @@ export function ProjectPlanner({
   const [notesDraft, setNotesDraft] = React.useState(initial.notes ?? "");
   const [view, setView] = React.useState<"roadmap" | "gantt" | "estimator" | "resources">("roadmap");
   const [savedEstimate, setSavedEstimate] = React.useState<SavedEstimate>(estimate);
+  const [baseline, setBaseline] = React.useState<BaselineData | null>(initialBaseline);
+  const [peers, setPeers] = React.useState<PresencePeer[]>([]);
+  const notifyRef = React.useRef<() => void>(() => {});
+
+  /* ------------------- realtime sync + presence ------------------- */
+
+  // Pull a fresh copy after a peer's edit (also used as a focus fallback).
+  const refetching = React.useRef(false);
+  const refetch = React.useCallback(async () => {
+    if (refetching.current) return;
+    refetching.current = true;
+    try {
+      const res = await fetch(`/api/projects/${initial.id}`, { cache: "no-store" });
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.project?.phases) {
+        const phases = (data.project.phases as any[]).map((ph) => ({
+          ...ph,
+          deliverables: (ph.deliverables as any[]).map((del) => ({
+            ...del,
+            ownerName: del.owner?.name ?? null,
+            predecessorIds:
+              (del.predecessors as any[] | undefined)?.map((p) => p.predecessorId) ?? [],
+          })),
+        })) as PlannerPhase[];
+        setProject((prev) => ({
+          ...prev,
+          name: data.project.name ?? prev.name,
+          status: data.project.status ?? prev.status,
+          startDate: data.project.startDate ?? prev.startDate,
+          targetEndDate: data.project.targetEndDate ?? prev.targetEndDate,
+          notes: data.project.notes ?? prev.notes,
+          phases,
+        }));
+        router.refresh(); // keep the audit/activity feed live too
+      }
+    } finally {
+      refetching.current = false;
+    }
+  }, [initial.id, router]);
+
+  React.useEffect(() => {
+    if (!viewer) return;
+    const channel = joinProjectChannel({
+      projectId: initial.id,
+      user: viewer,
+      onPeers: setPeers,
+      onRemoteChange: () => void refetch(),
+    });
+    notifyRef.current = channel.notify;
+    // Fallback for single-user / unconfigured realtime: refresh when the tab
+    // regains focus so stale views recover either way.
+    const onFocus = () => void refetch();
+    if (!channel.enabled) window.addEventListener("focus", onFocus);
+    return () => {
+      channel.leave();
+      notifyRef.current = () => {};
+      if (!channel.enabled) window.removeEventListener("focus", onFocus);
+    };
+  }, [initial.id, viewer, refetch]);
+
+  /** Tell peers something changed (called after every successful mutation). */
+  const broadcast = () => notifyRef.current();
 
   const [newTask, setNewTask] = React.useState<Record<string, string>>({});
 
@@ -170,6 +237,7 @@ export function ProjectPlanner({
           `${data.shifted.length} dependent task${data.shifted.length === 1 ? "" : "s"} auto-shifted to respect dependencies`
         );
       }
+      broadcast();
       return true;
     } catch (err: any) {
       toast.error(err?.message || "Update failed");
@@ -254,6 +322,7 @@ export function ProjectPlanner({
           ph.id === phase.id ? { ...ph, deliverables: [...ph.deliverables, del] } : ph
         ),
       }));
+      broadcast();
       return true;
     } catch (err: any) {
       toast.error(err?.message || "Could not add task");
@@ -318,12 +387,35 @@ export function ProjectPlanner({
       if (shifted.length > 0) {
         toast.info(`${shifted.length} task${shifted.length === 1 ? "" : "s"} auto-shifted to respect dependencies`);
       }
+      broadcast();
       return true;
     } catch (err: any) {
       toast.error(err?.message || "Dependency update failed");
       return false;
     } finally {
       mark(key, false);
+    }
+  }
+
+  /** Snapshot or clear the schedule baseline (Gantt planned-vs-actual). */
+  async function mutateBaseline(action: "set" | "clear"): Promise<boolean> {
+    if (busy.has("baseline")) return false;
+    mark("baseline", true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}/baseline`, {
+        method: action === "set" ? "POST" : "DELETE",
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Baseline update failed");
+      setBaseline(action === "set" ? (data.baseline as BaselineData) : null);
+      toast.success(action === "set" ? "Baseline saved — planned vs actual is now tracked" : "Baseline cleared");
+      broadcast();
+      return true;
+    } catch (err: any) {
+      toast.error(err?.message || "Baseline update failed");
+      return false;
+    } finally {
+      mark("baseline", false);
     }
   }
 
@@ -346,6 +438,7 @@ export function ProjectPlanner({
         throw new Error(data?.error ?? "Delete failed");
       }
       toast.success(`Removed “${del.name}”`);
+      broadcast();
     } catch (err: any) {
       setProject((p) => ({ ...p, phases: prevPhases }));
       toast.error(err?.message || "Delete failed");
@@ -385,6 +478,32 @@ export function ProjectPlanner({
             </div>
           </div>
           <div className="flex shrink-0 items-center gap-2">
+            {/* presence — everyone viewing this project right now */}
+            {peers.length > 0 && (
+              <div className="mr-1 flex items-center -space-x-1.5" title={`Viewing now: ${peers.map((p) => p.name).join(", ")}`}>
+                {peers.slice(0, 4).map((p) => (
+                  <span
+                    key={p.key}
+                    className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-primary/15 text-[9px] font-bold text-primary"
+                  >
+                    {(p.name || "?")
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map((w) => w[0]?.toUpperCase() ?? "")
+                      .join("")}
+                  </span>
+                ))}
+                {peers.length > 4 && (
+                  <span className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-[9px] font-semibold text-muted-foreground">
+                    +{peers.length - 4}
+                  </span>
+                )}
+                <span className="relative ml-2.5 flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                </span>
+              </div>
+            )}
             {savingCore && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
             <Select value={project.status} onValueChange={setStatus}>
               <SelectTrigger className="w-36">
@@ -498,6 +617,8 @@ export function ProjectPlanner({
               busy={busy}
               onPatch={patch}
               onDependency={mutateDependency}
+              baseline={baseline}
+              onBaseline={mutateBaseline}
             />
           </CardContent>
         ) : view === "estimator" ? (
