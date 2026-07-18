@@ -2,9 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import { Calculator, FileText, Loader2, Sparkles, TrendingUp, Clock3, Users2 } from "lucide-react";
+import { Calculator, FileText, Loader2, ScrollText, Sparkles, TrendingUp, Clock3, Users2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -58,16 +59,20 @@ export function ProjectEstimator({
   projectId,
   initial,
   canQuote,
+  onSaved,
 }: {
   projectId: string;
   initial: SavedEstimate;
   canQuote: boolean;
+  onSaved?: (e: SavedEstimate) => void;
 }) {
+  const router = useRouter();
   const [inputs, setInputs] = React.useState<EstimatorInputs>(initial?.inputs ?? EMPTY_INPUTS);
   const [result, setResult] = React.useState<EstimateResult | null>(initial?.result ?? null);
   const [savedAt, setSavedAt] = React.useState<string | null>(initial?.updatedAt ?? null);
   const [running, setRunning] = React.useState(false);
   const [drafting, setDrafting] = React.useState(false);
+  const [proposing, setProposing] = React.useState(false);
   const [quote, setQuote] = React.useState<{ id: string; quotationNumber: string } | null>(null);
 
   const setField = (key: keyof EstimatorInputs, raw: string) => {
@@ -87,9 +92,11 @@ export function ProjectEstimator({
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? "Estimate failed");
+      const savedAtIso = new Date().toISOString();
       setResult(data.result as EstimateResult);
-      setSavedAt(new Date().toISOString());
+      setSavedAt(savedAtIso);
       setQuote(null);
+      onSaved?.({ inputs, result: data.result as EstimateResult, updatedAt: savedAtIso });
       toast.success("Estimate saved to the project");
     } catch (err: any) {
       toast.error(err?.message || "Estimate failed");
@@ -111,6 +118,21 @@ export function ProjectEstimator({
       toast.error(err?.message || "Could not draft the quotation");
     } finally {
       setDrafting(false);
+    }
+  }
+
+  async function generateProposal() {
+    if (proposing) return;
+    setProposing(true);
+    try {
+      const res = await fetch(`/api/projects/${projectId}/proposal`, { method: "POST" });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error ?? "Could not generate the proposal");
+      toast.success("Proposal assembled");
+      router.push(`/app/projects/${projectId}/proposal`);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not generate the proposal");
+      setProposing(false);
     }
   }
 
@@ -286,7 +308,20 @@ export function ProjectEstimator({
                   </li>
                 ))}
               </ul>
-              <div className="shrink-0">
+              <div className="flex shrink-0 flex-wrap items-center gap-2">
+                <Button
+                  variant="gradient"
+                  size="sm"
+                  onClick={() => void generateProposal()}
+                  disabled={proposing}
+                >
+                  {proposing ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <ScrollText className="h-3.5 w-3.5" />
+                  )}
+                  Generate proposal
+                </Button>
                 {quote ? (
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/app/quotations/${quote.id}`}>

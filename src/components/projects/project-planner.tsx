@@ -36,6 +36,7 @@ import {
 } from "@/components/ui/select";
 import { ProjectGantt } from "./project-gantt";
 import { ProjectEstimator, type SavedEstimate } from "./project-estimator";
+import { ResourceOptimizer } from "./resource-optimizer";
 
 /* ------------------------------- types -------------------------------- */
 
@@ -108,7 +109,8 @@ export function ProjectPlanner({
   const [savingCore, setSavingCore] = React.useState(false);
   const [editingNotes, setEditingNotes] = React.useState(false);
   const [notesDraft, setNotesDraft] = React.useState(initial.notes ?? "");
-  const [view, setView] = React.useState<"roadmap" | "gantt" | "estimator">("roadmap");
+  const [view, setView] = React.useState<"roadmap" | "gantt" | "estimator" | "resources">("roadmap");
+  const [savedEstimate, setSavedEstimate] = React.useState<SavedEstimate>(estimate);
 
   const [newTask, setNewTask] = React.useState<Record<string, string>>({});
 
@@ -209,10 +211,10 @@ export function ProjectPlanner({
     await patch({ phase: { id: phase.id, status } }, phase.id);
   }
 
-  async function addTask(phase: PlannerPhase) {
-    const name = (newTask[phase.id] ?? "").trim();
-    if (!name) return toast.error("Give the task a name");
-    if (busy.has(`add-${phase.id}`)) return;
+  /** Shared task creation — used by the roadmap "Add task" input and the
+   *  Resources view's deliverable library. */
+  async function createTask(phase: PlannerPhase, name: string): Promise<boolean> {
+    if (busy.has(`add-${phase.id}`)) return false;
     mark(`add-${phase.id}`, true);
     try {
       const res = await fetch(`/api/projects/${project.id}`, {
@@ -232,12 +234,22 @@ export function ProjectPlanner({
           ph.id === phase.id ? { ...ph, deliverables: [...ph.deliverables, del] } : ph
         ),
       }));
-      setNewTask((prev) => ({ ...prev, [phase.id]: "" }));
-      toast.success(`Added “${name}”`);
+      return true;
     } catch (err: any) {
       toast.error(err?.message || "Could not add task");
+      return false;
     } finally {
       mark(`add-${phase.id}`, false);
+    }
+  }
+
+  async function addTask(phase: PlannerPhase) {
+    const name = (newTask[phase.id] ?? "").trim();
+    if (!name) return toast.error("Give the task a name");
+    const ok = await createTask(phase, name);
+    if (ok) {
+      setNewTask((prev) => ({ ...prev, [phase.id]: "" }));
+      toast.success(`Added “${name}”`);
     }
   }
 
@@ -379,6 +391,7 @@ export function ProjectPlanner({
                   { key: "roadmap", label: "Roadmap" },
                   { key: "gantt", label: "Gantt" },
                   { key: "estimator", label: "Estimator" },
+                  { key: "resources", label: "Resources" },
                 ] as const
               ).map((v) => (
                 <button
@@ -411,8 +424,17 @@ export function ProjectPlanner({
           <CardContent>
             <ProjectEstimator
               projectId={project.id}
-              initial={estimate}
+              initial={savedEstimate}
               canQuote={!!project.customer}
+              onSaved={setSavedEstimate}
+            />
+          </CardContent>
+        ) : view === "resources" ? (
+          <CardContent>
+            <ResourceOptimizer
+              estimate={savedEstimate}
+              phases={project.phases}
+              onAddToPhase={createTask}
             />
           </CardContent>
         ) : (
