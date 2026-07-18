@@ -137,7 +137,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (d.deliverable) {
     const del = await prisma.projectDeliverable.findFirst({
       where: { id: d.deliverable.id, phase: { projectId: project.id } },
-      select: { id: true, phaseId: true },
+      select: { id: true, phaseId: true, name: true, ownerId: true },
     });
     if (!del) return NextResponse.json({ error: "Deliverable not found" }, { status: 404 });
     // Governance: sequential phase execution also guards starting deliverables early.
@@ -170,6 +170,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
           : {}),
       },
     });
+    // Notify the new assignee (unless they assigned it to themselves).
+    if (
+      d.deliverable.ownerId &&
+      d.deliverable.ownerId !== del.ownerId &&
+      d.deliverable.ownerId !== session.user.id
+    ) {
+      await prisma.notification
+        .create({
+          data: {
+            organizationId: orgId,
+            userId: d.deliverable.ownerId,
+            type: "SYSTEM", // NotificationType is a PG enum — reuse SYSTEM to stay additive (no SQL)
+            title: `You were assigned “${del.name}” on ${project.projectNumber}`,
+            url: `/app/projects/${project.id}`,
+          },
+        })
+        .catch(() => null);
+    }
     // Keep the parent phase status coherent when the deliverable status changed.
     if (d.deliverable.status !== undefined) {
       const siblings = await prisma.projectDeliverable.findMany({

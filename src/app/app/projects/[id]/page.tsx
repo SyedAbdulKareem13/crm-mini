@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { ProjectPlanner, type PlannerProject } from "@/components/projects/project-planner";
+import type { SavedEstimate } from "@/components/projects/project-estimator";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,13 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+
+  // Saved estimator run lives in the project's JSON data column.
+  const rawData = project.data;
+  const estimate: SavedEstimate =
+    rawData && typeof rawData === "object" && !Array.isArray(rawData) && "estimator" in rawData
+      ? ((rawData as Record<string, unknown>).estimator as SavedEstimate)
+      : null;
 
   const planner: PlannerProject = {
     id: project.id,
@@ -96,7 +104,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       </Link>
 
       <div className="mt-4 space-y-6">
-        <ProjectPlanner project={planner} members={members} />
+        <ProjectPlanner project={planner} members={members} estimate={estimate} />
         <RecordAuditTrail
           organizationId={session.user.organizationId}
           entityType="PROJECT"

@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ProjectGantt } from "./project-gantt";
+import { ProjectEstimator, type SavedEstimate } from "./project-estimator";
 
 /* ------------------------------- types -------------------------------- */
 
@@ -95,9 +96,11 @@ const NEXT_DELIVERABLE_STATUS: Record<string, string> = {
 export function ProjectPlanner({
   project: initial,
   members = [],
+  estimate = null,
 }: {
   project: PlannerProject;
   members?: { id: string; name: string | null }[];
+  estimate?: SavedEstimate;
 }) {
   const router = useRouter();
   const [project, setProject] = React.useState(initial);
@@ -105,7 +108,7 @@ export function ProjectPlanner({
   const [savingCore, setSavingCore] = React.useState(false);
   const [editingNotes, setEditingNotes] = React.useState(false);
   const [notesDraft, setNotesDraft] = React.useState(initial.notes ?? "");
-  const [view, setView] = React.useState<"roadmap" | "gantt">("roadmap");
+  const [view, setView] = React.useState<"roadmap" | "gantt" | "estimator">("roadmap");
 
   const [newTask, setNewTask] = React.useState<Record<string, string>>({});
 
@@ -375,6 +378,7 @@ export function ProjectPlanner({
                 [
                   { key: "roadmap", label: "Roadmap" },
                   { key: "gantt", label: "Gantt" },
+                  { key: "estimator", label: "Estimator" },
                 ] as const
               ).map((v) => (
                 <button
@@ -402,6 +406,14 @@ export function ProjectPlanner({
         {view === "gantt" ? (
           <CardContent>
             <ProjectGantt project={project} members={members} busy={busy} onPatch={patch} />
+          </CardContent>
+        ) : view === "estimator" ? (
+          <CardContent>
+            <ProjectEstimator
+              projectId={project.id}
+              initial={estimate}
+              canQuote={!!project.customer}
+            />
           </CardContent>
         ) : (
         <CardContent className="space-y-6">

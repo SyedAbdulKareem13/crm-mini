@@ -58,6 +58,28 @@ export default async function ProjectsPage() {
         </div>
       </div>
 
+      {projects.length > 0 && (() => {
+        // Portfolio summary strip — health computed the same way as the cards.
+        const healths = projects.map((p) => computeProjectHealth(p.status, p.startDate, p.phases));
+        const stats = [
+          { label: "Total", value: projects.length, cls: "" },
+          { label: "Active", value: projects.filter((p) => p.status === "ACTIVE").length, cls: "text-emerald-600 dark:text-emerald-400" },
+          { label: "At risk", value: healths.filter((h) => h === "AT_RISK").length, cls: "text-amber-600 dark:text-amber-400" },
+          { label: "Delayed", value: healths.filter((h) => h === "DELAYED").length, cls: "text-destructive" },
+          { label: "Completed", value: projects.filter((p) => p.status === "COMPLETED").length, cls: "text-muted-foreground" },
+        ];
+        return (
+          <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-5">
+            {stats.map((s) => (
+              <div key={s.label} className="rounded-2xl border bg-card/60 px-4 py-3">
+                <div className={cn("font-display text-2xl font-semibold tabular-nums", s.cls)}>{s.value}</div>
+                <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{s.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
       {projects.length === 0 ? (
         <div className="mt-10 flex flex-col items-center justify-center rounded-2xl border border-dashed py-16 text-center">
           <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted">
