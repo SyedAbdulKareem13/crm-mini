@@ -42,8 +42,12 @@ export function MobileNav() {
               exit={{ opacity: 0 }}
               onClick={() => setMoreOpen(false)}
             />
+            {/* positioning lives on this plain wrapper — framer-motion owns the
+                inner transform, so animating the same element would clobber
+                the -translate-x-1/2 centering */}
+            <div className="fixed bottom-[4.75rem] left-1/2 z-40 w-[94%] max-w-md -translate-x-1/2 md:hidden">
             <motion.div
-              className="fixed bottom-[4.6rem] left-1/2 z-40 w-[94%] max-w-md -translate-x-1/2 rounded-2xl border bg-card/95 p-3 shadow-lg supports-[backdrop-filter]:bg-card/90 md:hidden"
+              className="rounded-2xl border bg-card/95 p-3 shadow-lg supports-[backdrop-filter]:bg-card/90"
               initial={{ opacity: 0, y: 14, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 14, scale: 0.98 }}
@@ -70,6 +74,7 @@ export function MobileNav() {
                 })}
               </div>
             </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>
