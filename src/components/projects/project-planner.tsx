@@ -30,10 +30,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ProjectGantt } from "./project-gantt";
 
 /* ------------------------------- types -------------------------------- */
 
-export type PlannerDeliverable = { id: string; name: string; position: number; status: string };
+export type PlannerDeliverable = {
+  id: string;
+  name: string;
+  position: number;
+  status: string;
+  priority?: string;
+  ownerId?: string | null;
+  ownerName?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+};
 export type PlannerPhase = {
   id: string;
   name: string;
@@ -41,6 +52,8 @@ export type PlannerPhase = {
   durationWeeks: number;
   position: number;
   status: string;
+  startDate?: string | null;
+  endDate?: string | null;
   deliverables: PlannerDeliverable[];
 };
 export type PlannerProject = {
@@ -75,13 +88,20 @@ const NEXT_DELIVERABLE_STATUS: Record<string, string> = {
 
 /* ------------------------------ component ----------------------------- */
 
-export function ProjectPlanner({ project: initial }: { project: PlannerProject }) {
+export function ProjectPlanner({
+  project: initial,
+  members = [],
+}: {
+  project: PlannerProject;
+  members?: { id: string; name: string | null }[];
+}) {
   const router = useRouter();
   const [project, setProject] = React.useState(initial);
   const [busy, setBusy] = React.useState<Set<string>>(new Set());
   const [savingCore, setSavingCore] = React.useState(false);
   const [editingNotes, setEditingNotes] = React.useState(false);
   const [notesDraft, setNotesDraft] = React.useState(initial.notes ?? "");
+  const [view, setView] = React.useState<"roadmap" | "gantt">("roadmap");
 
   const totalWeeks = project.phases.reduce((n, p) => n + p.durationWeeks, 0);
   const allDeliverables = project.phases.flatMap((p) => p.deliverables);
@@ -109,7 +129,15 @@ export function ProjectPlanner({ project: initial }: { project: PlannerProject }
       const data = await res.json().catch(() => null);
       if (!res.ok) throw new Error(data?.error ?? "Update failed");
       if (data?.project?.phases) {
-        setProject((prev) => ({ ...prev, phases: data.project.phases as PlannerPhase[] }));
+        // Normalize the API shape (owner relation → ownerName) for both views.
+        const phases = (data.project.phases as any[]).map((ph) => ({
+          ...ph,
+          deliverables: (ph.deliverables as any[]).map((del) => ({
+            ...del,
+            ownerName: del.owner?.name ?? null,
+          })),
+        })) as PlannerPhase[];
+        setProject((prev) => ({ ...prev, phases }));
       }
       return true;
     } catch (err: any) {
@@ -267,11 +295,42 @@ export function ProjectPlanner({ project: initial }: { project: PlannerProject }
               {doneCount}/{allDeliverables.length} deliverables done
             </p>
           </div>
-          <div className="text-right">
-            <div className="font-display text-2xl font-semibold tabular-nums">{overallPct}%</div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">complete</div>
+          <div className="flex items-center gap-4">
+            {/* view switch */}
+            <div className="flex rounded-xl border bg-background/60 p-0.5">
+              {(
+                [
+                  { key: "roadmap", label: "Roadmap" },
+                  { key: "gantt", label: "Gantt" },
+                ] as const
+              ).map((v) => (
+                <button
+                  key={v.key}
+                  type="button"
+                  onClick={() => setView(v.key)}
+                  aria-pressed={view === v.key}
+                  className={cn(
+                    "rounded-[10px] px-3 py-1.5 text-xs font-medium transition-colors",
+                    view === v.key
+                      ? "bg-primary/10 text-primary shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+            <div className="text-right">
+              <div className="font-display text-2xl font-semibold tabular-nums">{overallPct}%</div>
+              <div className="text-[10px] uppercase tracking-widest text-muted-foreground">complete</div>
+            </div>
           </div>
         </CardHeader>
+        {view === "gantt" ? (
+          <CardContent>
+            <ProjectGantt project={project} members={members} busy={busy} onPatch={patch} />
+          </CardContent>
+        ) : (
         <CardContent className="space-y-6">
           {/* Phase bar — widths proportional to duration (SAP Activate style) */}
           <div>
@@ -426,6 +485,7 @@ export function ProjectPlanner({ project: initial }: { project: PlannerProject }
             })}
           </div>
         </CardContent>
+        )}
       </Card>
 
       {/* ----------------------------- Notes ---------------------------- */}

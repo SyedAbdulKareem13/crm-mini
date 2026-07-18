@@ -111,6 +111,8 @@ CREATE TABLE IF NOT EXISTS "ProjectPhase" (
   "durationWeeks" INTEGER NOT NULL DEFAULT 4,
   "position"      INTEGER NOT NULL DEFAULT 0,
   "status"        TEXT NOT NULL DEFAULT 'NOT_STARTED',
+  "startDate"     TIMESTAMP(3),
+  "endDate"       TIMESTAMP(3),
   CONSTRAINT "ProjectPhase_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "ProjectPhase_projectId_fkey" FOREIGN KEY ("projectId")
     REFERENCES "Project"("id") ON DELETE CASCADE ON UPDATE CASCADE
@@ -118,16 +120,35 @@ CREATE TABLE IF NOT EXISTS "ProjectPhase" (
 CREATE INDEX IF NOT EXISTS "ProjectPhase_projectId_idx" ON "ProjectPhase"("projectId");
 
 CREATE TABLE IF NOT EXISTS "ProjectDeliverable" (
-  "id"       TEXT NOT NULL,
-  "phaseId"  TEXT NOT NULL,
-  "name"     TEXT NOT NULL,
-  "position" INTEGER NOT NULL DEFAULT 0,
-  "status"   TEXT NOT NULL DEFAULT 'PENDING',
+  "id"        TEXT NOT NULL,
+  "phaseId"   TEXT NOT NULL,
+  "name"      TEXT NOT NULL,
+  "position"  INTEGER NOT NULL DEFAULT 0,
+  "status"    TEXT NOT NULL DEFAULT 'PENDING',
+  "priority"  TEXT NOT NULL DEFAULT 'MEDIUM',
+  "ownerId"   TEXT,
+  "startDate" TIMESTAMP(3),
+  "endDate"   TIMESTAMP(3),
   CONSTRAINT "ProjectDeliverable_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "ProjectDeliverable_phaseId_fkey" FOREIGN KEY ("phaseId")
-    REFERENCES "ProjectPhase"("id") ON DELETE CASCADE ON UPDATE CASCADE
+    REFERENCES "ProjectPhase"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT "ProjectDeliverable_ownerId_fkey" FOREIGN KEY ("ownerId")
+    REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 CREATE INDEX IF NOT EXISTS "ProjectDeliverable_phaseId_idx" ON "ProjectDeliverable"("phaseId");
+
+-- Gantt fields — idempotent ALTERs so this script also upgrades an existing
+-- installation created from an earlier version of this file.
+ALTER TABLE "ProjectPhase"       ADD COLUMN IF NOT EXISTS "startDate" TIMESTAMP(3);
+ALTER TABLE "ProjectPhase"       ADD COLUMN IF NOT EXISTS "endDate"   TIMESTAMP(3);
+ALTER TABLE "ProjectDeliverable" ADD COLUMN IF NOT EXISTS "priority"  TEXT NOT NULL DEFAULT 'MEDIUM';
+ALTER TABLE "ProjectDeliverable" ADD COLUMN IF NOT EXISTS "ownerId"   TEXT;
+ALTER TABLE "ProjectDeliverable" ADD COLUMN IF NOT EXISTS "startDate" TIMESTAMP(3);
+ALTER TABLE "ProjectDeliverable" ADD COLUMN IF NOT EXISTS "endDate"   TIMESTAMP(3);
+DO $$ BEGIN
+  ALTER TABLE "ProjectDeliverable" ADD CONSTRAINT "ProjectDeliverable_ownerId_fkey"
+    FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS "PipelineGateConfig" (
   "id"                   TEXT NOT NULL,

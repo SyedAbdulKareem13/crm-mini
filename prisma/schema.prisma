@@ -147,6 +147,7 @@ model User {
   ownedLeads        Lead[]         @relation("LeadOwner")
   ownedOpportunities Opportunity[] @relation("OppOwner")
   ownedProjects     Project[]      @relation("ProjectOwner")
+  assignedDeliverables ProjectDeliverable[] @relation("DeliverableOwner")
   revenueOpportunities Opportunity[] @relation("OppRevenueOwner")
   approvalsRequested ApprovalRequest[] @relation("RequestedBy")
   approvalsApproved  ApprovalStep[]    @relation("ApproverUser")
@@ -980,6 +981,10 @@ model ProjectPhase {
   durationWeeks Int    @default(4)
   position      Int    @default(0)
   status        String @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED
+  // Manual schedule overrides — when null the schedule derives from the
+  // project start date + cumulative configured durations.
+  startDate DateTime?
+  endDate   DateTime?
 
   deliverables ProjectDeliverable[]
 
@@ -994,6 +999,14 @@ model ProjectDeliverable {
   name     String
   position Int    @default(0)
   status   String @default("PENDING") // PENDING | IN_PROGRESS | DONE
+  priority String @default("MEDIUM")  // LOW | MEDIUM | HIGH | CRITICAL
+
+  ownerId String?
+  owner   User? @relation("DeliverableOwner", fields: [ownerId], references: [id])
+
+  // Manual schedule overrides — when null the deliverable spans its phase window.
+  startDate DateTime?
+  endDate   DateTime?
 
   @@index([phaseId])
 }

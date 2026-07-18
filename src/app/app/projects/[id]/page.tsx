@@ -23,11 +23,23 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       owner: { select: { name: true } },
       phases: {
         orderBy: { position: "asc" },
-        include: { deliverables: { orderBy: { position: "asc" } } },
+        include: {
+          deliverables: {
+            orderBy: { position: "asc" },
+            include: { owner: { select: { id: true, name: true } } },
+          },
+        },
       },
     },
   });
   if (!project) notFound();
+
+  // Org members for deliverable assignment in the planner/Gantt.
+  const members = await prisma.user.findMany({
+    where: { organizationId: session.user.organizationId, isActive: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   const planner: PlannerProject = {
     id: project.id,
@@ -58,11 +70,18 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       durationWeeks: p.durationWeeks,
       position: p.position,
       status: p.status,
+      startDate: p.startDate ? p.startDate.toISOString() : null,
+      endDate: p.endDate ? p.endDate.toISOString() : null,
       deliverables: p.deliverables.map((d) => ({
         id: d.id,
         name: d.name,
         position: d.position,
         status: d.status,
+        priority: d.priority,
+        ownerId: d.ownerId,
+        ownerName: d.owner?.name ?? null,
+        startDate: d.startDate ? d.startDate.toISOString() : null,
+        endDate: d.endDate ? d.endDate.toISOString() : null,
       })),
     })),
   };
@@ -77,7 +96,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       </Link>
 
       <div className="mt-4 space-y-6">
-        <ProjectPlanner project={planner} />
+        <ProjectPlanner project={planner} members={members} />
         <RecordAuditTrail
           organizationId={session.user.organizationId}
           entityType="PROJECT"
