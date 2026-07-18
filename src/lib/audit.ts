@@ -4,7 +4,7 @@ export type AuditChange = { field: string; from: unknown; to: unknown };
 
 export type AuditInput = {
   organizationId: string;
-  entityType: "LEAD" | "OPPORTUNITY" | "QUOTATION" | "RFQ";
+  entityType: "LEAD" | "OPPORTUNITY" | "QUOTATION" | "RFQ" | "PROJECT";
   entityId: string;
   entityLabel?: string | null;
   action:

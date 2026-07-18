@@ -71,7 +71,8 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
     });
     if (!res.ok) {
       setOpps(prev);
-      toast.error("Move failed");
+      const data = await res.json().catch(() => null);
+      toast.error(data?.error ?? "Move failed");
     } else {
       const label = OPP_STAGES.find((s) => s.value === stage)?.label ?? stage;
       toast.success(`Moved to ${label}`);

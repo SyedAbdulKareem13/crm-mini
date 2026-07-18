@@ -23,3 +23,8 @@ export const nextQuotationNumber = (organizationId: string) =>
   nextSequenceFor("QT", () =>
     prisma.quotation.count({ where: { organizationId } })
   );
+
+export const nextProjectNumber = (organizationId: string) =>
+  nextSequenceFor("PRJ", () =>
+    prisma.project.count({ where: { organizationId } })
+  );

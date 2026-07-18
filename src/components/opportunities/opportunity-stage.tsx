@@ -43,13 +43,16 @@ export function OpportunityStage({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ stage: value }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Couldn't change stage");
+      }
       const label = OPP_STAGES.find((s) => s.value === value)?.label ?? value;
       toast.success(`Moved to ${label}`);
       router.refresh();
-    } catch {
+    } catch (err: any) {
       setCurrent(prev);
-      toast.error("Couldn't change stage");
+      toast.error(err?.message || "Couldn't change stage");
     } finally {
       setSaving(false);
     }

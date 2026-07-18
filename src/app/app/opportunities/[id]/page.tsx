@@ -12,6 +12,7 @@ import { OpportunityStage } from "@/components/opportunities/opportunity-stage";
 import { OpportunityEditButton } from "@/components/opportunities/opportunity-edit-button";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { ActivityPanel } from "@/components/activity/activity-panel";
+import { CreateProjectButton } from "@/components/projects/create-project-button";
 import { getModuleConfig } from "@/lib/field-config";
 
 export const dynamic = "force-dynamic";
@@ -34,6 +35,7 @@ export default async function OpportunityDetailPage({
       rfqs: { orderBy: { createdAt: "desc" } },
       quotations: { orderBy: { createdAt: "desc" } },
       activities: { orderBy: { createdAt: "desc" } },
+      project: { select: { id: true, projectNumber: true } },
     },
   });
   if (!opp) notFound();
@@ -83,7 +85,14 @@ export default async function OpportunityDetailPage({
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">{opp.customer.name}</div>
               </div>
-              <OpportunityEditButton opportunity={oppForEdit} customers={customers} />
+              <div className="flex shrink-0 items-center gap-2">
+                <CreateProjectButton
+                  opportunityId={opp.id}
+                  opportunityName={opp.name}
+                  project={opp.project}
+                />
+                <OpportunityEditButton opportunity={oppForEdit} customers={customers} />
+              </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
               <Info label="Expected revenue" value={formatCompactCurrency(Number(opp.expectedRevenue))} />

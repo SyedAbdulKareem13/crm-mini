@@ -19,6 +19,7 @@ import {
   History,
   Circle,
   WandSparkles,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -48,6 +49,7 @@ const ICONS: Record<string, LucideIcon> = {
   History,
   Circle,
   WandSparkles,
+  FolderKanban,
 };
 
 export function Icon({ name, className }: { name: string; className?: string }) {

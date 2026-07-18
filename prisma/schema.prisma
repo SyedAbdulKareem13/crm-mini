@@ -58,6 +58,10 @@ model Organization {
   auditLogs       AuditLog[]
   fieldConfigs       FieldConfig[]
   activityTypeConfigs ActivityTypeConfig[]
+  methodologies       Methodology[]
+  transformationTypes TransformationType[]
+  projects            Project[]
+  pipelineGateConfig  PipelineGateConfig?
 }
 
 // -------------------------------------------------------------
@@ -142,6 +146,7 @@ model User {
   otpTokens     OtpToken[]
   ownedLeads        Lead[]         @relation("LeadOwner")
   ownedOpportunities Opportunity[] @relation("OppOwner")
+  ownedProjects     Project[]      @relation("ProjectOwner")
   revenueOpportunities Opportunity[] @relation("OppRevenueOwner")
   approvalsRequested ApprovalRequest[] @relation("RequestedBy")
   approvalsApproved  ApprovalStep[]    @relation("ApproverUser")
@@ -259,6 +264,7 @@ model Customer {
   opportunities  Opportunity[]
   rfqs           RFQ[]
   quotations     Quotation[]
+  projects       Project[]
 
   @@index([organizationId])
 }
@@ -392,6 +398,7 @@ model Opportunity {
   quotations       Quotation[]
   activities       Activity[]
   documents        Document[]
+  project          Project?
 
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -847,4 +854,157 @@ model AuditLog {
 
   @@index([organizationId, entityType, entityId, createdAt])
   @@index([organizationId, createdAt])
+}
+
+// -------------------------------------------------------------
+// SAP Transformation Intelligence Hub — Projects & Roadmaps
+// (methodologies, transformation catalog and pipeline gates are
+//  org-configurable master data; projects instantiate a roadmap)
+// -------------------------------------------------------------
+
+model Methodology {
+  id             String  @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  key         String  // e.g. ACTIVATE_S4_PRIVATE
+  name        String  // e.g. "SAP Activate — S/4HANA (Private/On-Prem)"
+  description String?
+  active      Boolean @default(true)
+  position    Int     @default(0)
+
+  phases              MethodologyPhase[]
+  transformationTypes TransformationType[]
+  projects            Project[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+model MethodologyPhase {
+  id            String @id @default(cuid())
+  methodologyId String
+  methodology   Methodology @relation(fields: [methodologyId], references: [id], onDelete: Cascade)
+
+  name          String  // Discover | Prepare | Explore | Realize | Deploy | Run
+  description   String?
+  color         String  @default("#2563EB")
+  durationWeeks Int     @default(4)
+  position      Int     @default(0)
+  active        Boolean @default(true)
+
+  deliverables MethodologyDeliverable[]
+
+  @@index([methodologyId])
+}
+
+model MethodologyDeliverable {
+  id       String @id @default(cuid())
+  phaseId  String
+  phase    MethodologyPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  name     String
+  position Int     @default(0)
+  active   Boolean @default(true)
+
+  @@index([phaseId])
+}
+
+model TransformationType {
+  id             String @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  key           String  // e.g. GREENFIELD_S4_PUBLIC
+  name          String  // "Greenfield"
+  subtitle      String? // "SAP S/4HANA Public Cloud"
+  methodologyId String? // default roadmap for this transformation
+  methodology   Methodology? @relation(fields: [methodologyId], references: [id])
+  active        Boolean @default(true)
+  position      Int     @default(0)
+
+  projects Project[]
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+}
+
+model Project {
+  id             String @id @default(cuid())
+  projectNumber  String @unique
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  name   String
+  status String @default("PLANNING") // PLANNING | ACTIVE | ON_HOLD | COMPLETED | CANCELLED
+
+  opportunityId String? @unique
+  opportunity   Opportunity? @relation(fields: [opportunityId], references: [id], onDelete: SetNull)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+
+  transformationTypeId String?
+  transformationType   TransformationType? @relation(fields: [transformationTypeId], references: [id])
+
+  methodologyId String?
+  methodology   Methodology? @relation(fields: [methodologyId], references: [id])
+
+  ownerId String?
+  owner   User? @relation("ProjectOwner", fields: [ownerId], references: [id])
+
+  startDate     DateTime?
+  targetEndDate DateTime?
+  notes         String? @db.Text
+  data          Json?   // values for admin-defined custom fields
+
+  phases ProjectPhase[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([organizationId, status])
+  @@index([customerId])
+}
+
+model ProjectPhase {
+  id        String @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  name          String
+  color         String @default("#2563EB")
+  durationWeeks Int    @default(4)
+  position      Int    @default(0)
+  status        String @default("NOT_STARTED") // NOT_STARTED | IN_PROGRESS | COMPLETED
+
+  deliverables ProjectDeliverable[]
+
+  @@index([projectId])
+}
+
+model ProjectDeliverable {
+  id      String @id @default(cuid())
+  phaseId String
+  phase   ProjectPhase @relation(fields: [phaseId], references: [id], onDelete: Cascade)
+
+  name     String
+  position Int    @default(0)
+  status   String @default("PENDING") // PENDING | IN_PROGRESS | DONE
+
+  @@index([phaseId])
+}
+
+model PipelineGateConfig {
+  id             String @id @default(cuid())
+  organizationId String @unique
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  quoteRequiredStage   String? // OpportunityStage value; null = gate disabled
+  projectRequiredStage String? // OpportunityStage value; null = gate disabled
+
+  updatedAt DateTime @updatedAt
 }

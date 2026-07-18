@@ -53,6 +53,7 @@ export const NAV_ITEMS = [
   { href: "/app/pipeline", label: "Pipeline", icon: "Kanban" },
   { href: "/app/rfqs", label: "RFQs", icon: "FileText" },
   { href: "/app/quotations", label: "Quotations", icon: "Receipt" },
+  { href: "/app/projects", label: "Projects", icon: "FolderKanban" },
   { href: "/app/customers", label: "Customers", icon: "Building2" },
   { href: "/app/activities", label: "Activities", icon: "CalendarClock" },
   { href: "/app/rate-cards", label: "Rate Cards", icon: "BadgeDollarSign" },

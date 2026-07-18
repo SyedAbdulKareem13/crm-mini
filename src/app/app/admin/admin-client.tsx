@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { initials, formatDate } from "@/lib/utils";
 import { ConfigurationManager } from "./configuration-manager";
+import { SapConfigManager } from "./sap-config-manager";
 
 type Role =
   | "ADMIN"
@@ -84,6 +85,7 @@ export function AdminClient({
         <TabsTrigger value="bus">Business units</TabsTrigger>
         <TabsTrigger value="chain">Approval chain</TabsTrigger>
         <TabsTrigger value="config">Configuration</TabsTrigger>
+        <TabsTrigger value="sap">SAP Projects</TabsTrigger>
         <TabsTrigger value="landing">Landing</TabsTrigger>
       </TabsList>
 
@@ -101,6 +103,9 @@ export function AdminClient({
       </TabsContent>
       <TabsContent value="config">
         <ConfigurationManager />
+      </TabsContent>
+      <TabsContent value="sap">
+        <SapConfigManager />
       </TabsContent>
       <TabsContent value="landing">
         <LandingTab heroVersion={heroVersion} readOnly={readOnly} onChanged={() => router.refresh()} />

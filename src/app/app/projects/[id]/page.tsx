@@ -1,0 +1,89 @@
+import Link from "next/link";
+import { notFound, redirect } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
+import { ProjectPlanner, type PlannerProject } from "@/components/projects/project-planner";
+
+export const dynamic = "force-dynamic";
+
+export default async function ProjectDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user?.organizationId) redirect("/login");
+
+  const project = await prisma.project.findFirst({
+    where: { id, organizationId: session.user.organizationId },
+    include: {
+      customer: { select: { id: true, name: true } },
+      opportunity: { select: { id: true, name: true, oppNumber: true, stage: true } },
+      methodology: { select: { name: true } },
+      transformationType: { select: { name: true, subtitle: true } },
+      owner: { select: { name: true } },
+      phases: {
+        orderBy: { position: "asc" },
+        include: { deliverables: { orderBy: { position: "asc" } } },
+      },
+    },
+  });
+  if (!project) notFound();
+
+  const planner: PlannerProject = {
+    id: project.id,
+    projectNumber: project.projectNumber,
+    name: project.name,
+    status: project.status,
+    startDate: project.startDate ? project.startDate.toISOString() : null,
+    targetEndDate: project.targetEndDate ? project.targetEndDate.toISOString() : null,
+    notes: project.notes,
+    customer: project.customer ? { id: project.customer.id, name: project.customer.name } : null,
+    opportunity: project.opportunity
+      ? {
+          id: project.opportunity.id,
+          name: project.opportunity.name,
+          oppNumber: project.opportunity.oppNumber,
+          stage: project.opportunity.stage,
+        }
+      : null,
+    methodologyName: project.methodology?.name ?? null,
+    transformationType: project.transformationType
+      ? { name: project.transformationType.name, subtitle: project.transformationType.subtitle }
+      : null,
+    ownerName: project.owner?.name ?? null,
+    phases: project.phases.map((p) => ({
+      id: p.id,
+      name: p.name,
+      color: p.color,
+      durationWeeks: p.durationWeeks,
+      position: p.position,
+      status: p.status,
+      deliverables: p.deliverables.map((d) => ({
+        id: d.id,
+        name: d.name,
+        position: d.position,
+        status: d.status,
+      })),
+    })),
+  };
+
+  return (
+    <div>
+      <Link
+        href="/app/projects"
+        className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+      >
+        <ArrowLeft className="h-4 w-4" /> All projects
+      </Link>
+
+      <div className="mt-4 space-y-6">
+        <ProjectPlanner project={planner} />
+        <RecordAuditTrail
+          organizationId={session.user.organizationId}
+          entityType="PROJECT"
+          entityId={project.id}
+        />
+      </div>
+    </div>
+  );
+}
