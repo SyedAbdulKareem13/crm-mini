@@ -20,6 +20,7 @@ import {
   Circle,
   WandSparkles,
   FolderKanban,
+  LayoutGrid,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -50,6 +51,7 @@ const ICONS: Record<string, LucideIcon> = {
   Circle,
   WandSparkles,
   FolderKanban,
+  LayoutGrid,
 };
 
 export function Icon({ name, className }: { name: string; className?: string }) {

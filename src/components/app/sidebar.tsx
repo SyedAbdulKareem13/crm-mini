@@ -12,7 +12,10 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-card/95 supports-[backdrop-filter]:bg-card/80 lg:flex lg:flex-col">
+    // md (768px), not lg: phones in "desktop site" mode (~980px viewport) and
+    // tablets must still get the full navigation. Below md the MobileNav
+    // bottom bar (with its More sheet) covers every destination.
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-card/95 supports-[backdrop-filter]:bg-card/80 md:flex md:flex-col">
       <Link href="/app" className="flex h-16 items-center border-b px-5">
         <Logo />
       </Link>

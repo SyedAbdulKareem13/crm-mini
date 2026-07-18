@@ -33,7 +33,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             scroll internally instead of stretching the page). */}
         <div className="flex min-h-screen w-full min-w-0 flex-col">
           <Topbar user={topbarUser} />
-          <main className="flex-1 px-4 py-6 lg:px-8">
+          {/* pb-24 below md: keep content clear of the fixed bottom nav bar */}
+          <main className="flex-1 px-4 py-6 pb-24 md:pb-6 lg:px-8">
             <div className="mx-auto w-full max-w-[1480px]">{children}</div>
           </main>
         </div>
