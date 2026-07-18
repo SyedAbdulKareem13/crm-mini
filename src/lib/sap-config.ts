@@ -192,6 +192,8 @@ export async function getPipelineGates(orgId: string) {
   return {
     quoteRequiredStage: g?.quoteRequiredStage ?? null,
     projectRequiredStage: g?.projectRequiredStage ?? null,
+    sequentialPhases: g?.sequentialPhases ?? false,
+    completeRequiresAllPhases: g?.completeRequiresAllPhases ?? true,
   };
 }
 

@@ -3,7 +3,28 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
-import { PROJECT_STATUSES, PHASE_STATUSES, DELIVERABLE_STATUSES } from "@/lib/sap-config";
+import {
+  PROJECT_STATUSES,
+  PHASE_STATUSES,
+  DELIVERABLE_STATUSES,
+  getPipelineGates,
+} from "@/lib/sap-config";
+
+/** With sequential execution on, work can't start/finish in a phase while an
+ *  earlier phase is still open. Returns a human-readable reason or null. */
+async function sequentialBlockReason(projectId: string, phaseId: string): Promise<string | null> {
+  const phases = await prisma.projectPhase.findMany({
+    where: { projectId },
+    select: { id: true, name: true, position: true, status: true },
+    orderBy: { position: "asc" },
+  });
+  const target = phases.find((p) => p.id === phaseId);
+  if (!target) return null;
+  const openEarlier = phases.find((p) => p.position < target.position && p.status !== "COMPLETED");
+  return openEarlier
+    ? `Sequential phase execution is enabled: complete “${openEarlier.name}” before working in “${target.name}”. (Configurable in Admin → SAP Projects.)`
+    : null;
+}
 
 const patchSchema = z
   .object({
@@ -60,6 +81,24 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   });
   if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const gates = await getPipelineGates(orgId);
+
+  // Governance: a project can't be completed while phases are still open.
+  if (d.status === "COMPLETED" && gates.completeRequiresAllPhases) {
+    const open = await prisma.projectPhase.count({
+      where: { projectId: project.id, NOT: { status: "COMPLETED" } },
+    });
+    if (open > 0) {
+      return NextResponse.json(
+        {
+          error: `${open} phase${open === 1 ? " is" : "s are"} still open — complete every phase before marking the project completed. (Configurable in Admin → SAP Projects.)`,
+          code: "gate",
+        },
+        { status: 409 }
+      );
+    }
+  }
+
   // Phase update (status / schedule), scoped through the project.
   if (d.phase) {
     const phase = await prisma.projectPhase.findFirst({
@@ -67,6 +106,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       select: { id: true, name: true },
     });
     if (!phase) return NextResponse.json({ error: "Phase not found" }, { status: 404 });
+    // Governance: sequential phase execution (config).
+    if (gates.sequentialPhases && (d.phase.status === "IN_PROGRESS" || d.phase.status === "COMPLETED")) {
+      const reason = await sequentialBlockReason(project.id, phase.id);
+      if (reason) return NextResponse.json({ error: reason, code: "gate" }, { status: 409 });
+    }
     await prisma.projectPhase.update({
       where: { id: phase.id },
       data: {
@@ -96,6 +140,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       select: { id: true, phaseId: true },
     });
     if (!del) return NextResponse.json({ error: "Deliverable not found" }, { status: 404 });
+    // Governance: sequential phase execution also guards starting deliverables early.
+    if (
+      gates.sequentialPhases &&
+      d.deliverable.status !== undefined &&
+      d.deliverable.status !== "PENDING"
+    ) {
+      const reason = await sequentialBlockReason(project.id, del.phaseId);
+      if (reason) return NextResponse.json({ error: reason, code: "gate" }, { status: 409 });
+    }
     if (d.deliverable.ownerId) {
       const member = await prisma.user.findFirst({
         where: { id: d.deliverable.ownerId, organizationId: orgId },
@@ -178,10 +231,77 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return NextResponse.json({ project: updated });
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+/** POST — add a task/deliverable to one of the project's phases. */
+const addTaskSchema = z.object({
+  phaseId: z.string().min(1),
+  name: z.string().min(1),
+});
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const orgId = session.user.organizationId;
+
+  const parsed = addTaskSchema.safeParse(await req.json().catch(() => null));
+  if (!parsed.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
+
+  const phase = await prisma.projectPhase.findFirst({
+    where: { id: parsed.data.phaseId, project: { id, organizationId: orgId } },
+    select: { id: true, name: true, project: { select: { projectNumber: true } } },
+  });
+  if (!phase) return NextResponse.json({ error: "Phase not found" }, { status: 404 });
+
+  const max = await prisma.projectDeliverable.aggregate({
+    where: { phaseId: phase.id },
+    _max: { position: true },
+  });
+  const deliverable = await prisma.projectDeliverable.create({
+    data: { phaseId: phase.id, name: parsed.data.name, position: (max._max.position ?? 0) + 1 },
+    include: { owner: { select: { id: true, name: true } } },
+  });
+  await recordAudit({
+    organizationId: orgId,
+    entityType: "PROJECT",
+    entityId: id,
+    entityLabel: phase.project.projectNumber,
+    action: "UPDATED",
+    summary: `Task “${parsed.data.name}” added to ${phase.name}`,
+    actorId: session.user.id,
+    actorName: session.user.name,
+  });
+  return NextResponse.json({ deliverable });
+}
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const session = await auth();
+  if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const orgId0 = session.user.organizationId;
+
+  // Task deletion (any member): DELETE ?deliverableId=…
+  const deliverableId = new URL(req.url).searchParams.get("deliverableId");
+  if (deliverableId) {
+    const del = await prisma.projectDeliverable.findFirst({
+      where: { id: deliverableId, phase: { project: { id, organizationId: orgId0 } } },
+      select: { id: true, name: true, phase: { select: { name: true, project: { select: { projectNumber: true } } } } },
+    });
+    if (!del) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    await prisma.projectDeliverable.delete({ where: { id: del.id } });
+    await recordAudit({
+      organizationId: orgId0,
+      entityType: "PROJECT",
+      entityId: id,
+      entityLabel: del.phase.project.projectNumber,
+      action: "UPDATED",
+      summary: `Task “${del.name}” removed from ${del.phase.name}`,
+      actorId: session.user.id,
+      actorName: session.user.name,
+    });
+    return NextResponse.json({ ok: true });
+  }
+
+  // Whole-project deletion stays admin-only.
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can delete projects" }, { status: 403 });
   const orgId = session.user.organizationId;
   const existing = await prisma.project.findFirst({

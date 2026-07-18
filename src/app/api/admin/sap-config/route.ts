@@ -33,6 +33,8 @@ const patchSchema = z.object({
     .object({
       quoteRequiredStage: z.string().nullable().optional(),
       projectRequiredStage: z.string().nullable().optional(),
+      sequentialPhases: z.boolean().optional(),
+      completeRequiresAllPhases: z.boolean().optional(),
     })
     .optional(),
   methodology: z
@@ -89,11 +91,17 @@ export async function PATCH(req: Request) {
       update: {
         ...(d.gates.quoteRequiredStage !== undefined ? { quoteRequiredStage: d.gates.quoteRequiredStage } : {}),
         ...(d.gates.projectRequiredStage !== undefined ? { projectRequiredStage: d.gates.projectRequiredStage } : {}),
+        ...(d.gates.sequentialPhases !== undefined ? { sequentialPhases: d.gates.sequentialPhases } : {}),
+        ...(d.gates.completeRequiresAllPhases !== undefined
+          ? { completeRequiresAllPhases: d.gates.completeRequiresAllPhases }
+          : {}),
       },
       create: {
         organizationId: orgId,
         quoteRequiredStage: d.gates.quoteRequiredStage ?? null,
         projectRequiredStage: d.gates.projectRequiredStage ?? null,
+        sequentialPhases: d.gates.sequentialPhases ?? false,
+        completeRequiresAllPhases: d.gates.completeRequiresAllPhases ?? true,
       },
     });
   }

@@ -1019,5 +1019,9 @@ model PipelineGateConfig {
   quoteRequiredStage   String? // OpportunityStage value; null = gate disabled
   projectRequiredStage String? // OpportunityStage value; null = gate disabled
 
+  // Project governance (configurable flow restrictions)
+  sequentialPhases         Boolean @default(false) // phases must complete in order
+  completeRequiresAllPhases Boolean @default(true) // project can't be COMPLETED with open phases
+
   updatedAt DateTime @updatedAt
 }

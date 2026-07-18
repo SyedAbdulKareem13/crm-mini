@@ -151,13 +151,17 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 CREATE TABLE IF NOT EXISTS "PipelineGateConfig" (
-  "id"                   TEXT NOT NULL,
-  "organizationId"       TEXT NOT NULL,
-  "quoteRequiredStage"   TEXT,
-  "projectRequiredStage" TEXT,
-  "updatedAt"            TIMESTAMP(3) NOT NULL,
+  "id"                        TEXT NOT NULL,
+  "organizationId"            TEXT NOT NULL,
+  "quoteRequiredStage"        TEXT,
+  "projectRequiredStage"      TEXT,
+  "sequentialPhases"          BOOLEAN NOT NULL DEFAULT false,
+  "completeRequiresAllPhases" BOOLEAN NOT NULL DEFAULT true,
+  "updatedAt"                 TIMESTAMP(3) NOT NULL,
   CONSTRAINT "PipelineGateConfig_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "PipelineGateConfig_organizationId_fkey" FOREIGN KEY ("organizationId")
     REFERENCES "Organization"("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "PipelineGateConfig_organizationId_key" ON "PipelineGateConfig"("organizationId");
+ALTER TABLE "PipelineGateConfig" ADD COLUMN IF NOT EXISTS "sequentialPhases"          BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "PipelineGateConfig" ADD COLUMN IF NOT EXISTS "completeRequiresAllPhases" BOOLEAN NOT NULL DEFAULT true;

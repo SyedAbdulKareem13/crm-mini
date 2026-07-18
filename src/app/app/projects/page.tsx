@@ -5,7 +5,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { formatDate } from "@/lib/utils";
+import { computeProjectHealth, HEALTH_META } from "@/lib/project-health";
+import { cn, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,16 @@ export default async function ProjectsPage() {
       methodology: { select: { name: true } },
       transformationType: { select: { name: true, subtitle: true } },
       owner: { select: { name: true } },
-      phases: { select: { status: true }, orderBy: { position: "asc" } },
+      phases: {
+        select: {
+          status: true,
+          durationWeeks: true,
+          startDate: true,
+          endDate: true,
+          deliverables: { select: { status: true, endDate: true } },
+        },
+        orderBy: { position: "asc" },
+      },
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -72,6 +82,8 @@ export default async function ProjectsPage() {
             const total = p.phases.length;
             const done = p.phases.filter((ph) => ph.status === "COMPLETED").length;
             const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            const health = computeProjectHealth(p.status, p.startDate, p.phases);
+            const healthMeta = HEALTH_META[health];
             return (
               <Link key={p.id} href={`/app/projects/${p.id}`} className="group">
                 <Card className="luxury-card hover-lift h-full overflow-hidden">
@@ -84,7 +96,17 @@ export default async function ProjectsPage() {
                           {p.customer ? <> · {p.customer.name}</> : null}
                         </div>
                       </div>
-                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        <Badge variant={badge.variant}>{badge.label}</Badge>
+                        {(health === "AT_RISK" || health === "DELAYED") && (
+                          <Badge
+                            variant={health === "AT_RISK" ? "warning" : "outline"}
+                            className={cn(health === "DELAYED" && "border-destructive/50 text-destructive")}
+                          >
+                            {healthMeta.label}
+                          </Badge>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mt-3 flex flex-wrap gap-1.5">

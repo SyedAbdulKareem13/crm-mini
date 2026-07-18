@@ -245,10 +245,10 @@ export function ProjectGantt({
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border">
-        <div className="flex">
+      <div className="w-full max-w-full overflow-hidden rounded-2xl border">
+        <div className="flex w-full max-w-full">
           {/* -------- fixed name column -------- */}
-          <div className="w-[270px] shrink-0 border-r bg-card/60">
+          <div className="w-[190px] shrink-0 border-r bg-card/60 sm:w-[270px]">
             <div className="flex h-[52px] items-end border-b px-3 pb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               Task
             </div>
@@ -286,8 +286,9 @@ export function ProjectGantt({
             )}
           </div>
 
-          {/* -------- timeline -------- */}
-          <div ref={scrollRef} className="relative flex-1 overflow-x-auto">
+          {/* -------- timeline (min-w-0 so the flex item can shrink and scroll
+               internally instead of widening the page) -------- */}
+          <div ref={scrollRef} className="relative min-w-0 flex-1 overflow-x-auto">
             <div style={{ width: totalWidth }}>
               {/* headers */}
               <div className="flex h-[26px] border-b bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">

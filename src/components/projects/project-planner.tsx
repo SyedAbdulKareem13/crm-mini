@@ -15,7 +15,11 @@ import {
   Loader2,
   Pencil,
   Check,
+  Plus,
+  X,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { computeProjectHealth, HEALTH_META } from "@/lib/project-health";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,8 +107,12 @@ export function ProjectPlanner({
   const [notesDraft, setNotesDraft] = React.useState(initial.notes ?? "");
   const [view, setView] = React.useState<"roadmap" | "gantt">("roadmap");
 
+  const [newTask, setNewTask] = React.useState<Record<string, string>>({});
+
   const totalWeeks = project.phases.reduce((n, p) => n + p.durationWeeks, 0);
   const allDeliverables = project.phases.flatMap((p) => p.deliverables);
+  const health = computeProjectHealth(project.status, project.startDate, project.phases);
+  const healthMeta = HEALTH_META[health];
   const doneCount = allDeliverables.filter((d) => d.status === "DONE").length;
   const overallPct = allDeliverables.length
     ? Math.round((doneCount / allDeliverables.length) * 100)
@@ -198,6 +206,65 @@ export function ProjectPlanner({
     await patch({ phase: { id: phase.id, status } }, phase.id);
   }
 
+  async function addTask(phase: PlannerPhase) {
+    const name = (newTask[phase.id] ?? "").trim();
+    if (!name) return toast.error("Give the task a name");
+    if (busy.has(`add-${phase.id}`)) return;
+    mark(`add-${phase.id}`, true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phaseId: phase.id, name }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Could not add task");
+      const del: PlannerDeliverable = {
+        ...data.deliverable,
+        ownerName: data.deliverable?.owner?.name ?? null,
+      };
+      setProject((p) => ({
+        ...p,
+        phases: p.phases.map((ph) =>
+          ph.id === phase.id ? { ...ph, deliverables: [...ph.deliverables, del] } : ph
+        ),
+      }));
+      setNewTask((prev) => ({ ...prev, [phase.id]: "" }));
+      toast.success(`Added “${name}”`);
+    } catch (err: any) {
+      toast.error(err?.message || "Could not add task");
+    } finally {
+      mark(`add-${phase.id}`, false);
+    }
+  }
+
+  async function removeTask(phase: PlannerPhase, del: PlannerDeliverable) {
+    if (busy.has(del.id)) return;
+    const prevPhases = project.phases;
+    setProject((p) => ({
+      ...p,
+      phases: p.phases.map((ph) =>
+        ph.id === phase.id
+          ? { ...ph, deliverables: ph.deliverables.filter((d) => d.id !== del.id) }
+          : ph
+      ),
+    }));
+    mark(del.id, true);
+    try {
+      const res = await fetch(`/api/projects/${project.id}?deliverableId=${del.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Delete failed");
+      }
+      toast.success(`Removed “${del.name}”`);
+    } catch (err: any) {
+      setProject((p) => ({ ...p, phases: prevPhases }));
+      toast.error(err?.message || "Delete failed");
+    } finally {
+      mark(del.id, false);
+    }
+  }
+
   const dateInput = (iso: string | null) => (iso ? iso.slice(0, 10) : "");
 
   return (
@@ -209,6 +276,12 @@ export function ProjectPlanner({
             <div className="flex flex-wrap items-center gap-2">
               <CardTitle className="truncate">{project.name}</CardTitle>
               <Badge variant="soft">{project.projectNumber}</Badge>
+              <Badge
+                variant={healthMeta.tone === "success" ? "success" : healthMeta.tone === "warning" ? "warning" : "outline"}
+                className={cn(healthMeta.tone === "destructive" && "border-destructive/50 text-destructive")}
+              >
+                {healthMeta.label}
+              </Badge>
             </div>
             <div className="mt-1.5 flex flex-wrap gap-1.5">
               {project.transformationType && (
@@ -442,13 +515,13 @@ export function ProjectPlanner({
                     {phase.deliverables.map((del) => {
                       const isBusy = busy.has(del.id);
                       return (
-                        <li key={del.id}>
+                        <li key={del.id} className="group flex items-center gap-1">
                           <button
                             type="button"
                             onClick={() => void cycleDeliverable(phase, del)}
                             disabled={isBusy}
                             className={cn(
-                              "flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted/60",
+                              "flex min-w-0 flex-1 items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted/60",
                               del.status === "DONE" && "text-muted-foreground"
                             )}
                             title="Click to cycle: pending → in progress → done"
@@ -465,21 +538,64 @@ export function ProjectPlanner({
                             <span className={cn("truncate", del.status === "DONE" && "line-through")}>
                               {del.name}
                             </span>
+                            {del.ownerName && (
+                              <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                                {del.ownerName}
+                              </span>
+                            )}
                             {del.status === "IN_PROGRESS" && (
-                              <Badge variant="soft" className="ml-auto shrink-0 text-[10px]">
+                              <Badge variant="soft" className={cn("shrink-0 text-[10px]", !del.ownerName && "ml-auto")}>
                                 In progress
                               </Badge>
                             )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void removeTask(phase, del)}
+                            aria-label={`Remove ${del.name}`}
+                            className="shrink-0 rounded-md p-1 text-muted-foreground/50 opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                          >
+                            <X className="h-3.5 w-3.5" />
                           </button>
                         </li>
                       );
                     })}
                     {phase.deliverables.length === 0 && (
                       <li className="px-2 py-1.5 text-xs text-muted-foreground">
-                        No deliverables configured for this phase.
+                        No deliverables in this phase yet — add one below.
                       </li>
                     )}
                   </ul>
+
+                  {/* Add a task/deliverable to this phase (project-level, not the template) */}
+                  <div className="mt-2 flex items-center gap-2">
+                    <Input
+                      placeholder="Add task…"
+                      value={newTask[phase.id] ?? ""}
+                      onChange={(e) => setNewTask((prev) => ({ ...prev, [phase.id]: e.target.value }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          void addTask(phase);
+                        }
+                      }}
+                      className="h-8 flex-1 text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8"
+                      disabled={busy.has(`add-${phase.id}`)}
+                      onClick={() => void addTask(phase)}
+                    >
+                      {busy.has(`add-${phase.id}`) ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <Plus className="h-3.5 w-3.5" />
+                      )}
+                      Add
+                    </Button>
+                  </div>
                 </motion.div>
               );
             })}

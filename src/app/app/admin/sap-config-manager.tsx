@@ -56,7 +56,12 @@ type TransformationType = {
   active: boolean;
   methodology: { id: string; name: string } | null;
 };
-type Gates = { quoteRequiredStage: string | null; projectRequiredStage: string | null };
+type Gates = {
+  quoteRequiredStage: string | null;
+  projectRequiredStage: string | null;
+  sequentialPhases: boolean;
+  completeRequiresAllPhases: boolean;
+};
 
 const GATE_STAGES = OPP_STAGES.filter((s) => s.value !== "LOST");
 const OFF = "__off__";
@@ -67,7 +72,12 @@ export function SapConfigManager() {
   const [loading, setLoading] = React.useState(true);
   const [methodologies, setMethodologies] = React.useState<Methodology[]>([]);
   const [types, setTypes] = React.useState<TransformationType[]>([]);
-  const [gates, setGates] = React.useState<Gates>({ quoteRequiredStage: null, projectRequiredStage: null });
+  const [gates, setGates] = React.useState<Gates>({
+    quoteRequiredStage: null,
+    projectRequiredStage: null,
+    sequentialPhases: false,
+    completeRequiresAllPhases: true,
+  });
   const [openMeth, setOpenMeth] = React.useState<string | null>(null);
   const [pending, setPending] = React.useState<Set<string>>(new Set());
   const [newDeliverable, setNewDeliverable] = React.useState<Record<string, string>>({});
@@ -88,7 +98,12 @@ export function SapConfigManager() {
       const data = await res.json();
       setMethodologies(data.methodologies ?? []);
       setTypes(data.transformationTypes ?? []);
-      setGates(data.gates ?? { quoteRequiredStage: null, projectRequiredStage: null });
+      setGates({
+        quoteRequiredStage: data.gates?.quoteRequiredStage ?? null,
+        projectRequiredStage: data.gates?.projectRequiredStage ?? null,
+        sequentialPhases: data.gates?.sequentialPhases ?? false,
+        completeRequiresAllPhases: data.gates?.completeRequiresAllPhases ?? true,
+      });
     } catch {
       toast.error("Could not load SAP project configuration");
     } finally {
@@ -124,13 +139,21 @@ export function SapConfigManager() {
 
   /* ------------------------------ gates ------------------------------ */
 
-  async function setGate(key: keyof Gates, value: string) {
+  async function setGate(key: "quoteRequiredStage" | "projectRequiredStage", value: string) {
     const v = value === OFF ? null : value;
     const prev = gates[key];
     setGates((g) => ({ ...g, [key]: v }));
     const ok = await patch({ gates: { [key]: v } }, `gate-${key}`);
     if (!ok) setGates((g) => ({ ...g, [key]: prev }));
     else toast.success("Gate updated");
+  }
+
+  async function setGovernance(key: "sequentialPhases" | "completeRequiresAllPhases", value: boolean) {
+    const prev = gates[key];
+    setGates((g) => ({ ...g, [key]: value }));
+    const ok = await patch({ gates: { [key]: value } }, `gate-${key}`);
+    if (!ok) setGates((g) => ({ ...g, [key]: prev }));
+    else toast.success("Governance updated");
   }
 
   /* --------------------------- methodology --------------------------- */
@@ -298,6 +321,30 @@ export function SapConfigManager() {
             <p className="mt-1.5 text-xs text-muted-foreground">
               Moving into this stage (or beyond) requires a project created from the opportunity.
             </p>
+          </div>
+          <div className="flex items-start justify-between gap-3 rounded-xl border bg-card/60 p-3">
+            <div>
+              <div className="text-sm font-medium">Sequential phase execution</div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Work can’t start or finish in a phase until every earlier phase is completed.
+              </p>
+            </div>
+            <Switch
+              checked={gates.sequentialPhases}
+              onCheckedChange={(v) => void setGovernance("sequentialPhases", v)}
+            />
+          </div>
+          <div className="flex items-start justify-between gap-3 rounded-xl border bg-card/60 p-3">
+            <div>
+              <div className="text-sm font-medium">Completion requires all phases</div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                A project can’t be marked Completed while any phase is still open.
+              </p>
+            </div>
+            <Switch
+              checked={gates.completeRequiresAllPhases}
+              onCheckedChange={(v) => void setGovernance("completeRequiresAllPhases", v)}
+            />
           </div>
         </CardContent>
       </Card>
