@@ -2,6 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/components/i18n/provider";
+import { NO_SECONDARY } from "@/lib/i18n/config";
 
 /**
  * Owner-authored Urdu fallback map — pre-existing content, kept as the
@@ -28,6 +29,33 @@ const TITLE_URDU: Record<string, string> = {
   "RFQs ": "آر ایف کیو",
 };
 
+/**
+ * English page title → i18n key. Lets standard pages localize their heading
+ * (and its beside-script) through the config-driven system WITHOUT every page
+ * having to pass an explicit `tKey`. In Full English this is a no-op (the key's
+ * English value equals the title); in Full Arabic the heading becomes Arabic;
+ * in the bilingual modes the beside-script comes from the DB. All keys map to
+ * CORE (server-hydrated) namespaces, so headings are localized on first paint.
+ */
+const TITLE_KEY: Record<string, string> = {
+  "Leads": "nav.leads",
+  "Opportunities": "nav.opportunities",
+  "Pipeline": "nav.pipeline",
+  "RFQs": "nav.rfqs",
+  "RFQs ": "nav.rfqs",
+  "Quotations": "nav.quotations",
+  "Projects": "nav.projects",
+  "Customers": "nav.customers",
+  "Activities": "nav.activities",
+  "Rate cards": "nav.rateCards",
+  "Approvals": "nav.approvals",
+  "Reports": "nav.reports",
+  "Audit Log": "nav.audit",
+  "Admin": "nav.admin",
+  "Workload": "nav.workload",
+  "Settings": "common.settings",
+};
+
 export function PageHeader({
   title,
   description,
@@ -52,27 +80,35 @@ export function PageHeader({
 }) {
   const { t, ts, secondary } = useI18n();
 
-  const heading = tKey ? t(tKey) : title;
+  // Resolve a translation key for this heading: an explicit `tKey` wins,
+  // otherwise fall back to the title→key map for standard pages. With a key,
+  // the primary heading is localized (so Full Arabic shows Arabic, not English);
+  // without one it stays the given English `title`.
+  const key = tKey ?? TITLE_KEY[title];
+  const heading = key ? t(key) : title;
 
-  // Secondary (beside) script + its direction/font.
-  //  • tKey path  → localized secondary from the DB (ts); font/dir keyed off the
-  //    configured secondary language (Urdu webfont vs. Arabic system stack).
-  //  • no-tKey    → the owner Urdu-map fallback, always RTL Nastaliq.
-  const secondaryText = tKey
-    ? ts(tKey)
-    : urdu ??
-      TITLE_URDU[title] ??
-      (title.startsWith("Welcome back") ? "خوش آمدید" : undefined);
+  // The beside-heading script only appears when the user has actually chosen a
+  // second script. When it's "none", NOTHING is shown — this is what fixes the
+  // stale Urdu (ترتیبات) that used to render even with no secondary selected.
+  const showSecondary = secondary !== NO_SECONDARY;
 
-  // Mirrors the Bilingual helper: bilingual secondaries are RTL scripts
-  // (Urdu/Arabic); anything else renders LTR. The no-tKey fallback is Urdu.
-  const secondaryDir =
-    tKey && !(secondary === "ur" || secondary === "ar") ? "ltr" : "rtl";
-  const secondaryFont = tKey
-    ? secondary === "ur"
-      ? "font-urdu"
-      : "font-arabic"
-    : "font-urdu";
+  // Secondary (beside) text, only when a second script is active:
+  //  • key present → localized secondary straight from the DB via ts().
+  //  • no key      → the legacy owner Urdu-map fallback, but ONLY when the
+  //    chosen second script is Urdu (the map has no Arabic; Arabic must come
+  //    from the DB, never a hardcoded guess).
+  const secondaryText = !showSecondary
+    ? undefined
+    : key
+    ? ts(key)
+    : secondary === "ur"
+    ? urdu ?? TITLE_URDU[title] ?? (title.startsWith("Welcome back") ? "خوش آمدید" : undefined)
+    : undefined;
+
+  // Urdu & Arabic are both RTL scripts; the font follows the active secondary
+  // (Urdu Nastaliq webfont vs. the Arabic system stack).
+  const secondaryDir = secondary === "ur" || secondary === "ar" ? "rtl" : "ltr";
+  const secondaryFont = secondary === "ur" ? "font-urdu" : "font-arabic";
 
   return (
     <div

@@ -9,7 +9,26 @@ import { prisma } from "@/lib/prisma";
 import { DEFAULT_LANGUAGE, FALLBACK_LANGUAGE, NO_SECONDARY, type Dir } from "./config";
 import type { Bundle, LanguageDTO, LocalePreference } from "./types";
 
-const IS_PROD = process.env.VERCEL_ENV === "production";
+/**
+ * The Arabic (and any not-yet-approved full-UI language) production gate.
+ *
+ * We must distinguish REAL production (manzilone.vercel.app) from the dev
+ * PREVIEW project (manzilone-ai-development.vercel.app). BOTH are shipped with
+ * `vercel --prod`, so `VERCEL_ENV === "production"` on both — that flag alone
+ * cannot tell them apart. So the dev project sets `I18N_UNLOCK_GATED=true` to
+ * open the gate for testing Full Arabic, while real production leaves it unset
+ * and stays locked.
+ *
+ * GATE_ENFORCED is true ONLY in a Vercel production env with the unlock flag
+ * absent. When enforced: not-yet-approved full-UI languages (Arabic) are hidden
+ * as the primary interface language and their draft strings are withheld —
+ * preserving the non-negotiable "no unreviewed Arabic in production" rule.
+ * Everywhere else (local dev, Vercel preview, or the unlocked dev project) the
+ * gate is open so the whole framework — including Full Arabic + RTL — is
+ * exercisable.
+ */
+const GATE_ENFORCED =
+  process.env.VERCEL_ENV === "production" && process.env.I18N_UNLOCK_GATED !== "true";
 
 function toDir(d: string): Dir {
   return d === "RTL" ? "rtl" : "ltr";
@@ -37,7 +56,7 @@ const EN_ONLY: LanguageDTO[] = [
 
 let warnedMissing = false;
 function onI18nUnavailable(where: string, err: unknown): void {
-  if (!IS_PROD && !warnedMissing) {
+  if (process.env.VERCEL_ENV !== "production" && !warnedMissing) {
     warnedMissing = true;
     // eslint-disable-next-line no-console
     console.warn(
@@ -76,9 +95,9 @@ export async function getEnabledLanguages(): Promise<LanguageDTO[]> {
       productionReady: l.productionReady,
     }))
     .filter((l) => {
-      // In production, a not-yet-approved full-UI language is only usable as a
-      // secondary script (never as the primary UI) until it's productionReady.
-      if (IS_PROD && l.canBePrimary && !l.productionReady) {
+      // When the gate is enforced, a not-yet-approved full-UI language is only
+      // usable as a secondary script (never as primary UI) until productionReady.
+      if (GATE_ENFORCED && l.canBePrimary && !l.productionReady) {
         return l.canBeSecondary; // keep only if it still serves as secondary
       }
       return true;
@@ -86,7 +105,7 @@ export async function getEnabledLanguages(): Promise<LanguageDTO[]> {
     .map((l) => ({
       ...l,
       // reflect the gate to the client so the selector disables full mode
-      canBePrimary: l.canBePrimary && (!IS_PROD || l.productionReady),
+      canBePrimary: l.canBePrimary && (!GATE_ENFORCED || l.productionReady),
     }));
 }
 
@@ -96,7 +115,7 @@ export async function isFullModeAllowed(code: string): Promise<boolean> {
   try {
     const l = await prisma.language.findUnique({ where: { code } });
     if (!l || !l.enabled || !l.canBePrimary) return false;
-    return !IS_PROD || l.productionReady;
+    return !GATE_ENFORCED || l.productionReady;
   } catch (err) {
     onI18nUnavailable("isFullModeAllowed", err);
     return false; // only English is guaranteed available
@@ -186,7 +205,8 @@ export async function getBundle(lang: string, namespaces: string[]): Promise<Bun
   const nsById = new Map(nsRows.map((n) => [n.id, n.name]));
 
   const usable = (status: string) =>
-    status === "APPROVED" || (!IS_PROD && (status === "MACHINE_DRAFT" || status === "PENDING_REVIEW"));
+    status === "APPROVED" ||
+    (!GATE_ENFORCED && (status === "MACHINE_DRAFT" || status === "PENDING_REVIEW"));
 
   const values: Record<string, string> = {};
   for (const k of keys) {
