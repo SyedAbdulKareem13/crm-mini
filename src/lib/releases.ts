@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.11.0";
+export const CURRENT_VERSION = "0.20.1";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,128 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.20.1",
+    date: "2026-07-20",
+    title: "Navigate everywhere, on every screen",
+    summary: "Phones, tablets and narrow windows now reach the whole app: a More sheet on the mobile bar, the full sidebar from tablet widths, and the Product Document refreshed to cover every feature.",
+    items: [
+      { type: "new", text: "“More” on the mobile bottom bar — a springy sheet with every destination (Projects, Manz AI, Reports, Admin and more), active highlighting, and tap-outside to close." },
+      { type: "improved", text: "The full sidebar now appears from tablet widths (768px) — phones in “desktop site” mode and iPads get real navigation instead of a stripped bar." },
+      { type: "fixed", text: "Page content no longer hides behind the mobile bottom bar." },
+      { type: "improved", text: "Product Document v3.0 — the full lifecycle, every module and 30 business scenarios, on the Manzil One letterhead (docs/Manzil-One-Documentation.pdf)." },
+    ],
+  },
+  {
+    version: "0.20.0",
+    date: "2026-07-19",
+    title: "Working calendars, RAID & an estimator that learns",
+    summary: "Schedules now respect your working week and holidays, every project gets a structured RAID register, and the AI Estimator calibrates itself from your completed projects.",
+    items: [
+      { type: "new", text: "Working-day calendar — set your working weekdays and holidays in Admin → SAP Projects; the Gantt shades non-working days, dragged bars snap to working days, and auto-shifted tasks never land on a weekend or holiday." },
+      { type: "new", text: "RAID register — a fifth planner view for Risks, Assumptions, Issues and Dependencies with severity, probability, owners (notified on assignment), mitigations and due dates with overdue flags. Open risks lead the generated proposal automatically." },
+      { type: "new", text: "Estimator self-calibration — completing a project freezes its actual duration and logged hours; every new estimate then applies your organisation's median actual-vs-estimate factors and shows a “Calibrated · N completed projects” badge." },
+      { type: "improved", text: "The project header counts open risks at a glance." },
+    ],
+  },
+  {
+    version: "0.19.0",
+    date: "2026-07-17",
+    title: "Baselines, drag-to-reschedule, live co-planning & exports",
+    summary: "The Gantt becomes a full planning surface — snapshot a baseline, drag bars to reschedule, plan together in realtime, and hand the plan to any PMO in their format.",
+    items: [
+      { type: "new", text: "Baselines — snapshot the committed schedule and track planned-vs-actual as ghost bars with days-ahead/behind variance; re-baseline under change control." },
+      { type: "new", text: "Drag-to-reschedule — move a bar to shift a task, drag its right edge to resize; dates persist and dependent tasks cascade automatically." },
+      { type: "new", text: "Exports: Microsoft Project XML (phases, links, resources, % complete), Excel schedule sheet, a print-ready A4 plan PDF, and CSV." },
+      { type: "new", text: "Realtime co-planning — presence avatars show who's viewing a project; every edit syncs to teammates instantly, including the activity feed." },
+      { type: "new", text: "Overdue task alerts arrive in the notification bell automatically — no setup needed." },
+      { type: "new", text: "Build any methodology from scratch — create methodologies, phases and transformation types in Admin (Agile, Waterfall, Oracle OUM…); in-use templates are delete-protected." },
+    ],
+  },
+  {
+    version: "0.18.0",
+    date: "2026-07-15",
+    title: "The Executive Dashboard",
+    summary: "Eight live leadership widgets on the home dashboard — every number computed by the same code as the page it summarises, so nothing ever disagrees.",
+    items: [
+      { type: "new", text: "Pipeline by SAP Product, Revenue Forecast by month, Resource Utilization, Win Probability (pipeline vs realized), Gross Margin, Project Health, Duration Benchmarks and Delivery Capacity — each deep-links to its module." },
+      { type: "fixed", text: "The app shell no longer stretches horizontally on narrower screens — wide Gantt timelines scroll inside their own pane on every page." },
+    ],
+  },
+  {
+    version: "0.17.0",
+    date: "2026-07-13",
+    title: "Dependencies, critical path & the workload board",
+    summary: "Tasks can now depend on each other with automatic rescheduling, the critical path lights up, progress is tracked in % and hours, and a 12-week heatmap shows everyone's load across projects.",
+    items: [
+      { type: "new", text: "Finish-to-start dependencies with connector arrows — link any tasks; self, duplicate, cross-project and circular links are rejected with clear messages." },
+      { type: "new", text: "Auto-shift — when a predecessor slips, every downstream task moves forward automatically, with a toast counting the moves and a full audit entry." },
+      { type: "new", text: "Critical path — one click highlights the longest dependency chain driving your end date." },
+      { type: "new", text: "% complete and effort hours on every task — quick 25/50/75/100 buttons, estimate vs actual hours, and phase/project completion rolled up from real progress." },
+      { type: "new", text: "Resource workload board — a 12-week per-member heatmap across all active projects with overload flags (>2 concurrent tasks or >40h/week) and an unassigned-work pool." },
+    ],
+  },
+  {
+    version: "0.16.0",
+    date: "2026-07-10",
+    title: "Resource Optimizer & the AI Proposal Generator",
+    summary: "From the estimate: a full staffing plan with onsite/offshore mix and peak periods — and a complete client-ready proposal assembled in one click.",
+    items: [
+      { type: "new", text: "Resource Optimizer — consultants and FTE-months, onsite/offshore mix, functional:technical ratio, PMO & QA sizing and peak staffing per phase, all derived from the estimate." },
+      { type: "new", text: "GCC mode — Arabic-speaking consultant coverage, a local engagement lead and localization scope notes for Gulf engagements." },
+      { type: "new", text: "Deliverable library — twelve reusable artifacts (Project Charter, RAID Log, Cutover Plan, Hypercare Checklist…) added to their natural phase in one click." },
+      { type: "new", text: "AI Proposal Generator — executive summary (AI-polished), in/out of scope from your actual characteristics, approach and timeline, resource plan, commercials with payment milestones, risks and acceptance criteria — printed to PDF on the letterhead." },
+    ],
+  },
+  {
+    version: "0.15.0",
+    date: "2026-07-08",
+    title: "The AI Estimator & Costing engine",
+    summary: "Fifteen solution characteristics become duration, phase effort, an 8-role resource mix and a priced estimate — grounded in your own rate cards and reproducible every time.",
+    items: [
+      { type: "new", text: "AI Estimator — enter users, countries, entities, plants, interfaces, RICEFW counts, testing cycles and more; get complexity, duration, effort by SAP Activate phase and a full role-cost table with rate-card provenance." },
+      { type: "new", text: "Costing — implementation cost, contingency, customer price and gross margin, with every assumption disclosed." },
+      { type: "new", text: "One-click “Draft quotation from estimate” — man-month line items and positions generate through the same engine as manual quotes, linked to the opportunity." },
+      { type: "new", text: "Assigning a task now notifies the assignee in the bell." },
+      { type: "improved", text: "The projects list gains a portfolio strip: total, active, at-risk, delayed and completed at a glance." },
+    ],
+  },
+  {
+    version: "0.14.0",
+    date: "2026-07-06",
+    title: "The Gantt chart & delivery governance",
+    summary: "A zoomable month/week Gantt derived from the same roadmap configs, plus org-level governance switches for how strictly delivery runs.",
+    items: [
+      { type: "new", text: "Gantt view on every project — phase bars with progress fill, milestone diamonds, task bars with assignee initials, overdue rings, a today line and zoom; explicit dates override the derived schedule." },
+      { type: "new", text: "Task scheduling — start/end dates, priority and assignee editable right from the chart; per-phase task add/remove in the roadmap view." },
+      { type: "new", text: "Governance switches: sequential phase execution and completion-requires-all-phases — every enforcement message names the setting that controls it." },
+      { type: "new", text: "CSV export of the full schedule." },
+    ],
+  },
+  {
+    version: "0.13.0",
+    date: "2026-07-03",
+    title: "Projects & the SAP Transformation Hub",
+    summary: "Manzil One grows from CRM into delivery: convert opportunities into projects that run configurable SAP Activate roadmaps, guarded by pipeline stage gates.",
+    items: [
+      { type: "new", text: "Projects module — convert any opportunity into a PRJ-numbered project; pick from fifteen SAP transformation types (Greenfield, Brownfield, Bluefield, rollouts, upgrades, BTP…) and its methodology instantiates the full roadmap." },
+      { type: "new", text: "SAP Activate methodology templates (S/4HANA Private 45wk, Public Cloud 30wk) with phases, durations, colors and deliverable libraries — all editable in Admin → SAP Projects." },
+      { type: "new", text: "Project Planner — a proportional phase timeline with click-to-cycle deliverable status, health chips (on track / at risk / delayed) and progress." },
+      { type: "new", text: "Pipeline stage gates — require an approved quotation and/or a project from configurable stages; blocked moves explain themselves and name the setting." },
+      { type: "new", text: "Projects joins the navigation, global search and the audit trail." },
+    ],
+  },
+  {
+    version: "0.12.0",
+    date: "2026-07-01",
+    title: "A calmer, richer landing",
+    summary: "The immersive WebGL hero got a considered ambient polish — fewer, slower elements that guide the eye instead of competing for it.",
+    items: [
+      { type: "improved", text: "Hero v2 ambient pass — decluttered orbiters and comets, gentler motion, and the drag-to-win deal card front and centre." },
+      { type: "improved", text: "Activity timeline updates instantly after logging, activities are editable, and the date picker got the premium calendar treatment." },
+      { type: "new", text: "The nav-bar Manz AI button breathes with the same orb animation as the workspace." },
+    ],
+  },
   {
     version: "0.11.0",
     date: "2026-06-29",
@@ -155,20 +277,20 @@ export type RoadmapWeek = {
 
 export const ROADMAP: RoadmapWeek[] = [
   {
-    week: "Week 1",
-    range: "26 Jun – 2 Jul 2026",
+    week: "Next up",
+    range: "21 Jul – 3 Aug 2026",
     items: [
-      { title: "Reminders & due-date nudges", detail: "Notifications for upcoming tasks, calls and meetings logged on the timeline.", status: "in_progress" },
-      { title: "Document storage", detail: "Upload, preview and version documents on records (object storage).", status: "planned" },
+      { title: "Timesheets & budget burn", detail: "Log time per day against tasks, track actual cost against the estimate, and tie invoicing to the proposal's payment milestones.", status: "in_progress" },
+      { title: "Teams / Slack notifications", detail: "Assignments, overdue tasks and stage changes pushed to your workspace channels.", status: "planned" },
     ],
   },
   {
-    week: "Week 2",
-    range: "3 Jul – 9 Jul 2026",
+    week: "On the horizon",
+    range: "Aug 2026",
     items: [
-      { title: "Email · Call · Meeting", detail: "Compose & send the AI-drafted email, log calls, and schedule meetings with reminders.", status: "planned" },
-      { title: "Live Manz AI", detail: "Swap in a quota-enabled Gemini key (Supabase config) to turn on live chat, RFQ parsing and drafting.", status: "planned" },
-      { title: "Merge Manz AI to production", detail: "Promote the AI workspace from dev to manzilone.vercel.app.", status: "planned" },
+      { title: "Deeper scheduling", detail: "SS/FF/SF dependency types, lag and lead times, and multiple baselines with comparison.", status: "planned" },
+      { title: "Named-resource optimization", detail: "A skills matrix that matches estimate roles to actual consultants and their availability.", status: "planned" },
+      { title: "Client surfaces", detail: "A customer portal for quotation acceptance with e-signature, plus scheduled executive email digests.", status: "planned" },
     ],
   },
 ];
