@@ -106,7 +106,8 @@ const DEFAULTS: Record<ActiveRole, Partial<Record<PermissionModule, ModulePermis
   },
   BUSINESS_HEAD: {
     "*": { ...ALL, canDelete: false },
-    ADMIN: READ_ONLY,
+    // Admin area is for the admin tiers only (nav hides it for everyone else).
+    ADMIN: NONE,
     RATE_CARDS: { ...RW, canDelete: false },
   },
   FINANCE_ANALYST: {

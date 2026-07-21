@@ -13,7 +13,15 @@ export default async function AdminPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
   const orgId = session.user.organizationId;
-  const isAdmin = session.user.role === "ADMIN";
+  const role = session.user.role ?? "";
+  // Admin surfaces: the three admin tiers edit config; everyone else only
+  // reaches this page if their role's matrix grants ADMIN read.
+  const isAdmin = ["SUPER_ADMIN", "SUPER_USER", "ADMIN"].includes(role);
+  const canManageAccess = role === "SUPER_ADMIN";
+  if (!isAdmin) {
+    const { can } = await import("@/lib/permissions");
+    if (!(await can(orgId, role, "ADMIN", "read"))) redirect("/app");
+  }
 
   const [users, territories, businessUnits, approvalChains, heroVersion] = await Promise.all([
     prisma.user.findMany({
@@ -78,6 +86,7 @@ export default async function AdminPage() {
         chain={chain}
         heroVersion={heroVersion}
         readOnly={!isAdmin}
+        canManageAccess={canManageAccess}
       />
     </>
   );

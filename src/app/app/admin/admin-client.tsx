@@ -72,6 +72,7 @@ export function AdminClient({
   chain,
   heroVersion,
   readOnly = false,
+  canManageAccess = false,
 }: {
   users: AdminUser[];
   territories: Territory[];
@@ -79,6 +80,8 @@ export function AdminClient({
   chain: Chain | null;
   heroVersion: HeroVersion;
   readOnly?: boolean;
+  /** SUPER_ADMIN only — unlocks the access matrix + user onboarding/role edits. */
+  canManageAccess?: boolean;
 }) {
   const router = useRouter();
 
@@ -96,13 +99,13 @@ export function AdminClient({
       </TabsList>
 
       <TabsContent value="users">
-        <UsersTab users={users} readOnly={readOnly} onChanged={() => router.refresh()} />
+        <UsersTab users={users} readOnly={!canManageAccess} onChanged={() => router.refresh()} />
       </TabsContent>
       <TabsContent value="access">
-        {readOnly ? (
+        {!canManageAccess ? (
           <Card>
             <CardContent className="py-6 text-sm text-muted-foreground">
-              Only administrators can view and edit the access matrix.
+              Only the Super Admin can view and edit the access matrix.
             </CardContent>
           </Card>
         ) : (
