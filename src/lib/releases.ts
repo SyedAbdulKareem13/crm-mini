@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.23.1";
+export const CURRENT_VERSION = "0.24.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,20 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.24.0",
+    date: "2026-07-22",
+    title: "Multilingual foundation — English, Urdu & Arabic (with RTL)",
+    summary: "A configurable, database-driven localization system: pick your interface language and an optional second script beside headings, with full right-to-left support. English ships now; Urdu appears beside headings; Arabic is available for preview on staging and gated for production pending native-linguist review.",
+    items: [
+      { type: "new", text: "Language switcher — open it from the profile menu (Profile · Settings · Language · Sign out) or Settings → System Settings. Choose your interface language and, optionally, a second script shown beside English headings and navigation." },
+      { type: "new", text: "Four presentation modes composed from configuration: Full English, English + Urdu, English + Arabic, and Full Arabic — with more languages addable through data alone, no code changes." },
+      { type: "new", text: "Complete right-to-left (RTL) support: mirrored layout, navigation, breadcrumbs and directional icons, with an Arabic-capable font stack." },
+      { type: "new", text: "Your language choice is saved to your account and restores automatically across devices when you sign in." },
+      { type: "improved", text: "Enterprise-grade i18n architecture — namespaced, lazy-loaded, version-cached translations with English fallback and missing-key detection; every string is data-driven from Supabase." },
+      { type: "improved", text: "Arabic integrity safeguard: no religious or Qur'anic terminology is machine-generated, and Full Arabic stays gated from production until reviewed and approved by a qualified native linguist and, for any Islamic terminology, appropriate scholarly review." },
+    ],
+  },
   {
     version: "0.23.1",
     date: "2026-07-22",

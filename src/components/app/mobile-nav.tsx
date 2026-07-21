@@ -7,6 +7,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { Icon } from "@/components/app/icon";
+import { useI18n } from "@/components/i18n/provider";
 
 /** Pinned on the bar; everything else lives behind “More”. */
 const PRIMARY = ["/app", "/app/leads", "/app/pipeline", "/app/quotations"];
@@ -17,6 +18,29 @@ const PRIMARY_ITEMS = PRIMARY.map((href) => NAV_ITEMS.find((i) => i.href === hre
 const MORE_ITEMS = NAV_ITEMS.filter((i) => !PRIMARY.includes(i.href));
 
 /**
+ * href → i18n key (`nav` namespace, server-hydrated). `/app` maps to nav.home
+ * because the pinned bar surfaces it as "Home" (not "Dashboard"). Hrefs with no
+ * entry (the "Manz AI" brand surface) fall back to their English NAV_ITEMS label.
+ */
+const NAV_KEY_BY_HREF: Record<string, string> = {
+  "/app": "nav.home",
+  "/app/leads": "nav.leads",
+  "/app/opportunities": "nav.opportunities",
+  "/app/pipeline": "nav.pipeline",
+  "/app/rfqs": "nav.rfqs",
+  "/app/quotations": "nav.quotations",
+  "/app/projects": "nav.projects",
+  "/app/customers": "nav.customers",
+  "/app/activities": "nav.activities",
+  "/app/rate-cards": "nav.rateCards",
+  "/app/approvals": "nav.approvals",
+  "/app/reports": "nav.reports",
+  "/app/audit": "nav.audit",
+  "/app/releases": "nav.releases",
+  "/app/admin": "nav.admin",
+};
+
+/**
  * Non-module surfaces that are always visible regardless of role. Every other
  * NAV_ITEMS href is gated on `allowedHrefs`, which the layout derives from the
  * server-only permission matrix (see MODULE_BY_HREF in @/lib/permissions).
@@ -25,7 +49,14 @@ const ALWAYS_VISIBLE_HREFS = ["/app", "/app/ai", "/app/releases"];
 
 export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
+  const { t } = useI18n();
   const [moreOpen, setMoreOpen] = React.useState(false);
+
+  // Localized label for a nav href (falls back to the English NAV_ITEMS label).
+  const labelFor = (href: string, fallback: string) => {
+    const key = NAV_KEY_BY_HREF[href];
+    return key ? t(key) : fallback;
+  };
 
   // Navigating anywhere closes the sheet.
   React.useEffect(() => setMoreOpen(false), [pathname]);
@@ -84,7 +115,7 @@ export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
                       )}
                     >
                       <Icon name={item.icon} className="h-4 w-4" />
-                      {item.label}
+                      {labelFor(item.href, item.label)}
                     </Link>
                   );
                 })}
@@ -109,7 +140,7 @@ export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
               )}
             >
               <Icon name={item.icon} className="h-4 w-4" />
-              {item.label}
+              {labelFor(item.href, item.label)}
             </Link>
           );
         })}
@@ -126,7 +157,7 @@ export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
           )}
         >
           <Icon name="LayoutGrid" className="h-4 w-4" />
-          More
+          {t("nav.more")}
         </button>
       </nav>
     </>

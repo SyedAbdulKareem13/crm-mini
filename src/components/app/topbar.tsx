@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { signOut } from "next-auth/react";
-import { Search, LogOut, User as UserIcon, Settings } from "lucide-react";
+import { Search, LogOut, User as UserIcon, Settings, Languages } from "lucide-react";
 import { ManzOrb } from "@/components/app/manz-orb";
 import { Notifications } from "@/components/app/notifications";
 import { WhatsNew } from "@/components/app/whats-new";
@@ -10,12 +10,13 @@ import { ThemeMenu } from "@/components/theme-menu";
 import { useRouter } from "next/navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { CommandPalette } from "@/components/app/command-palette";
+import { LanguageSelector } from "@/components/i18n/language-selector";
+import { useI18n } from "@/components/i18n/provider";
 import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -27,7 +28,16 @@ export function Topbar({
   user: { name?: string | null; email?: string | null; image?: string | null };
 }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
   const router = useRouter();
+  const { t } = useI18n();
+
+  // Prefer a real translation; fall back to clean English when a key isn't
+  // seeded (the provider otherwise surfaces the raw key segment).
+  const tx = (key: string, english: string) => {
+    const value = t(key);
+    return value === (key.split(".").pop() ?? key) ? english : value;
+  };
 
   // Live avatar/name — updated instantly when the profile is saved in Settings.
   const [image, setImage] = useState<string | null>(user.image ?? null);
@@ -92,22 +102,25 @@ export function Topbar({
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>My account</DropdownMenuLabel>
             <DropdownMenuItem onClick={() => router.push("/app/settings")}>
-              <UserIcon /> Profile
+              <UserIcon /> {tx("common.profile", "Profile")}
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => router.push("/app/settings")}>
-              <Settings /> Settings
+              <Settings /> {tx("common.settings", "Settings")}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => setLangOpen(true)}>
+              <Languages /> {tx("common.language", "Language")}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
-              <LogOut /> Sign out
+              <LogOut /> {tx("common.signOut", "Sign out")}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+      <LanguageSelector open={langOpen} onOpenChange={setLangOpen} />
     </header>
   );
 }

@@ -141,6 +141,12 @@ model User {
   role          UserRole  @default(SALES_EXEC)
   isActive      Boolean   @default(true)
   lastLoginAt   DateTime?
+
+  // Localization preference (persists in Supabase, restores across devices).
+  // uiLanguage = the full-UI language code ("en" | "ar" | …); bilingualSecondary
+  // = optional script shown beside headings ("none" | "ur" | "ar").
+  uiLanguage         String @default("en")
+  bilingualSecondary String @default("none")
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -1154,4 +1160,91 @@ model PipelineGateConfig {
   quoteRequiresRfq      Boolean @default(false)
 
   updatedAt DateTime @updatedAt
+}
+
+// -------------------------------------------------------------
+// Localization (i18n) — global, config- & DB-driven. Adding a
+// language requires only data (a Language row + TranslationValues),
+// never code. UI chrome is app-global (not org-scoped); the per-user
+// choice lives on User.uiLanguage / bilingualSecondary.
+// -------------------------------------------------------------
+
+enum TextDirection {
+  LTR
+  RTL
+}
+
+/// Lifecycle of a translated value / language pack. Full-language modes are
+/// gated on APPROVED + Language.productionReady (see the Arabic review gate).
+enum TranslationStatus {
+  MISSING       // no value yet — falls back to English source
+  MACHINE_DRAFT // provisional (e.g. machine/agent draft) — NOT production-ready
+  PENDING_REVIEW// submitted for native-linguist / scholarly review
+  APPROVED      // reviewed & approved for production
+}
+
+model Language {
+  id          String  @id @default(cuid())
+  code        String  @unique      // BCP-47 base: "en","ur","ar","hi","fr"…
+  name        String               // English display name ("Arabic")
+  nativeName  String               // endonym ("العربية")
+  direction   TextDirection @default(LTR)
+  locale      String               // Intl locale ("ar-SA","ur-PK","en-US")
+
+  enabled         Boolean @default(false) // selectable by users at all
+  isDefault       Boolean @default(false) // org/app default UI language
+  isFallback      Boolean @default(false) // used when a key is missing
+  canBeSecondary  Boolean @default(false) // eligible as a bilingual "beside" script
+  canBePrimary    Boolean @default(false) // eligible as a full-UI language
+  // Hard gate: a full-UI language may only ship to production when its pack is
+  // reviewed & approved. Arabic ships gated (false) until sign-off.
+  productionReady Boolean @default(false)
+  reviewStatus    TranslationStatus @default(PENDING_REVIEW)
+
+  version   Int @default(1)  // pack version — bumps invalidate client caches
+  position  Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TranslationNamespace {
+  id          String @id @default(cuid())
+  name        String @unique       // "common","nav","settings","validation","faith"
+  description String?
+  // Faith/religious/culturally-sensitive content lives in sensitive namespaces
+  // and is never machine-authored — only authoritative, approved imports.
+  sensitive   Boolean @default(false)
+  version     Int     @default(1)
+
+  keys TranslationKey[]
+}
+
+model TranslationKey {
+  id          String @id @default(cuid())
+  namespaceId String
+  namespace   TranslationNamespace @relation(fields: [namespaceId], references: [id], onDelete: Cascade)
+
+  key         String  // dot-scoped within the namespace: "dashboard.title"
+  sourceText  String  @db.Text // canonical English source (the fallback)
+  description String?           // context for translators
+  sensitive   Boolean @default(false) // per-key faith/sensitivity flag
+
+  values TranslationValue[]
+
+  @@unique([namespaceId, key])
+}
+
+model TranslationValue {
+  id           String @id @default(cuid())
+  keyId        String
+  key          TranslationKey @relation(fields: [keyId], references: [id], onDelete: Cascade)
+  languageCode String
+  value        String @db.Text
+  status       TranslationStatus @default(MACHINE_DRAFT)
+  version      Int    @default(1)
+  updatedAt    DateTime @updatedAt
+
+  @@unique([keyId, languageCode])
+  @@index([languageCode])
 }

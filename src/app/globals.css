@@ -51,6 +51,14 @@
     --brand-from: 252 90% 64%;
     --brand-to: 234 89% 60%;
     --brand-gradient: linear-gradient(135deg, hsl(var(--brand-from)) 0%, hsl(var(--brand-to)) 100%);
+
+    /* Arabic fallback stack — the app loads a dedicated Urdu webfont
+       (--font-urdu, Noto Nastaliq Urdu) but NOT an Arabic one, so Arabic
+       rides the platform's system Arabic fonts, which render acceptably.
+       A dedicated webfont (e.g. Noto Naskh Arabic) can be wired through
+       this var later without touching call sites. See docs/LOCALIZATION-RTL.md. */
+    --font-arabic: "Noto Naskh Arabic", "Noto Sans Arabic", "Geeza Pro",
+      "Segoe UI", "Tahoma", "Arial", sans-serif;
   }
 
   .dark {
@@ -253,6 +261,10 @@
   }
   .font-urdu {
     font-family: var(--font-urdu), "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", serif;
+  }
+  /* Arabic script — system-font fallback (no dedicated webfont, see :root). */
+  .font-arabic {
+    font-family: var(--font-arabic);
   }
   /* Solid translucent surfaces — no live backdrop-filter (keeps scrolling buttery).
      Use .glass-blur only on small, non-scrolling overlays. */
@@ -475,4 +487,66 @@
   transition: transform 0.18s ease-out;
   transform-style: preserve-3d;
   will-change: transform;
+}
+
+/* ================================================================
+   RTL (right-to-left) INFRASTRUCTURE
+   ----------------------------------------------------------------
+   The app shell wrapper receives dir="rtl" + a matching lang from the
+   layout whenever the active UI language is right-to-left (Arabic,
+   Urdu, …). EVERY rule in this section is scoped under [dir="rtl"], so
+   the default LTR layout is never touched — remove the attribute and
+   the app renders exactly as before.
+
+   Authoring guidance for new components (details in
+   docs/LOCALIZATION-RTL.md):
+     • Prefer LOGICAL Tailwind utilities that auto-flip: ms-/me-,
+       ps-/pe-, start-*/end-*, and the `rtl:` / `ltr:` variants.
+     • Avoid hard-coded physical left/right (ml-/mr-, left-/right-,
+       text-left/right, border-l/r) unless you also add an `rtl:` fix.
+     • Add `.rtl-flip` to any DECORATIVE directional glyph (arrow,
+       chevron, caret, send/back icon) so it mirrors.
+   The rules below globally mirror the physical patterns that already
+   exist across the codebase, so most components flip with no edits.
+   ================================================================ */
+
+/* 1 — Text alignment default. Physical-left text should follow the
+      reading direction. Elements that explicitly opt into text-center /
+      text-right / text-left keep their own intent (utilities win over
+      this inherited default). */
+[dir="rtl"] {
+  text-align: right;
+}
+
+/* 2 — "Push to the far edge" auto-margins. `ml-auto` is used throughout
+      to shove an element to the trailing edge; under RTL the trailing
+      edge is the LEFT, so swap which side goes auto. Mirror mr-auto too. */
+[dir="rtl"] .ml-auto { margin-left: 0; margin-right: auto; }
+[dir="rtl"] .mr-auto { margin-right: 0; margin-left: auto; }
+
+/* 3 — Decorative directional icons. Opt-in mirror for any glyph that
+      encodes left/right meaning. */
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+/* 4 — Best-effort auto-mirror for Lucide directional icons. lucide-react
+      stamps a `.lucide-<name>` class on each <svg>; flipping the
+      horizontal-pointing ones keeps arrows/chevrons pointing the right
+      way in RTL. Harmless when the class is absent. Vertical chevrons
+      (up/down) are intentionally left alone. */
+[dir="rtl"] .lucide-chevron-left,
+[dir="rtl"] .lucide-chevron-right,
+[dir="rtl"] .lucide-chevrons-left,
+[dir="rtl"] .lucide-chevrons-right,
+[dir="rtl"] .lucide-chevron-first,
+[dir="rtl"] .lucide-chevron-last,
+[dir="rtl"] .lucide-arrow-left,
+[dir="rtl"] .lucide-arrow-right,
+[dir="rtl"] .lucide-arrow-big-left,
+[dir="rtl"] .lucide-arrow-big-right,
+[dir="rtl"] .lucide-arrow-left-right,
+[dir="rtl"] .lucide-move-left,
+[dir="rtl"] .lucide-move-right,
+[dir="rtl"] .lucide-corner-down-left,
+[dir="rtl"] .lucide-corner-down-right {
+  transform: scaleX(-1);
 }

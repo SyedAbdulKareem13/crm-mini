@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { NAV_ITEMS } from "@/lib/constants";
 import { Icon } from "@/components/app/icon";
 import { Logo } from "@/components/brand/logo";
+import { useI18n } from "@/components/i18n/provider";
 
 /**
  * Non-module surfaces that are always visible regardless of role. Every other
@@ -15,8 +16,32 @@ import { Logo } from "@/components/brand/logo";
  */
 const ALWAYS_VISIBLE_HREFS = ["/app", "/app/ai", "/app/releases"];
 
+/**
+ * NAV_ITEMS href → i18n key (`nav` namespace, server-hydrated on first paint).
+ * Labels render via t(key) so Full-Arabic shows Arabic. Hrefs without an entry
+ * (the "Manz AI" brand surface) keep their English NAV_ITEMS label untouched.
+ */
+const NAV_KEY_BY_HREF: Record<string, string> = {
+  "/app": "nav.dashboard",
+  "/app/leads": "nav.leads",
+  "/app/opportunities": "nav.opportunities",
+  "/app/pipeline": "nav.pipeline",
+  "/app/rfqs": "nav.rfqs",
+  "/app/quotations": "nav.quotations",
+  "/app/projects": "nav.projects",
+  "/app/customers": "nav.customers",
+  "/app/activities": "nav.activities",
+  "/app/rate-cards": "nav.rateCards",
+  "/app/approvals": "nav.approvals",
+  "/app/reports": "nav.reports",
+  "/app/audit": "nav.audit",
+  "/app/releases": "nav.releases",
+  "/app/admin": "nav.admin",
+};
+
 export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
+  const { t } = useI18n();
 
   // Contract: `allowedHrefs` undefined → show everything (backward safe). When
   // provided, an item renders only if it's an always-visible surface or the
@@ -32,7 +57,9 @@ export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
     // md (768px), not lg: phones in "desktop site" mode (~980px viewport) and
     // tablets must still get the full navigation. Below md the MobileNav
     // bottom bar (with its More sheet) covers every destination.
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r bg-card/95 supports-[backdrop-filter]:bg-card/80 md:flex md:flex-col">
+    // Under RTL the layout's flex row places this aside on the right, so the
+    // divider must sit on its inner (left) edge — swap border-r → border-l.
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r rtl:border-l rtl:border-r-0 bg-card/95 supports-[backdrop-filter]:bg-card/80 md:flex md:flex-col">
       <Link href="/app" className="flex h-16 items-center border-b px-5">
         <Logo />
       </Link>
@@ -43,6 +70,8 @@ export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
             item.href === "/app"
               ? pathname === "/app"
               : pathname === item.href || pathname.startsWith(item.href + "/");
+          const navKey = NAV_KEY_BY_HREF[item.href];
+          const label = navKey ? t(navKey) : item.label;
           return (
             <Link
               key={item.href}
@@ -57,12 +86,12 @@ export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
               {active && (
                 <motion.span
                   layoutId="sidebar-active"
-                  className="absolute inset-0 -z-0 rounded-xl bg-gradient-to-r from-primary/15 to-primary/0 ring-1 ring-primary/20"
+                  className="absolute inset-0 -z-0 rounded-xl bg-gradient-to-r rtl:bg-gradient-to-l from-primary/15 to-primary/0 ring-1 ring-primary/20"
                   transition={{ type: "spring", duration: 0.45, bounce: 0.15 }}
                 />
               )}
               <Icon name={item.icon} className="relative z-10 h-4 w-4" />
-              <span className="relative z-10">{item.label}</span>
+              <span className="relative z-10">{label}</span>
             </Link>
           );
         })}
