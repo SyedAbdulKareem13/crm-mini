@@ -500,12 +500,13 @@
 
    Authoring guidance for new components (details in
    docs/LOCALIZATION-RTL.md):
-     • Prefer LOGICAL Tailwind utilities that auto-flip: ms-/me-,
-       ps-/pe-, start-*/end-*, and the `rtl:` / `ltr:` variants.
-     • Avoid hard-coded physical left/right (ml-/mr-, left-/right-,
-       text-left/right, border-l/r) unless you also add an `rtl:` fix.
-     • Add `.rtl-flip` to any DECORATIVE directional glyph (arrow,
-       chevron, caret, send/back icon) so it mirrors.
+     - Prefer LOGICAL Tailwind utilities that auto-flip: ms/me,
+       ps/pe, start and end insets, and the rtl and ltr variants.
+     - Avoid hard-coded physical left or right (ml, mr, left, right,
+       text-left, text-right, border-l, border-r) unless you also add
+       an rtl fix.
+     - Add .rtl-flip to any DECORATIVE directional glyph (arrow,
+       chevron, caret, send or back icon) so it mirrors.
    The rules below globally mirror the physical patterns that already
    exist across the codebase, so most components flip with no edits.
    ================================================================ */
