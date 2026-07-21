@@ -54,9 +54,9 @@ BEGIN
 END $$;
 
 -- seed: languages
-INSERT INTO "Language" ("id","code","name","nativeName","direction","locale","enabled","isDefault","isFallback","canBeSecondary","canBePrimary","productionReady","reviewStatus","position") VALUES ('lng_en','en','English','English','LTR','en-US',true,true,true,false,true,true','APPROVED',0) ON CONFLICT ("id") DO NOTHING;
-INSERT INTO "Language" ("id","code","name","nativeName","direction","locale","enabled","isDefault","isFallback","canBeSecondary","canBePrimary","productionReady","reviewStatus","position") VALUES ('lng_ar','ar','Arabic','العربية','RTL','ar-SA',true,false,false,true,true,false','PENDING_REVIEW',1) ON CONFLICT ("id") DO NOTHING;
-INSERT INTO "Language" ("id","code","name","nativeName","direction","locale","enabled","isDefault","isFallback","canBeSecondary","canBePrimary","productionReady","reviewStatus","position") VALUES ('lng_ur','ur','Urdu','اردو','RTL','ur-PK',true,false,false,true,false,false','APPROVED',2) ON CONFLICT ("id") DO NOTHING;
+INSERT INTO "Language" ("id","code","name","nativeName","direction","locale","enabled","isDefault","isFallback","canBeSecondary","canBePrimary","productionReady","reviewStatus","position") VALUES ('lng_en','en','English','English','LTR','en-US',true,true,true,false,true,true,'APPROVED',0) ON CONFLICT ("id") DO NOTHING;
+INSERT INTO "Language" ("id","code","name","nativeName","direction","locale","enabled","isDefault","isFallback","canBeSecondary","canBePrimary","productionReady","reviewStatus","position") VALUES ('lng_ar','ar','Arabic','العربية','RTL','ar-SA',true,false,false,true,true,false,'PENDING_REVIEW',1) ON CONFLICT ("id") DO NOTHING;
+INSERT INTO "Language" ("id","code","name","nativeName","direction","locale","enabled","isDefault","isFallback","canBeSecondary","canBePrimary","productionReady","reviewStatus","position") VALUES ('lng_ur','ur','Urdu','اردو','RTL','ur-PK',true,false,false,true,false,false,'APPROVED',2) ON CONFLICT ("id") DO NOTHING;
 
 -- seed: namespaces
 INSERT INTO "TranslationNamespace" ("id","name","description","sensitive") VALUES ('ns_common','common','Shared UI chrome — buttons, generic labels, states',false) ON CONFLICT ("id") DO NOTHING;
