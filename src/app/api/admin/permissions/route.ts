@@ -9,14 +9,16 @@ import {
 } from "@/lib/permissions";
 import type { UserRole } from "@prisma/client";
 
+// Active taxonomy (mirrors ACTIVE_ROLES in @/lib/permissions).
 const ROLES = [
+  "SUPER_USER",
+  "SUPER_ADMIN",
   "ADMIN",
-  "SALES_EXEC",
-  "SALES_MANAGER",
+  "SALES_OWNER",
+  "SALES_HEAD",
   "BUSINESS_HEAD",
-  "FINANCE",
-  "REVENUE_OWNER",
-  "VIEWER",
+  "FINANCE_ANALYST",
+  "FINANCE_HEAD",
 ] as const;
 
 const MODULE_KEYS = PERMISSION_MODULES.map((m) => m.key) as [string, ...string[]];
@@ -41,7 +43,7 @@ const patchSchema = z.object({
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Only the Super Admin can manage access." }, { status: 403 });
   const orgId = session.user.organizationId;
 
   await ensureRolePermissions(orgId);
@@ -67,7 +69,7 @@ export async function GET() {
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Only the Super Admin can manage access." }, { status: 403 });
   const orgId = session.user.organizationId;
 
   const body = await req.json().catch(() => null);
@@ -75,8 +77,11 @@ export async function PATCH(req: Request) {
   if (!parsed.success) return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   const { role, module, field, value } = parsed.data;
 
-  if (role === "ADMIN") {
-    return NextResponse.json({ error: "The Admin role always has full access." }, { status: 400 });
+  if (role === "SUPER_USER" || role === "SUPER_ADMIN") {
+    return NextResponse.json(
+      { error: "Super User and Super Admin always have full access — their rows aren't editable." },
+      { status: 400 }
+    );
   }
 
   await ensureRolePermissions(orgId);

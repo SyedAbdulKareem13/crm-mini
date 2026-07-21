@@ -27,22 +27,24 @@ import { AccessMatrix } from "@/components/admin/access-matrix";
 import { OnboardEmployee } from "@/components/admin/onboard-employee";
 
 type Role =
+  | "SUPER_USER"
+  | "SUPER_ADMIN"
   | "ADMIN"
-  | "SALES_EXEC"
-  | "SALES_MANAGER"
+  | "SALES_OWNER"
+  | "SALES_HEAD"
   | "BUSINESS_HEAD"
-  | "FINANCE"
-  | "REVENUE_OWNER"
-  | "VIEWER";
+  | "FINANCE_ANALYST"
+  | "FINANCE_HEAD";
 
 const ROLES: { value: Role; label: string }[] = [
-  { value: "ADMIN", label: "Admin" },
-  { value: "SALES_EXEC", label: "Sales Executive" },
-  { value: "SALES_MANAGER", label: "Sales Manager" },
+  { value: "SALES_OWNER", label: "Sales Owner" },
+  { value: "SALES_HEAD", label: "Sales Head" },
   { value: "BUSINESS_HEAD", label: "Business Head" },
-  { value: "FINANCE", label: "Finance" },
-  { value: "REVENUE_OWNER", label: "Revenue Owner" },
-  { value: "VIEWER", label: "Viewer" },
+  { value: "FINANCE_ANALYST", label: "Finance Analyst" },
+  { value: "FINANCE_HEAD", label: "Finance Head" },
+  { value: "ADMIN", label: "Admin" },
+  { value: "SUPER_USER", label: "Super User" },
+  { value: "SUPER_ADMIN", label: "Super Admin" },
 ];
 
 const roleLabel = (r: string) => ROLES.find((x) => x.value === r)?.label ?? r;
@@ -52,14 +54,14 @@ type AdminUser = {
   name: string | null;
   email: string;
   image: string | null;
-  role: Role;
+  role: string; // may hold legacy enum values on old rows
   isActive: boolean;
   mustChangePassword?: boolean;
   lastLoginAt: string | Date | null;
 };
 type Territory = { id: string; name: string; region: string | null };
 type BusinessUnit = { id: string; name: string; code: string | null };
-type ChainStep = { id?: string; label: string; roleRequired: Role };
+type ChainStep = { id?: string; label: string; roleRequired: string }; // string: legacy enum values survive in old chains
 type Chain = { id: string; name: string; appliesTo: string; steps: ChainStep[] };
 type HeroVersion = "v1" | "v2";
 
@@ -622,7 +624,7 @@ function ApprovalChainTab({
     setSteps((prev) => prev.map((s, idx) => (idx === i ? { ...s, ...patch } : s)));
   }
   function addStep() {
-    setSteps((prev) => [...prev, { label: "", roleRequired: "SALES_MANAGER" }]);
+    setSteps((prev) => [...prev, { label: "", roleRequired: "SALES_HEAD" }]);
   }
   function removeStep(i: number) {
     setSteps((prev) => prev.filter((_, idx) => idx !== i));

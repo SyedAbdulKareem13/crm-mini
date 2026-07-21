@@ -133,8 +133,8 @@ export const READ_ONLY_STATUSES: Record<Exclude<LifecycleEntity, "APPROVAL" | "P
   QUOTATION: ["CANCELLED"],
 };
 
-/** Roles allowed to reopen a cancelled record (requirement #4). */
-export const REOPEN_ROLES = ["ADMIN", "SALES_MANAGER", "BUSINESS_HEAD"] as const;
+// Reopen rights are matrix-driven (Admin → Access, "Reopen" per module); the
+// former hardcoded REOPEN_ROLES list was removed with the role taxonomy.
 
 /* -------------------- the seven flow-strip stations -------------------- */
 

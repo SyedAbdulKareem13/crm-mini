@@ -29,13 +29,14 @@ import {
 } from "@/components/ui/table";
 
 type Role =
+  | "SUPER_USER"
+  | "SUPER_ADMIN"
   | "ADMIN"
-  | "SALES_EXEC"
-  | "SALES_MANAGER"
+  | "SALES_OWNER"
+  | "SALES_HEAD"
   | "BUSINESS_HEAD"
-  | "FINANCE"
-  | "REVENUE_OWNER"
-  | "VIEWER";
+  | "FINANCE_ANALYST"
+  | "FINANCE_HEAD";
 
 type PermField =
   | "canRead"
@@ -51,13 +52,14 @@ type Matrix = Record<string, Record<string, ModulePermissions>>;
 type ModuleDef = { key: string; label: string };
 
 const ROLES: { value: Role; label: string }[] = [
-  { value: "SALES_EXEC", label: "Sales Executive" },
-  { value: "SALES_MANAGER", label: "Sales Manager" },
+  { value: "SALES_OWNER", label: "Sales Owner" },
+  { value: "SALES_HEAD", label: "Sales Head" },
   { value: "BUSINESS_HEAD", label: "Business Head" },
-  { value: "FINANCE", label: "Finance" },
-  { value: "REVENUE_OWNER", label: "Revenue Owner" },
-  { value: "VIEWER", label: "Viewer" },
+  { value: "FINANCE_ANALYST", label: "Finance Analyst" },
+  { value: "FINANCE_HEAD", label: "Finance Head" },
   { value: "ADMIN", label: "Admin" },
+  { value: "SUPER_USER", label: "Super User" },
+  { value: "SUPER_ADMIN", label: "Super Admin" },
 ];
 
 const COLUMNS: { field: PermField; label: string }[] = [
@@ -73,7 +75,7 @@ const COLUMNS: { field: PermField; label: string }[] = [
 export function AccessMatrix() {
   const [matrix, setMatrix] = useState<Matrix | null>(null);
   const [modules, setModules] = useState<ModuleDef[]>([]);
-  const [role, setRole] = useState<Role>("SALES_EXEC");
+  const [role, setRole] = useState<Role>("SALES_OWNER");
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<string | null>(null);
 
@@ -100,7 +102,7 @@ export function AccessMatrix() {
   }, []);
 
   async function toggle(moduleKey: string, field: PermField, value: boolean) {
-    if (role === "ADMIN" || !matrix) return;
+    if (role === "SUPER_USER" || role === "SUPER_ADMIN" || !matrix) return;
     const key = `${moduleKey}:${field}`;
     const prev = matrix[role]?.[moduleKey]?.[field];
 
@@ -143,7 +145,7 @@ export function AccessMatrix() {
     }
   }
 
-  const isAdminRole = role === "ADMIN";
+  const isAdminRole = role === "SUPER_USER" || role === "SUPER_ADMIN";
   const rolePerms = matrix?.[role] ?? {};
 
   return (
@@ -176,8 +178,9 @@ export function AccessMatrix() {
           <div className="mb-4 flex items-center gap-2 rounded-lg border border-primary/30 bg-primary/5 px-3 py-2 text-sm">
             <Lock className="h-4 w-4 text-primary" />
             <span>
-              The Admin role always has full access and can&apos;t be edited — this keeps the
-              organization from locking itself out.
+              Super User and Super Admin always have full access and can&apos;t be edited — this
+              keeps the organization from locking itself out. Every other role, including Admin,
+              is fully tunable here.
             </span>
           </div>
         )}

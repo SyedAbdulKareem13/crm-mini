@@ -110,10 +110,19 @@ model ActivityTypeConfig {
 }
 
 enum UserRole {
-  ADMIN
+  // Active taxonomy
+  SUPER_USER    // access to everything
+  SUPER_ADMIN   // access to everything + grants access to others
+  ADMIN         // client-side admin — access granted via the matrix
+  SALES_OWNER   // general sales owner
+  SALES_HEAD
+  BUSINESS_HEAD
+  FINANCE_ANALYST
+  FINANCE_HEAD
+  // Legacy values (Postgres enums are add-only; kept so old rows never break,
+  // no longer offered in the UI)
   SALES_EXEC
   SALES_MANAGER
-  BUSINESS_HEAD
   FINANCE
   REVENUE_OWNER
   VIEWER

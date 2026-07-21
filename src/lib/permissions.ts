@@ -12,6 +12,32 @@ import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import type { Prisma, UserRole } from "@prisma/client";
 
+/** The active role taxonomy (legacy enum values are never offered/seeded). */
+export const ACTIVE_ROLES = [
+  { value: "SUPER_USER", label: "Super User" },
+  { value: "SUPER_ADMIN", label: "Super Admin" },
+  { value: "ADMIN", label: "Admin" },
+  { value: "SALES_OWNER", label: "Sales Owner" },
+  { value: "SALES_HEAD", label: "Sales Head" },
+  { value: "BUSINESS_HEAD", label: "Business Head" },
+  { value: "FINANCE_ANALYST", label: "Finance Analyst" },
+  { value: "FINANCE_HEAD", label: "Finance Head" },
+] as const;
+export type ActiveRole = (typeof ACTIVE_ROLES)[number]["value"];
+
+/** Full-access bypass: Super User & Super Admin see and do everything. */
+export const SUPER_ROLES: readonly string[] = ["SUPER_USER", "SUPER_ADMIN"];
+/** Only Super Admin grants access (user onboarding + permission matrix). */
+export const ACCESS_MANAGER_ROLES: readonly string[] = ["SUPER_ADMIN"];
+/** Org-configuration surfaces (gates, methodologies, master data, fields). */
+export const ADMIN_SURFACE_ROLES: readonly string[] = ["SUPER_ADMIN", "SUPER_USER", "ADMIN"];
+
+export const isSuper = (role: string | null | undefined) => !!role && SUPER_ROLES.includes(role);
+export const canManageAccess = (role: string | null | undefined) =>
+  !!role && ACCESS_MANAGER_ROLES.includes(role);
+export const hasAdminSurface = (role: string | null | undefined) =>
+  !!role && ADMIN_SURFACE_ROLES.includes(role);
+
 export const PERMISSION_MODULES = [
   { key: "LEADS", label: "Leads" },
   { key: "OPPORTUNITIES", label: "Opportunities" },
@@ -57,21 +83,14 @@ const READ_ONLY: ModulePermissions = {
 };
 const NONE: ModulePermissions = { ...READ_ONLY, canRead: false };
 
-/** Seeded defaults — tuned per role, fully editable afterwards. */
-const DEFAULTS: Record<UserRole, Partial<Record<PermissionModule, ModulePermissions>> & { "*": ModulePermissions }> = {
+/** Seeded defaults per ACTIVE role — fully editable afterwards (except the
+ *  super roles, which bypass the matrix entirely). */
+const DEFAULTS: Record<ActiveRole, Partial<Record<PermissionModule, ModulePermissions>> & { "*": ModulePermissions }> = {
+  SUPER_USER: { "*": ALL },
+  SUPER_ADMIN: { "*": ALL },
+  // Client-side admin — broad by default; the Super Admin tunes it here.
   ADMIN: { "*": ALL },
-  BUSINESS_HEAD: {
-    "*": { ...ALL, canDelete: false },
-    ADMIN: READ_ONLY,
-    RATE_CARDS: { ...RW, canDelete: false },
-  },
-  SALES_MANAGER: {
-    "*": { ...ALL, canDelete: false },
-    ADMIN: NONE,
-    RATE_CARDS: READ_ONLY,
-    PROJECTS: { ...RW, canCancel: true },
-  },
-  SALES_EXEC: {
+  SALES_OWNER: {
     "*": { ...RW, canCancel: false },
     ADMIN: NONE,
     RATE_CARDS: READ_ONLY,
@@ -79,19 +98,29 @@ const DEFAULTS: Record<UserRole, Partial<Record<PermissionModule, ModulePermissi
     REPORTS: READ_ONLY,
     PROJECTS: READ_ONLY,
   },
-  FINANCE: {
+  SALES_HEAD: {
+    "*": { ...ALL, canDelete: false, canApprove: false },
+    ADMIN: NONE,
+    RATE_CARDS: READ_ONLY,
+    PROJECTS: { ...RW, canCancel: true, canReopen: true },
+  },
+  BUSINESS_HEAD: {
+    "*": { ...ALL, canDelete: false },
+    ADMIN: READ_ONLY,
+    RATE_CARDS: { ...RW, canDelete: false },
+  },
+  FINANCE_ANALYST: {
+    "*": READ_ONLY,
+    ADMIN: NONE,
+    RATE_CARDS: { ...RW, canDelete: false },
+  },
+  FINANCE_HEAD: {
     "*": READ_ONLY,
     ADMIN: NONE,
     QUOTATIONS: { ...READ_ONLY, canApprove: true },
     APPROVALS: { ...READ_ONLY, canApprove: true },
-    RATE_CARDS: { ...RW, canDelete: false },
+    RATE_CARDS: { ...ALL, canCancel: false, canReopen: false, canApprove: false },
   },
-  REVENUE_OWNER: {
-    "*": READ_ONLY,
-    ADMIN: NONE,
-    OPPORTUNITIES: { ...RW, canCancel: false },
-  },
-  VIEWER: { "*": READ_ONLY, ADMIN: NONE },
 };
 
 const ACTION_FIELD: Record<PermissionAction, keyof ModulePermissions> = {
@@ -107,7 +136,7 @@ const ACTION_FIELD: Record<PermissionAction, keyof ModulePermissions> = {
 /** Seed missing (role, module) rows for the org — idempotent, cheap when full. */
 export async function ensureRolePermissions(organizationId: string): Promise<void> {
   const count = await prisma.rolePermission.count({ where: { organizationId } });
-  const roles = Object.keys(DEFAULTS) as UserRole[];
+  const roles = ACTIVE_ROLES.map((r) => r.value) as unknown as UserRole[];
   const expected = roles.length * PERMISSION_MODULES.length;
   if (count >= expected) return;
 
@@ -120,7 +149,8 @@ export async function ensureRolePermissions(organizationId: string): Promise<voi
   for (const role of roles) {
     for (const m of PERMISSION_MODULES) {
       if (have.has(`${role}:${m.key}`)) continue;
-      const def = DEFAULTS[role][m.key] ?? DEFAULTS[role]["*"];
+      const roleDefaults = DEFAULTS[role as ActiveRole];
+      const def = roleDefaults[m.key] ?? roleDefaults["*"];
       rows.push({ organizationId, role, module: m.key, ...def });
     }
   }
@@ -144,14 +174,14 @@ export async function getRolePermissions(
   return out;
 }
 
-/** Single permission check. ADMIN always passes. */
+/** Single permission check. Super User / Super Admin always pass. */
 export async function can(
   organizationId: string,
   role: string | null | undefined,
   module: PermissionModule,
   action: PermissionAction
 ): Promise<boolean> {
-  if (role === "ADMIN") return true;
+  if (isSuper(role)) return true;
   if (!role) return false;
   await ensureRolePermissions(organizationId);
   const row = await prisma.rolePermission.findUnique({
@@ -186,7 +216,7 @@ export async function readableModules(
   organizationId: string,
   role: string | null | undefined
 ): Promise<PermissionModule[]> {
-  if (role === "ADMIN") return PERMISSION_MODULES.map((m) => m.key);
+  if (isSuper(role)) return PERMISSION_MODULES.map((m) => m.key);
   if (!role) return [];
   await ensureRolePermissions(organizationId);
   const rows = await prisma.rolePermission.findMany({

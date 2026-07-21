@@ -24,22 +24,24 @@ import {
 } from "@/components/ui/select";
 
 type Role =
+  | "SUPER_USER"
+  | "SUPER_ADMIN"
   | "ADMIN"
-  | "SALES_EXEC"
-  | "SALES_MANAGER"
+  | "SALES_OWNER"
+  | "SALES_HEAD"
   | "BUSINESS_HEAD"
-  | "FINANCE"
-  | "REVENUE_OWNER"
-  | "VIEWER";
+  | "FINANCE_ANALYST"
+  | "FINANCE_HEAD";
 
 const ROLES: { value: Role; label: string }[] = [
-  { value: "SALES_EXEC", label: "Sales Executive" },
-  { value: "SALES_MANAGER", label: "Sales Manager" },
+  { value: "SALES_OWNER", label: "Sales Owner" },
+  { value: "SALES_HEAD", label: "Sales Head" },
   { value: "BUSINESS_HEAD", label: "Business Head" },
-  { value: "FINANCE", label: "Finance" },
-  { value: "REVENUE_OWNER", label: "Revenue Owner" },
-  { value: "VIEWER", label: "Viewer" },
+  { value: "FINANCE_ANALYST", label: "Finance Analyst" },
+  { value: "FINANCE_HEAD", label: "Finance Head" },
   { value: "ADMIN", label: "Admin" },
+  { value: "SUPER_USER", label: "Super User" },
+  { value: "SUPER_ADMIN", label: "Super Admin" },
 ];
 
 export function OnboardEmployee({ onCreated }: { onCreated: () => void }) {
@@ -47,7 +49,7 @@ export function OnboardEmployee({ onCreated }: { onCreated: () => void }) {
   const [saving, setSaving] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>("SALES_EXEC");
+  const [role, setRole] = useState<Role>("SALES_OWNER");
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [createdEmail, setCreatedEmail] = useState<string>("");
   const [copied, setCopied] = useState(false);
@@ -55,7 +57,7 @@ export function OnboardEmployee({ onCreated }: { onCreated: () => void }) {
   function reset() {
     setName("");
     setEmail("");
-    setRole("SALES_EXEC");
+    setRole("SALES_OWNER");
     setTempPassword(null);
     setCreatedEmail("");
     setCopied(false);

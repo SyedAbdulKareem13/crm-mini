@@ -4,11 +4,20 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { APPROVAL_CHAIN_DEFAULT } from "@/lib/constants";
 
+// Roles assignable to approval-chain steps (active taxonomy; legacy enum
+// values remain valid in old rows but aren't offered).
 const ROLES = [
+  "SUPER_USER",
+  "SUPER_ADMIN",
   "ADMIN",
+  "SALES_OWNER",
+  "SALES_HEAD",
+  "BUSINESS_HEAD",
+  "FINANCE_ANALYST",
+  "FINANCE_HEAD",
+  // legacy (accepted for existing chains)
   "SALES_EXEC",
   "SALES_MANAGER",
-  "BUSINESS_HEAD",
   "FINANCE",
   "REVENUE_OWNER",
   "VIEWER",
@@ -58,7 +67,7 @@ async function ensureDefaultChain(orgId: string) {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!["SUPER_ADMIN", "SUPER_USER", "ADMIN"].includes(session.user.role ?? "")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const chain = await ensureDefaultChain(session.user.organizationId);
   return NextResponse.json({ chain });
 }
@@ -66,7 +75,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!["SUPER_ADMIN", "SUPER_USER", "ADMIN"].includes(session.user.role ?? "")) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const orgId = session.user.organizationId;
   const body = await req.json().catch(() => null);
   const parsed = upsertSchema.safeParse(body);

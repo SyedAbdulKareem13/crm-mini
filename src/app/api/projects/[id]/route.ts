@@ -453,7 +453,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   // Whole-project deletion → PROJECTS/delete, and stays admin-only on top.
   const deniedDelete = await requirePermission(session, "PROJECTS", "delete");
   if (deniedDelete) return deniedDelete;
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can delete projects" }, { status: 403 });
+  if (!["SUPER_ADMIN", "SUPER_USER", "ADMIN"].includes(session.user.role ?? "")) return NextResponse.json({ error: "Only admins can delete projects" }, { status: 403 });
   const orgId = session.user.organizationId;
   const existing = await prisma.project.findFirst({
     where: { id, organizationId: orgId },

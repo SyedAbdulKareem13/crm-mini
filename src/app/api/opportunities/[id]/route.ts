@@ -124,7 +124,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     select: { oppNumber: true, name: true, stage: true, cancelledByName: true, cancelledAt: true },
   });
   // Deleting cancelled history is an admin-only call; other roles are guarded.
-  if (existing && existing.stage === "CANCELLED" && session.user.role !== "ADMIN") {
+  if (existing && existing.stage === "CANCELLED" && !["SUPER_ADMIN", "SUPER_USER", "ADMIN"].includes(session.user.role ?? "")) {
     return NextResponse.json({ error: cancelledMessage("opportunity", existing), code: "cancelled" }, { status: 409 });
   }
   await prisma.opportunity.delete({

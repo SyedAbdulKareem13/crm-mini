@@ -17,14 +17,17 @@ import type { UserRole } from "@prisma/client";
  * entityType is ever added to the union.
  */
 
+// The active taxonomy (mirrors ACTIVE_ROLES in @/lib/permissions; legacy enum
+// values are never offered for new assignments).
 const ROLES = [
+  "SUPER_USER",
+  "SUPER_ADMIN",
   "ADMIN",
-  "SALES_EXEC",
-  "SALES_MANAGER",
+  "SALES_OWNER",
+  "SALES_HEAD",
   "BUSINESS_HEAD",
-  "FINANCE",
-  "REVENUE_OWNER",
-  "VIEWER",
+  "FINANCE_ANALYST",
+  "FINANCE_HEAD",
 ] as const;
 const roleEnum = z.enum(ROLES);
 
@@ -64,7 +67,7 @@ function generateTempPassword(length = 16): string {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Only the Super Admin can manage access." }, { status: 403 });
 
   const users = await prisma.user.findMany({
     where: { organizationId: session.user.organizationId },
@@ -77,7 +80,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Only the Super Admin can manage access." }, { status: 403 });
   const orgId = session.user.organizationId;
 
   const body = await req.json().catch(() => null);
@@ -118,7 +121,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (session.user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Only the Super Admin can manage access." }, { status: 403 });
   const orgId = session.user.organizationId;
   const selfId = session.user.id;
 
@@ -145,16 +148,18 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: "You can't deactivate your own account." }, { status: 400 });
   }
 
-  // Last-admin guard: never let the org lose its final active admin.
-  const demotingFromAdmin = role !== undefined && target.role === "ADMIN" && role !== "ADMIN";
-  const deactivatingAdmin = isActive === false && target.isActive && target.role === "ADMIN";
-  if (demotingFromAdmin || deactivatingAdmin) {
-    const activeAdmins = await prisma.user.count({
-      where: { organizationId: orgId, role: "ADMIN", isActive: true },
+  // Last-super-admin guard: never let the org lose its final access manager.
+  const demotingFromSuperAdmin =
+    role !== undefined && target.role === "SUPER_ADMIN" && role !== "SUPER_ADMIN";
+  const deactivatingSuperAdmin =
+    isActive === false && target.isActive && target.role === "SUPER_ADMIN";
+  if (demotingFromSuperAdmin || deactivatingSuperAdmin) {
+    const activeSuperAdmins = await prisma.user.count({
+      where: { organizationId: orgId, role: "SUPER_ADMIN", isActive: true },
     });
-    if (activeAdmins <= 1) {
+    if (activeSuperAdmins <= 1) {
       return NextResponse.json(
-        { error: "This is the last active admin — assign another admin first." },
+        { error: "This is the last active Super Admin — assign another Super Admin first." },
         { status: 400 }
       );
     }

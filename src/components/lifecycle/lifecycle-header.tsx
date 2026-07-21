@@ -312,7 +312,7 @@ function CancelledBanner({
           <ReopenButton entity={{ type: entity.type as CancelableEntity, id: entity.id }} />
         ) : (
           <span className="text-xs text-destructive/80">
-            Ask a Sales Manager / Business Head / Admin to reopen.
+            Ask someone with reopen access (e.g. your Sales Head or an admin).
           </span>
         )}
       </div>
