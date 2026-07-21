@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { nextQuotationNumber } from "@/lib/numbering";
 import { computeQuotation } from "@/lib/quotation-engine";
 import { recordAudit } from "@/lib/audit";
+import { getPipelineGates } from "@/lib/sap-config";
 import { getGeminiKey, getGeminiModel } from "@/lib/app-config";
 import { geminiGenerate } from "@/lib/ai";
 import { resolveMonthlyRate } from "@/lib/rate-match";
@@ -86,6 +87,16 @@ export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const orgId = session.user.organizationId;
+
+  // Chain integrity (config, default OFF): AI-drafted quotes carry no RFQ, so
+  // this gate blocks them outright — return the friendly reason for the dialog.
+  const gates = await getPipelineGates(orgId);
+  if (gates.quoteRequiresRfq) {
+    return NextResponse.json(
+      { error: "Quotations must be raised from an RFQ (configurable in Admin → SAP Projects). Create the RFQ first, then quote from it.", code: "gate" },
+      { status: 409 }
+    );
+  }
 
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Please enter a brief." }, { status: 400 });

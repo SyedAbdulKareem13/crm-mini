@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
@@ -73,7 +73,7 @@ export default async function RFQsPage() {
                   </TableCell>
                   <TableCell>{r._count.lineItems}</TableCell>
                   <TableCell>{r._count.quotations}</TableCell>
-                  <TableCell><Badge variant="soft">{r.status.toLowerCase().replace("_", " ")}</Badge></TableCell>
+                  <TableCell><StatusBadge entity="RFQ" status={r.status} /></TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(r.dueDate)}</TableCell>
                 </TableRow>
               ))}

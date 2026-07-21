@@ -24,6 +24,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   });
   if (!quotation) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Lifecycle governance: a cancelled quotation is read-only — no submit/approve/reject.
+  if (quotation.status === "CANCELLED") {
+    const who = quotation.cancelledByName ?? "a user";
+    const when = quotation.cancelledAt
+      ? new Date(quotation.cancelledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "an earlier date";
+    return NextResponse.json(
+      { error: `This quotation was cancelled by ${who} on ${when} and is read-only — reopen it to make changes.`, code: "cancelled" },
+      { status: 409 }
+    );
+  }
+
   if (parsed.data.action === "SUBMIT") {
     if (quotation.approvalRequest) {
       return NextResponse.json({ error: "Already submitted" }, { status: 409 });

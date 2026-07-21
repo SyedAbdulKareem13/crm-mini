@@ -8,6 +8,18 @@ import { mergeCustomData } from "@/lib/field-config";
 import { gateBlockReason } from "@/lib/sap-config";
 import { OPP_STAGES } from "@/lib/constants";
 
+/** Human-readable read-only notice for a cancelled record (lifecycle governance). */
+function cancelledMessage(
+  entity: string,
+  rec: { cancelledByName: string | null; cancelledAt: Date | null }
+): string {
+  const who = rec.cancelledByName ?? "a user";
+  const when = rec.cancelledAt
+    ? new Date(rec.cancelledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "an earlier date";
+  return `This ${entity} was cancelled by ${who} on ${when} and is read-only — reopen it to make changes.`;
+}
+
 const updateSchema = z.object({
   name: z.string().optional(),
   customerId: z.string().optional(),
@@ -38,6 +50,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     where: { id, organizationId: session.user.organizationId },
   });
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Lifecycle governance: a cancelled record is read-only until reopened.
+  if (before.stage === "CANCELLED") {
+    return NextResponse.json({ error: cancelledMessage("opportunity", before), code: "cancelled" }, { status: 409 });
+  }
 
   const stageChanged = parsed.data.stage !== undefined && parsed.data.stage !== before.stage;
 
@@ -99,8 +116,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const existing = await prisma.opportunity.findFirst({
     where: { id, organizationId: session.user.organizationId },
-    select: { oppNumber: true, name: true },
+    select: { oppNumber: true, name: true, stage: true, cancelledByName: true, cancelledAt: true },
   });
+  // Deleting cancelled history is an admin-only call; other roles are guarded.
+  if (existing && existing.stage === "CANCELLED" && session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: cancelledMessage("opportunity", existing), code: "cancelled" }, { status: 409 });
+  }
   await prisma.opportunity.delete({
     where: { id, organizationId: session.user.organizationId },
   });

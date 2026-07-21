@@ -4,6 +4,9 @@ import { ArrowLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
+import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
+import { ThreadTimeline } from "@/components/lifecycle/thread-insights";
+import { getLifecycleThread } from "@/lib/lifecycle";
 import { ProjectPlanner, type PlannerProject } from "@/components/projects/project-planner";
 import type { RaidItem } from "@/components/projects/raid-register";
 import type { SavedEstimate } from "@/components/projects/project-estimator";
@@ -38,6 +41,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     },
   });
   if (!project) notFound();
+
+  const thread = await getLifecycleThread(session.user.organizationId, { type: "PROJECT", id });
 
   // Org members for deliverable assignment in the planner/Gantt.
   const members = await prisma.user.findMany({
@@ -133,6 +138,17 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         <ArrowLeft className="h-4 w-4" /> All projects
       </Link>
 
+      {thread && (
+        <div className="mt-4">
+          <LifecycleHeader
+            thread={thread}
+            entity={{ type: "PROJECT", id: project.id, status: project.status }}
+            viewerRole={session.user.role ?? ""}
+            cancelInfo={null}
+          />
+        </div>
+      )}
+
       <div className="mt-4 space-y-6">
         <ProjectPlanner
           project={planner}
@@ -142,6 +158,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
           raid={raid}
           viewer={{ id: session.user.id, name: session.user.name ?? "Member" }}
         />
+        <ThreadTimeline entityType="PROJECT" entityId={project.id} />
         <RecordAuditTrail
           organizationId={session.user.organizationId}
           entityType="PROJECT"

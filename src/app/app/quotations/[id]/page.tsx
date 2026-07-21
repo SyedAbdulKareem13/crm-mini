@@ -11,6 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ApprovalPanel } from "@/components/quotation/approval-panel";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
+import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
+import { ThreadTimeline, ThreadHistory } from "@/components/lifecycle/thread-insights";
+import { getLifecycleThread } from "@/lib/lifecycle";
 import { EditQuotationDialog } from "./edit-quotation-dialog";
 
 const EDITABLE_STATUSES = ["DRAFT", "PENDING_APPROVAL", "REJECTED"];
@@ -33,6 +36,8 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
     },
   });
   if (!q) notFound();
+
+  const thread = await getLifecycleThread(session.user.organizationId, { type: "QUOTATION", id });
 
   return (
     <div>
@@ -72,6 +77,26 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
           </Link>
         </div>
       </div>
+
+      {thread && (
+        <div className="mt-4">
+          <LifecycleHeader
+            thread={thread}
+            entity={{ type: "QUOTATION", id: q.id, status: q.status }}
+            viewerRole={session.user.role ?? ""}
+            cancelInfo={
+              q.cancelledAt
+                ? {
+                    at: q.cancelledAt.toISOString(),
+                    by: q.cancelledByName,
+                    reason: q.cancelReason,
+                  }
+                : null
+            }
+          />
+        </div>
+      )}
+
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -186,6 +211,8 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
               <Row label="Valid until" value={formatDate(q.validUntil)} />
             </CardContent>
           </Card>
+          <ThreadTimeline entityType="QUOTATION" entityId={q.id} />
+          <ThreadHistory entityType="QUOTATION" entityId={q.id} />
           <RecordAuditTrail organizationId={session.user.organizationId} entityType="QUOTATION" entityId={q.id} />
         </div>
       </div>

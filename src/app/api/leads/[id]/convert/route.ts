@@ -19,6 +19,17 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     include: { activities: true, documents: true },
   });
   if (!lead) return NextResponse.json({ error: "Lead not found" }, { status: 404 });
+  // Lifecycle governance: a cancelled lead is read-only — reopen before converting.
+  if (lead.status === "CANCELLED") {
+    const who = lead.cancelledByName ?? "a user";
+    const when = lead.cancelledAt
+      ? new Date(lead.cancelledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "an earlier date";
+    return NextResponse.json(
+      { error: `This lead was cancelled by ${who} on ${when} and is read-only — reopen it to make changes.`, code: "cancelled" },
+      { status: 409 }
+    );
+  }
   if (lead.convertedOpportunityId) {
     return NextResponse.json({ error: "Lead already converted" }, { status: 409 });
   }

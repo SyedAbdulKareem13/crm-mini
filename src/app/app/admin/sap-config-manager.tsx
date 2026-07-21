@@ -10,6 +10,7 @@ import {
   Plus,
   Trash2,
   Route,
+  Workflow,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,9 @@ type Gates = {
   projectRequiredStage: string | null;
   sequentialPhases: boolean;
   completeRequiresAllPhases: boolean;
+  oppRequiresLead: boolean;
+  rfqRequiresOpportunity: boolean;
+  quoteRequiresRfq: boolean;
   workingDays: string;
   holidays: string[];
 };
@@ -91,6 +95,9 @@ export function SapConfigManager() {
     projectRequiredStage: null,
     sequentialPhases: false,
     completeRequiresAllPhases: true,
+    oppRequiresLead: false,
+    rfqRequiresOpportunity: false,
+    quoteRequiresRfq: false,
     workingDays: "1,2,3,4,5",
     holidays: [],
   });
@@ -120,6 +127,9 @@ export function SapConfigManager() {
         projectRequiredStage: data.gates?.projectRequiredStage ?? null,
         sequentialPhases: data.gates?.sequentialPhases ?? false,
         completeRequiresAllPhases: data.gates?.completeRequiresAllPhases ?? true,
+        oppRequiresLead: data.gates?.oppRequiresLead ?? false,
+        rfqRequiresOpportunity: data.gates?.rfqRequiresOpportunity ?? false,
+        quoteRequiresRfq: data.gates?.quoteRequiresRfq ?? false,
         workingDays: data.gates?.workingDays ?? "1,2,3,4,5",
         holidays: Array.isArray(data.gates?.holidays) ? data.gates.holidays : [],
       });
@@ -167,7 +177,15 @@ export function SapConfigManager() {
     else toast.success("Gate updated");
   }
 
-  async function setGovernance(key: "sequentialPhases" | "completeRequiresAllPhases", value: boolean) {
+  async function setGovernance(
+    key:
+      | "sequentialPhases"
+      | "completeRequiresAllPhases"
+      | "oppRequiresLead"
+      | "rfqRequiresOpportunity"
+      | "quoteRequiresRfq",
+    value: boolean
+  ) {
     const prev = gates[key];
     setGates((g) => ({ ...g, [key]: value }));
     const ok = await patch({ gates: { [key]: value } }, `gate-${key}`);
@@ -577,6 +595,60 @@ export function SapConfigManager() {
                 </Button>
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ---------------------- Lifecycle chain ---------------------- */}
+      <Card className="luxury-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Workflow className="h-4 w-4 text-primary" /> Lifecycle chain
+          </CardTitle>
+          <CardDescription>
+            Enforce the sales chain end-to-end: each record must originate from the stage before it.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <div className="flex items-start justify-between gap-3 rounded-xl border bg-card/60 p-3">
+            <div>
+              <div className="text-sm font-medium">Opportunities require a lead</div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                A new opportunity can only be created by converting an existing lead.
+              </p>
+            </div>
+            <Switch
+              checked={gates.oppRequiresLead}
+              disabled={pending.has("gate-oppRequiresLead")}
+              onCheckedChange={(v) => void setGovernance("oppRequiresLead", v)}
+            />
+          </div>
+          <div className="flex items-start justify-between gap-3 rounded-xl border bg-card/60 p-3">
+            <div>
+              <div className="text-sm font-medium">RFQs require an opportunity</div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Every RFQ must be raised against an open opportunity.
+              </p>
+            </div>
+            <Switch
+              checked={gates.rfqRequiresOpportunity}
+              disabled={pending.has("gate-rfqRequiresOpportunity")}
+              onCheckedChange={(v) => void setGovernance("rfqRequiresOpportunity", v)}
+            />
+          </div>
+          <div className="flex items-start justify-between gap-3 rounded-xl border bg-card/60 p-3 sm:col-span-2">
+            <div>
+              <div className="text-sm font-medium">Quotations require an RFQ</div>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                Quotations must be generated from an RFQ — the Manz AI drafter is governed by this
+                toggle too, so it can only draft when an RFQ exists.
+              </p>
+            </div>
+            <Switch
+              checked={gates.quoteRequiresRfq}
+              disabled={pending.has("gate-quoteRequiresRfq")}
+              onCheckedChange={(v) => void setGovernance("quoteRequiresRfq", v)}
+            />
           </div>
         </CardContent>
       </Card>

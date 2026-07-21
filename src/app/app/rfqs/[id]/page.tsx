@@ -7,6 +7,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
+import { ThreadTimeline } from "@/components/lifecycle/thread-insights";
+import { getLifecycleThread } from "@/lib/lifecycle";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +29,8 @@ export default async function RFQDetailPage({ params }: { params: Promise<{ id: 
   });
   if (!rfq) notFound();
 
+  const thread = await getLifecycleThread(session.user.organizationId, { type: "RFQ", id });
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
@@ -38,6 +43,26 @@ export default async function RFQDetailPage({ params }: { params: Promise<{ id: 
           </Button>
         </Link>
       </div>
+
+      {thread && (
+        <div className="mt-4">
+          <LifecycleHeader
+            thread={thread}
+            entity={{ type: "RFQ", id: rfq.id, status: rfq.status }}
+            viewerRole={session.user.role ?? ""}
+            cancelInfo={
+              rfq.cancelledAt
+                ? {
+                    at: rfq.cancelledAt.toISOString(),
+                    by: rfq.cancelledByName,
+                    reason: rfq.cancelReason,
+                  }
+                : null
+            }
+          />
+        </div>
+      )}
+
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader>
@@ -103,6 +128,10 @@ export default async function RFQDetailPage({ params }: { params: Promise<{ id: 
             </Table>
           </CardContent>
         </Card>
+
+        <div className="lg:col-span-3">
+          <ThreadTimeline entityType="RFQ" entityId={rfq.id} />
+        </div>
       </div>
     </div>
   );

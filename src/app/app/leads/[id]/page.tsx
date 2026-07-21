@@ -9,6 +9,9 @@ import { ConvertLeadButton } from "./convert-button";
 import { LeadEditButton } from "@/components/leads/lead-edit-button";
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { ActivityPanel } from "@/components/activity/activity-panel";
+import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
+import { ThreadTimeline } from "@/components/lifecycle/thread-insights";
+import { getLifecycleThread } from "@/lib/lifecycle";
 import { getModuleConfig } from "@/lib/field-config";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
 
@@ -28,6 +31,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
     },
   });
   if (!lead) notFound();
+
+  const thread = await getLifecycleThread(session.user.organizationId, { type: "LEAD", id });
 
   const leadForEdit = {
     id: lead.id,
@@ -58,6 +63,25 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
       <Link href="/app/leads" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> All leads
       </Link>
+
+      {thread && (
+        <div className="mt-4">
+          <LifecycleHeader
+            thread={thread}
+            entity={{ type: "LEAD", id: lead.id, status: lead.status }}
+            viewerRole={session.user.role ?? ""}
+            cancelInfo={
+              lead.cancelledAt
+                ? {
+                    at: lead.cancelledAt.toISOString(),
+                    by: lead.cancelledByName,
+                    reason: lead.cancelReason,
+                  }
+                : null
+            }
+          />
+        </div>
+      )}
 
       <div className="mt-4 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
@@ -106,6 +130,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
         </div>
 
         <div className="space-y-4">
+          <ThreadTimeline entityType="LEAD" entityId={lead.id} />
           <RecordAuditTrail organizationId={session.user.organizationId} entityType="LEAD" entityId={lead.id} />
         </div>
       </div>

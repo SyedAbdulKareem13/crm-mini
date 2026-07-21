@@ -36,6 +36,9 @@ const patchSchema = z.object({
       projectRequiredStage: z.string().nullable().optional(),
       sequentialPhases: z.boolean().optional(),
       completeRequiresAllPhases: z.boolean().optional(),
+      oppRequiresLead: z.boolean().optional(),
+      rfqRequiresOpportunity: z.boolean().optional(),
+      quoteRequiresRfq: z.boolean().optional(),
       workingDays: z.string().regex(/^[1-7](,[1-7])*$/).optional(),
       holidays: z.array(z.string().regex(/^\d{4}-\d{2}-\d{2}$/)).max(200).optional(),
     })
@@ -98,6 +101,9 @@ export async function PATCH(req: Request) {
         ...(d.gates.completeRequiresAllPhases !== undefined
           ? { completeRequiresAllPhases: d.gates.completeRequiresAllPhases }
           : {}),
+        ...(d.gates.oppRequiresLead !== undefined ? { oppRequiresLead: d.gates.oppRequiresLead } : {}),
+        ...(d.gates.rfqRequiresOpportunity !== undefined ? { rfqRequiresOpportunity: d.gates.rfqRequiresOpportunity } : {}),
+        ...(d.gates.quoteRequiresRfq !== undefined ? { quoteRequiresRfq: d.gates.quoteRequiresRfq } : {}),
         ...(d.gates.workingDays !== undefined ? { workingDays: d.gates.workingDays } : {}),
         ...(d.gates.holidays !== undefined ? { holidays: d.gates.holidays as Prisma.InputJsonValue } : {}),
       },
@@ -107,6 +113,9 @@ export async function PATCH(req: Request) {
         projectRequiredStage: d.gates.projectRequiredStage ?? null,
         sequentialPhases: d.gates.sequentialPhases ?? false,
         completeRequiresAllPhases: d.gates.completeRequiresAllPhases ?? true,
+        oppRequiresLead: d.gates.oppRequiresLead ?? false,
+        rfqRequiresOpportunity: d.gates.rfqRequiresOpportunity ?? false,
+        quoteRequiresRfq: d.gates.quoteRequiresRfq ?? false,
         ...(d.gates.workingDays !== undefined ? { workingDays: d.gates.workingDays } : {}),
         ...(d.gates.holidays !== undefined ? { holidays: d.gates.holidays as Prisma.InputJsonValue } : {}),
       },

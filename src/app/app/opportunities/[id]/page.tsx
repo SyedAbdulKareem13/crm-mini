@@ -13,6 +13,9 @@ import { OpportunityEditButton } from "@/components/opportunities/opportunity-ed
 import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { ActivityPanel } from "@/components/activity/activity-panel";
 import { CreateProjectButton } from "@/components/projects/create-project-button";
+import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
+import { ThreadTimeline, ThreadHistory } from "@/components/lifecycle/thread-insights";
+import { getLifecycleThread } from "@/lib/lifecycle";
 import { getModuleConfig } from "@/lib/field-config";
 
 export const dynamic = "force-dynamic";
@@ -40,6 +43,11 @@ export default async function OpportunityDetailPage({
   });
   if (!opp) notFound();
   const stageLabel = OPP_STAGES.find((s) => s.value === opp.stage)?.label ?? opp.stage;
+
+  const thread = await getLifecycleThread(session.user.organizationId, {
+    type: "OPPORTUNITY",
+    id,
+  });
 
   const customers = await prisma.customer.findMany({
     where: { organizationId: session.user.organizationId },
@@ -72,6 +80,25 @@ export default async function OpportunityDetailPage({
       <Link href="/app/opportunities" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
         <ArrowLeft className="h-4 w-4" /> All opportunities
       </Link>
+
+      {thread && (
+        <div className="mt-4">
+          <LifecycleHeader
+            thread={thread}
+            entity={{ type: "OPPORTUNITY", id: opp.id, status: opp.stage }}
+            viewerRole={session.user.role ?? ""}
+            cancelInfo={
+              opp.cancelledAt
+                ? {
+                    at: opp.cancelledAt.toISOString(),
+                    by: opp.cancelledByName,
+                    reason: opp.cancelReason,
+                  }
+                : null
+            }
+          />
+        </div>
+      )}
 
       <div className="mt-4 grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-4">
@@ -194,6 +221,9 @@ export default async function OpportunityDetailPage({
               ) : null}
             </CardContent>
           </Card>
+
+          <ThreadTimeline entityType="OPPORTUNITY" entityId={opp.id} />
+          <ThreadHistory entityType="OPPORTUNITY" entityId={opp.id} />
         </div>
       </div>
     </div>

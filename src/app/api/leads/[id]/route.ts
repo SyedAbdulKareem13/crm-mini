@@ -6,6 +6,18 @@ import { prisma } from "@/lib/prisma";
 import { recordAudit, diffFields } from "@/lib/audit";
 import { mergeCustomData } from "@/lib/field-config";
 
+/** Human-readable read-only notice for a cancelled record (lifecycle governance). */
+function cancelledMessage(
+  entity: string,
+  rec: { cancelledByName: string | null; cancelledAt: Date | null }
+): string {
+  const who = rec.cancelledByName ?? "a user";
+  const when = rec.cancelledAt
+    ? new Date(rec.cancelledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+    : "an earlier date";
+  return `This ${entity} was cancelled by ${who} on ${when} and is read-only — reopen it to make changes.`;
+}
+
 const updateSchema = z.object({
   name: z.string().min(2).optional(),
   company: z.string().min(1).optional(),
@@ -35,6 +47,11 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     where: { id, organizationId: session.user.organizationId },
   });
   if (!before) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Lifecycle governance: a cancelled record is read-only until reopened.
+  if (before.status === "CANCELLED") {
+    return NextResponse.json({ error: cancelledMessage("lead", before), code: "cancelled" }, { status: 409 });
+  }
 
   const { data: customData, ...core } = parsed.data;
   const mergedData = mergeCustomData(before.data, customData);
@@ -74,8 +91,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   }
   const existing = await prisma.lead.findFirst({
     where: { id, organizationId: session.user.organizationId },
-    select: { leadNumber: true, name: true },
+    select: { leadNumber: true, name: true, status: true, cancelledByName: true, cancelledAt: true },
   });
+  // Deleting cancelled history is an admin-only call; other roles are guarded.
+  if (existing && existing.status === "CANCELLED" && session.user.role !== "ADMIN") {
+    return NextResponse.json({ error: cancelledMessage("lead", existing), code: "cancelled" }, { status: 409 });
+  }
   await prisma.lead.delete({
     where: { id, organizationId: session.user.organizationId },
   });

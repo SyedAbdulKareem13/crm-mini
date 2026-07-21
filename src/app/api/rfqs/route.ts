@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextRfqNumber } from "@/lib/numbering";
+import { getPipelineGates } from "@/lib/sap-config";
 
 const lineItemSchema = z.object({
   lineType: z.enum(["MANPOWER", "NON_MANPOWER", "SOFTWARE_LICENSE", "HARDWARE", "SERVICE"]),
@@ -36,6 +37,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid", details: parsed.error.flatten() }, { status: 400 });
   }
   const orgId = session.user.organizationId;
+
+  // Chain integrity (config, default OFF): an RFQ must be raised from an opportunity.
+  const gates = await getPipelineGates(orgId);
+  if (gates.rfqRequiresOpportunity && !parsed.data.opportunityId) {
+    return NextResponse.json(
+      { error: "RFQs must be raised from an opportunity (configurable in Admin → SAP Projects).", code: "gate" },
+      { status: 409 }
+    );
+  }
+
   const rfqNumber = await nextRfqNumber(orgId);
   const rfq = await prisma.rFQ.create({
     data: {

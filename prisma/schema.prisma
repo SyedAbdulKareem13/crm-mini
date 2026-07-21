@@ -294,6 +294,7 @@ enum LeadStatus {
   UNQUALIFIED
   CONVERTED
   LOST
+  CANCELLED
 }
 
 enum LeadSource {
@@ -337,6 +338,13 @@ model Lead {
   convertedOpportunityId String?  @unique
   convertedOpportunity   Opportunity? @relation("LeadToOpp", fields: [convertedOpportunityId], references: [id])
 
+  // Controlled cancellation (lifecycle governance). Audit holds the full trail.
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancelledByName    String?
+  cancelReason       String?   @db.Text
+  statusBeforeCancel String?
+
   activities     Activity[]
   documents      Document[]
 
@@ -362,6 +370,7 @@ enum OpportunityStage {
   VERBAL_CONFIRMATION
   WON
   LOST
+  CANCELLED
 }
 
 model Opportunity {
@@ -392,6 +401,13 @@ model Opportunity {
   stage            OpportunityStage @default(QUALIFICATION)
   stageEnteredAt   DateTime @default(now())
   lostReason       String?
+
+  // Controlled cancellation (distinct from LOST). Audit holds the full trail.
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancelledByName    String?
+  cancelReason       String?  @db.Text
+  statusBeforeCancel String?
   notes            String?  @db.Text
   data             Json?    // values for admin-defined custom fields
 
@@ -449,6 +465,13 @@ model RFQ {
   remarks         String?   @db.Text
   status          RFQStatus @default(DRAFT)
   data            Json?     // values for admin-defined custom fields
+
+  // Controlled cancellation (lifecycle governance).
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancelledByName    String?
+  cancelReason       String?  @db.Text
+  statusBeforeCancel String?
 
   lineItems       RFQLineItem[]
   quotations      Quotation[]
@@ -549,6 +572,7 @@ enum QuotationStatus {
   ACCEPTED
   DECLINED
   EXPIRED
+  CANCELLED
 }
 
 enum QuotationItemType {
@@ -576,6 +600,13 @@ model Quotation {
 
   status          QuotationStatus @default(DRAFT)
   draftedByAi     Boolean  @default(false) // created via "Draft with AI"
+
+  // Controlled cancellation (lifecycle governance).
+  cancelledAt        DateTime?
+  cancelledById      String?
+  cancelledByName    String?
+  cancelReason       String?  @db.Text
+  statusBeforeCancel String?
   currency        String   @default("INR")
   validUntil      DateTime?
   notes           String?  @db.Text
@@ -1078,6 +1109,12 @@ model PipelineGateConfig {
   // Working-day calendar (schedules honor these instead of raw calendar days)
   workingDays String @default("1,2,3,4,5") // ISO weekday numbers, Mon=1 … Sun=7
   holidays    Json?  // array of "yyyy-mm-dd" strings
+
+  // Lifecycle chain validation (all default OFF — the AI quote drafter
+  // legitimately creates quotations without an RFQ, so strictness is a choice).
+  oppRequiresLead       Boolean @default(false)
+  rfqRequiresOpportunity Boolean @default(false)
+  quoteRequiresRfq      Boolean @default(false)
 
   updatedAt DateTime @updatedAt
 }

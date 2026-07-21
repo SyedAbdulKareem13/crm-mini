@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextOppNumber } from "@/lib/numbering";
 import { recordAudit } from "@/lib/audit";
+import { getPipelineGates } from "@/lib/sap-config";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -48,6 +49,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid", details: parsed.error.flatten() }, { status: 400 });
   }
   const orgId = session.user.organizationId;
+
+  // Chain integrity (config, default OFF): opportunities must originate from a
+  // qualified lead. Lead conversion uses its own route (leads/[id]/convert),
+  // so this route only ever represents a manual, non-lead creation.
+  const gates = await getPipelineGates(orgId);
+  if (gates.oppRequiresLead) {
+    return NextResponse.json(
+      { error: "Opportunities must start from a qualified lead (configurable in Admin → SAP Projects).", code: "gate" },
+      { status: 409 }
+    );
+  }
+
   const oppNumber = await nextOppNumber(orgId);
   const { data: customData, ...core } = parsed.data;
   const opp = await prisma.opportunity.create({

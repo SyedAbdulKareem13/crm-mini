@@ -16,6 +16,8 @@ export type AuditInput = {
     | "SUBMITTED"
     | "APPROVED"
     | "REJECTED"
+    | "CANCELLED"
+    | "REOPENED"
     | "DELETED";
   summary?: string;
   changes?: AuditChange[];

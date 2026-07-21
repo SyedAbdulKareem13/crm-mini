@@ -194,6 +194,11 @@ export async function getPipelineGates(orgId: string) {
     projectRequiredStage: g?.projectRequiredStage ?? null,
     sequentialPhases: g?.sequentialPhases ?? false,
     completeRequiresAllPhases: g?.completeRequiresAllPhases ?? true,
+    // Chain-integrity gates (requirement #10, default OFF): force each pipeline
+    // stage to originate from the prior one.
+    oppRequiresLead: g?.oppRequiresLead ?? false,
+    rfqRequiresOpportunity: g?.rfqRequiresOpportunity ?? false,
+    quoteRequiresRfq: g?.quoteRequiresRfq ?? false,
     workingDays: g?.workingDays ?? "1,2,3,4,5",
     holidays: Array.isArray(g?.holidays)
       ? (g!.holidays as unknown[]).filter((h): h is string => typeof h === "string")

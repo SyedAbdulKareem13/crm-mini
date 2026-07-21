@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
@@ -38,15 +39,6 @@ type Lead = {
   expectedRevenue: string | number | null;
   createdAt: string;
   owner: { name: string | null; image: string | null } | null;
-};
-
-const statusVariant: Record<string, any> = {
-  NEW: "soft",
-  CONTACTED: "info",
-  QUALIFIED: "success",
-  UNQUALIFIED: "secondary",
-  CONVERTED: "warning",
-  LOST: "destructive",
 };
 
 export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
@@ -178,9 +170,7 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant[lead.status] ?? "soft"}>
-                      {lead.status.toLowerCase()}
-                    </Badge>
+                    <StatusBadge entity="LEAD" status={lead.status} />
                   </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCompactCurrency(lead.expectedRevenue ? Number(lead.expectedRevenue) : 0)}

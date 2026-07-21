@@ -52,6 +52,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     include: { items: true },
   });
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  // Lifecycle governance: a cancelled record is read-only until reopened.
+  if (existing.status === "CANCELLED") {
+    const who = existing.cancelledByName ?? "a user";
+    const when = existing.cancelledAt
+      ? new Date(existing.cancelledAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })
+      : "an earlier date";
+    return NextResponse.json(
+      { error: `This quotation was cancelled by ${who} on ${when} and is read-only — reopen it to make changes.`, code: "cancelled" },
+      { status: 409 }
+    );
+  }
   if (!EDITABLE.has(existing.status)) {
     return NextResponse.json(
       { error: `A ${existing.status.toLowerCase().replace("_", " ")} quotation can't be edited. Create a new version instead.` },

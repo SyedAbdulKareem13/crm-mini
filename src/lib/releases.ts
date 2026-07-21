@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.20.1";
+export const CURRENT_VERSION = "0.21.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,22 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.21.0",
+    date: "2026-07-21",
+    title: "The visual sales lifecycle",
+    summary: "Every record now shows its whole journey — Lead → Opportunity → RFQ → Quotation → Approval → Won → Project — with click-through stages, controlled cancellation with reasons, role-gated reopen, and one consistent status color language everywhere.",
+    items: [
+      { type: "new", text: "Lifecycle flow strip on every Lead, Opportunity, RFQ, Quotation and Project — completed stages in green with a ✓, the record you're on in blue, pending in grey, cancelled in red; click any stage to open its record, with Prev/Next navigation across the chain." },
+      { type: "new", text: "Breadcrumb navigation (Home > Leads > OPP-x > …) derived from the same thread, so the path is always truthful." },
+      { type: "new", text: "Cancel at every stage — a mandatory reason, timestamp and user are captured, the record becomes read-only (enforced on the server, not just the screen), and the owner is notified." },
+      { type: "new", text: "Reopen cancelled records — Sales Managers, Business Heads and Admins can restore a record to exactly the status it held before cancellation; everything is audit-trailed." },
+      { type: "new", text: "Guard rails: won opportunities, converted leads and accepted quotations can't be cancelled, and an opportunity with a live delivery project asks you to resolve the project first." },
+      { type: "new", text: "Stage timeline and Lifecycle history cards — created / submitted / approved / rejected / cancelled moments with user and time, plus the full merged activity trail across the whole chain." },
+      { type: "new", text: "Workflow chain validation (configurable, off by default): require opportunities to start from leads, RFQs from opportunities, and quotations from RFQs — Admin → SAP Projects." },
+      { type: "improved", text: "One status color language across the app: green completed, blue current, yellow in progress, orange pending approval, red cancelled, grey draft." },
+    ],
+  },
   {
     version: "0.20.1",
     date: "2026-07-20",

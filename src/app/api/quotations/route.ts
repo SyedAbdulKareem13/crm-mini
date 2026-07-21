@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { nextQuotationNumber } from "@/lib/numbering";
 import { computeQuotation } from "@/lib/quotation-engine";
 import { recordAudit } from "@/lib/audit";
+import { getPipelineGates } from "@/lib/sap-config";
 
 const itemSchema = z.object({
   itemType: z.enum(["MANPOWER", "NON_MANPOWER", "LICENSE"]),
@@ -58,6 +59,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Invalid", details: parsed.error.flatten() }, { status: 400 });
   }
   const orgId = session.user.organizationId;
+
+  // Chain integrity (config, default OFF): a quotation must be raised from an RFQ.
+  const gates = await getPipelineGates(orgId);
+  if (gates.quoteRequiresRfq && !parsed.data.rfqId) {
+    return NextResponse.json(
+      { error: "Quotations must be raised from an RFQ (configurable in Admin → SAP Projects).", code: "gate" },
+      { status: 409 }
+    );
+  }
+
   const quotationNumber = await nextQuotationNumber(orgId);
 
   const totals = computeQuotation(

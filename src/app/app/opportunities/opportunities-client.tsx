@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Filter, Pencil, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -28,8 +28,6 @@ type Opp = {
   expectedCloseDate: string | null;
   notes: string | null;
 };
-
-const STAGE_LABEL = new Map<string, string>(OPP_STAGES.map((s) => [s.value, s.label]));
 
 export function OpportunitiesClient({
   opps,
@@ -114,7 +112,7 @@ export function OpportunitiesClient({
                     <div className="text-xs text-muted-foreground">{o.oppNumber}</div>
                   </TableCell>
                   <TableCell>{o.customer.name}</TableCell>
-                  <TableCell><Badge variant="soft">{STAGE_LABEL.get(o.stage) ?? o.stage}</Badge></TableCell>
+                  <TableCell><StatusBadge entity="OPPORTUNITY" status={o.stage} /></TableCell>
                   <TableCell className="text-sm">{o.owner?.name ?? "—"}</TableCell>
                   <TableCell className="text-right font-medium">{formatCompactCurrency(Number(o.expectedRevenue))}</TableCell>
                   <TableCell className="text-right">{o.probability}%</TableCell>

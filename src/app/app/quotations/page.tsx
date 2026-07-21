@@ -5,24 +5,13 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
 import { DraftWithAiButton } from "./draft-with-ai-button";
 
 export const dynamic = "force-dynamic";
-
-const statusVariant: Record<string, any> = {
-  DRAFT: "secondary",
-  PENDING_APPROVAL: "warning",
-  APPROVED: "success",
-  REJECTED: "destructive",
-  SENT: "info",
-  ACCEPTED: "success",
-  DECLINED: "destructive",
-  EXPIRED: "outline",
-};
 
 export default async function QuotationsPage() {
   const session = await auth();
@@ -90,9 +79,7 @@ export default async function QuotationsPage() {
                   </TableCell>
                   <TableCell>{q.customer.name}</TableCell>
                   <TableCell>
-                    <Badge variant={statusVariant[q.status] ?? "soft"}>
-                      {q.status.toLowerCase().replace("_", " ")}
-                    </Badge>
+                    <StatusBadge entity="QUOTATION" status={q.status} />
                   </TableCell>
                   <TableCell>v{q.version}</TableCell>
                   <TableCell className="text-right font-semibold">
