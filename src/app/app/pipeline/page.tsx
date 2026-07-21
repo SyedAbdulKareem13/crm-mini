@@ -3,12 +3,15 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { PipelineBoard } from "@/components/pipeline/pipeline-board";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function PipelinePage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "OPPORTUNITIES", "read"));
+  if (denied) redirect("/app");
   const opps = await prisma.opportunity.findMany({
     where: { organizationId: session.user.organizationId },
     include: {

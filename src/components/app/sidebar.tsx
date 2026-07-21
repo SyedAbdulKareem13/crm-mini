@@ -8,8 +8,25 @@ import { NAV_ITEMS } from "@/lib/constants";
 import { Icon } from "@/components/app/icon";
 import { Logo } from "@/components/brand/logo";
 
-export function Sidebar() {
+/**
+ * Non-module surfaces that are always visible regardless of role. Every other
+ * NAV_ITEMS href is gated on `allowedHrefs`, which the layout derives from the
+ * server-only permission matrix (see MODULE_BY_HREF in @/lib/permissions).
+ */
+const ALWAYS_VISIBLE_HREFS = ["/app", "/app/ai", "/app/releases"];
+
+export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
+
+  // Contract: `allowedHrefs` undefined → show everything (backward safe). When
+  // provided, an item renders only if it's an always-visible surface or the
+  // layout included its href in the allow-list.
+  const items = NAV_ITEMS.filter(
+    (item) =>
+      !allowedHrefs ||
+      ALWAYS_VISIBLE_HREFS.includes(item.href) ||
+      allowedHrefs.includes(item.href)
+  );
 
   return (
     // md (768px), not lg: phones in "desktop site" mode (~980px viewport) and
@@ -21,7 +38,7 @@ export function Sidebar() {
       </Link>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const active =
             item.href === "/app"
               ? pathname === "/app"

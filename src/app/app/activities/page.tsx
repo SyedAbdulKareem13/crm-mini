@@ -7,12 +7,15 @@ import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { formatRelativeTime, initials } from "@/lib/utils";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ActivitiesPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "ACTIVITIES", "read"));
+  if (denied) redirect("/app");
   const acts = await prisma.activity.findMany({
     where: { organizationId: session.user.organizationId },
     include: {

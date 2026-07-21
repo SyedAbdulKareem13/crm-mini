@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -194,6 +195,8 @@ function buildSubject(raw: string, matchedWhen: string[]): string {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "ACTIVITIES", "create");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = schema.safeParse(await req.json().catch(() => null));

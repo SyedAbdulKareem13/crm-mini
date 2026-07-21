@@ -9,6 +9,7 @@ import { getPipelineGates } from "@/lib/sap-config";
 import { getGeminiKey, getGeminiModel } from "@/lib/app-config";
 import { geminiGenerate } from "@/lib/ai";
 import { resolveMonthlyRate } from "@/lib/rate-match";
+import { requirePermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -86,6 +87,8 @@ function parseBrief(text: string): Parsed {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "QUOTATIONS", "create");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   // Chain integrity (config, default OFF): AI-drafted quotes carry no RFQ, so

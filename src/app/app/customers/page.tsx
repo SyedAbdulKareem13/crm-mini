@@ -9,12 +9,15 @@ import { CustomerCreate } from "@/components/customers/customer-create";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function CustomersPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "CUSTOMERS", "read"));
+  if (denied) redirect("/app");
   const customers = await prisma.customer.findMany({
     where: { organizationId: session.user.organizationId },
     include: { _count: { select: { opportunities: true, rfqs: true, quotations: true } } },

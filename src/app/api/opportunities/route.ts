@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { nextOppNumber } from "@/lib/numbering";
 import { recordAudit } from "@/lib/audit";
 import { getPipelineGates } from "@/lib/sap-config";
+import { requirePermission } from "@/lib/permissions";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -29,6 +30,8 @@ const schema = z.object({
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "OPPORTUNITIES", "read");
+  if (denied) return denied;
   const opps = await prisma.opportunity.findMany({
     where: { organizationId: session.user.organizationId },
     include: {
@@ -43,6 +46,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "OPPORTUNITIES", "create");
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

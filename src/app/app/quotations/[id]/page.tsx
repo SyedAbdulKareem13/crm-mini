@@ -14,6 +14,7 @@ import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
 import { ThreadTimeline, ThreadHistory } from "@/components/lifecycle/thread-insights";
 import { getLifecycleThread } from "@/lib/lifecycle";
+import { can } from "@/lib/permissions";
 import { EditQuotationDialog } from "./edit-quotation-dialog";
 
 const EDITABLE_STATUSES = ["DRAFT", "PENDING_APPROVAL", "REJECTED"];
@@ -24,6 +25,11 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const orgId = session.user.organizationId;
+  const role = session.user.role;
+  if (!(await can(orgId, role, "QUOTATIONS", "read"))) redirect("/app");
+  const canCancel = await can(orgId, role, "QUOTATIONS", "cancel");
+  const canReopen = await can(orgId, role, "QUOTATIONS", "reopen");
   const q = await prisma.quotation.findFirst({
     where: { id, organizationId: session.user.organizationId },
     include: {
@@ -84,6 +90,8 @@ export default async function QuotationDetailPage({ params }: { params: Promise<
             thread={thread}
             entity={{ type: "QUOTATION", id: q.id, status: q.status }}
             viewerRole={session.user.role ?? ""}
+            canCancel={canCancel}
+            canReopen={canReopen}
             cancelInfo={
               q.cancelledAt
                 ? {

@@ -16,16 +16,32 @@ const PRIMARY_ITEMS = PRIMARY.map((href) => NAV_ITEMS.find((i) => i.href === hre
 );
 const MORE_ITEMS = NAV_ITEMS.filter((i) => !PRIMARY.includes(i.href));
 
-export function MobileNav() {
+/**
+ * Non-module surfaces that are always visible regardless of role. Every other
+ * NAV_ITEMS href is gated on `allowedHrefs`, which the layout derives from the
+ * server-only permission matrix (see MODULE_BY_HREF in @/lib/permissions).
+ */
+const ALWAYS_VISIBLE_HREFS = ["/app", "/app/ai", "/app/releases"];
+
+export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
   const [moreOpen, setMoreOpen] = React.useState(false);
 
   // Navigating anywhere closes the sheet.
   React.useEffect(() => setMoreOpen(false), [pathname]);
 
+  // Contract: `allowedHrefs` undefined → show everything (backward safe). When
+  // provided, an item renders only if it's an always-visible surface or the
+  // layout included its href in the allow-list. Applied to BOTH the pinned bar
+  // and the More sheet.
+  const isVisible = (href: string) =>
+    !allowedHrefs || ALWAYS_VISIBLE_HREFS.includes(href) || allowedHrefs.includes(href);
+  const primaryItems = PRIMARY_ITEMS.filter((i) => isVisible(i.href));
+  const moreItems = MORE_ITEMS.filter((i) => isVisible(i.href));
+
   const isActive = (href: string) =>
     href === "/app" ? pathname === "/app" : pathname === href || pathname.startsWith(href + "/");
-  const moreActive = MORE_ITEMS.some((i) => isActive(i.href));
+  const moreActive = moreItems.some((i) => isActive(i.href));
 
   return (
     <>
@@ -54,7 +70,7 @@ export function MobileNav() {
               transition={{ type: "spring", duration: 0.35, bounce: 0.2 }}
             >
               <div className="grid grid-cols-4 gap-1">
-                {MORE_ITEMS.map((item) => {
+                {moreItems.map((item) => {
                   const active = isActive(item.href);
                   return (
                     <Link
@@ -81,7 +97,7 @@ export function MobileNav() {
 
       {/* ----------------------------- bottom bar ---------------------------- */}
       <nav className="fixed bottom-3 left-1/2 z-40 flex w-[94%] max-w-md -translate-x-1/2 items-center justify-around rounded-2xl border bg-card/95 supports-[backdrop-filter]:bg-card/85 p-1.5 shadow-md md:hidden">
-        {PRIMARY_ITEMS.map((item) => {
+        {primaryItems.map((item) => {
           const active = isActive(item.href);
           return (
             <Link

@@ -9,12 +9,15 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatDate } from "@/lib/utils";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function RFQsPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "RFQS", "read"));
+  if (denied) redirect("/app");
   const rfqs = await prisma.rFQ.findMany({
     where: { organizationId: session.user.organizationId },
     include: {

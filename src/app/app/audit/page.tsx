@@ -4,12 +4,15 @@ import { prisma } from "@/lib/prisma";
 import { PageHeader } from "@/components/app/page-header";
 import { AuditLogClient } from "@/components/audit/audit-log-client";
 import type { AuditEntry } from "@/components/audit/audit-trail";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function AuditPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "REPORTS", "read"));
+  if (denied) redirect("/app");
 
   const rows = await prisma.auditLog.findMany({
     where: { organizationId: session.user.organizationId },

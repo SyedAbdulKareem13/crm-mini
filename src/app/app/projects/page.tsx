@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { computeProjectHealth, HEALTH_META } from "@/lib/project-health";
 import { cn, formatDate } from "@/lib/utils";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,8 @@ const STATUS_BADGE: Record<string, { label: string; variant: "soft" | "success" 
 export default async function ProjectsPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "PROJECTS", "read"));
+  if (denied) redirect("/app");
 
   const projects = await prisma.project.findMany({
     where: { organizationId: session.user.organizationId },

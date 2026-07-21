@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextLeadNumber } from "@/lib/numbering";
 import { recordAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 
 const createSchema = z.object({
   name: z.string().min(2),
@@ -25,6 +26,8 @@ export async function GET(req: Request) {
   if (!session?.user?.organizationId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const denied = await requirePermission(session, "LEADS", "read");
+  if (denied) return denied;
   const url = new URL(req.url);
   const q = url.searchParams.get("q")?.trim();
   const status = url.searchParams.get("status") ?? undefined;
@@ -55,6 +58,8 @@ export async function POST(req: Request) {
   if (!session?.user?.organizationId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const denied = await requirePermission(session, "LEADS", "create");
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {

@@ -13,6 +13,7 @@ import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
 import { ThreadTimeline } from "@/components/lifecycle/thread-insights";
 import { getLifecycleThread } from "@/lib/lifecycle";
 import { getModuleConfig } from "@/lib/field-config";
+import { can } from "@/lib/permissions";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -21,6 +22,11 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const orgId = session.user.organizationId;
+  const role = session.user.role;
+  if (!(await can(orgId, role, "LEADS", "read"))) redirect("/app");
+  const canCancel = await can(orgId, role, "LEADS", "cancel");
+  const canReopen = await can(orgId, role, "LEADS", "reopen");
 
   const lead = await prisma.lead.findFirst({
     where: { id, organizationId: session.user.organizationId },
@@ -70,6 +76,8 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ id:
             thread={thread}
             entity={{ type: "LEAD", id: lead.id, status: lead.status }}
             viewerRole={session.user.role ?? ""}
+            canCancel={canCancel}
+            canReopen={canReopen}
             cancelInfo={
               lead.cancelledAt
                 ? {

@@ -7,12 +7,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { formatCompactCurrency, formatRelativeTime } from "@/lib/utils";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
 export default async function ApprovalsPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "APPROVALS", "read"));
+  if (denied) redirect("/app");
   const requests = await prisma.approvalRequest.findMany({
     where: { quotation: { organizationId: session.user.organizationId } },
     include: {

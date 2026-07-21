@@ -23,6 +23,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { initials, formatDate } from "@/lib/utils";
 import { ConfigurationManager } from "./configuration-manager";
 import { SapConfigManager } from "./sap-config-manager";
+import { AccessMatrix } from "@/components/admin/access-matrix";
+import { OnboardEmployee } from "@/components/admin/onboard-employee";
 
 type Role =
   | "ADMIN"
@@ -52,6 +54,7 @@ type AdminUser = {
   image: string | null;
   role: Role;
   isActive: boolean;
+  mustChangePassword?: boolean;
   lastLoginAt: string | Date | null;
 };
 type Territory = { id: string; name: string; region: string | null };
@@ -81,6 +84,7 @@ export function AdminClient({
     <Tabs defaultValue="users">
       <TabsList>
         <TabsTrigger value="users">Users</TabsTrigger>
+        <TabsTrigger value="access">Access</TabsTrigger>
         <TabsTrigger value="territories">Territories</TabsTrigger>
         <TabsTrigger value="bus">Business units</TabsTrigger>
         <TabsTrigger value="chain">Approval chain</TabsTrigger>
@@ -91,6 +95,17 @@ export function AdminClient({
 
       <TabsContent value="users">
         <UsersTab users={users} readOnly={readOnly} onChanged={() => router.refresh()} />
+      </TabsContent>
+      <TabsContent value="access">
+        {readOnly ? (
+          <Card>
+            <CardContent className="py-6 text-sm text-muted-foreground">
+              Only administrators can view and edit the access matrix.
+            </CardContent>
+          </Card>
+        ) : (
+          <AccessMatrix />
+        )}
       </TabsContent>
       <TabsContent value="territories">
         <TerritoriesTab territories={territories} readOnly={readOnly} onChanged={() => router.refresh()} />
@@ -264,9 +279,12 @@ function UsersTab({
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Users</CardTitle>
-        <CardDescription>{users.length} users in your organization</CardDescription>
+      <CardHeader className="flex flex-row items-center justify-between">
+        <div>
+          <CardTitle>Users</CardTitle>
+          <CardDescription>{users.length} users in your organization</CardDescription>
+        </div>
+        {!readOnly && <OnboardEmployee onCreated={onChanged} />}
       </CardHeader>
       <CardContent>
         <Table>
@@ -289,6 +307,11 @@ function UsersTab({
                       <AvatarFallback className="text-[10px]">{initials(u.name)}</AvatarFallback>
                     </Avatar>
                     <span>{u.name ?? "—"}</span>
+                    {u.mustChangePassword && (
+                      <Badge variant="soft" className="text-[10px]">
+                        must change password
+                      </Badge>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-muted-foreground">{u.email}</TableCell>

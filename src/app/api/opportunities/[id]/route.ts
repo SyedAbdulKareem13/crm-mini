@@ -7,6 +7,7 @@ import { recordAudit, diffFields } from "@/lib/audit";
 import { mergeCustomData } from "@/lib/field-config";
 import { gateBlockReason } from "@/lib/sap-config";
 import { OPP_STAGES } from "@/lib/constants";
+import { requirePermission } from "@/lib/permissions";
 
 /** Human-readable read-only notice for a cancelled record (lifecycle governance). */
 function cancelledMessage(
@@ -42,6 +43,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "OPPORTUNITIES", "update");
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
@@ -114,6 +117,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "OPPORTUNITIES", "delete");
+  if (denied) return denied;
   const existing = await prisma.opportunity.findFirst({
     where: { id, organizationId: session.user.organizationId },
     select: { oppNumber: true, name: true, stage: true, cancelledByName: true, cancelledAt: true },

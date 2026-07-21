@@ -11,12 +11,15 @@ import {
   getPipelineGates,
 } from "@/lib/sap-config";
 import { enforceProjectDependencies, type ShiftedTask } from "@/lib/task-dependencies";
+import { requirePermission } from "@/lib/permissions";
 
 /** GET — fresh planner payload (used by realtime sync to pull a peer's edit). */
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "read");
+  if (denied) return denied;
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: session.user.organizationId },
@@ -101,6 +104,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
@@ -377,6 +382,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = addTaskSchema.safeParse(await req.json().catch(() => null));
@@ -421,6 +428,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   // Task deletion (any member): DELETE ?deliverableId=…
   const deliverableId = new URL(req.url).searchParams.get("deliverableId");
   if (deliverableId) {
+    // Removing a task edits the project plan → PROJECTS/update.
+    const denied = await requirePermission(session, "PROJECTS", "update");
+    if (denied) return denied;
     const del = await prisma.projectDeliverable.findFirst({
       where: { id: deliverableId, phase: { project: { id, organizationId: orgId0 } } },
       select: { id: true, name: true, phase: { select: { name: true, project: { select: { projectNumber: true } } } } },
@@ -440,7 +450,9 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ ok: true });
   }
 
-  // Whole-project deletion stays admin-only.
+  // Whole-project deletion → PROJECTS/delete, and stays admin-only on top.
+  const deniedDelete = await requirePermission(session, "PROJECTS", "delete");
+  if (deniedDelete) return deniedDelete;
   if (session.user.role !== "ADMIN") return NextResponse.json({ error: "Only admins can delete projects" }, { status: 403 });
   const orgId = session.user.organizationId;
   const existing = await prisma.project.findFirst({

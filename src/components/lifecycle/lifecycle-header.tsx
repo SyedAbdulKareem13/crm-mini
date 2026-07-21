@@ -29,7 +29,6 @@ import {
 import { cn, formatDate } from "@/lib/utils";
 import {
   READ_ONLY_STATUSES,
-  REOPEN_ROLES,
   TONE_STYLES,
   type LifecycleThreadDTO,
   type ThreadStation,
@@ -52,13 +51,19 @@ export type CancelInfo = {
 export function LifecycleHeader({
   thread,
   entity,
-  viewerRole,
   cancelInfo,
+  canCancel = true,
+  canReopen = true,
 }: {
   thread: LifecycleThreadDTO;
   entity: LifecycleHeaderEntity;
-  viewerRole: string;
+  /** Retained for caller compatibility; reopen/cancel now flow via can* props. */
+  viewerRole?: string;
   cancelInfo: CancelInfo;
+  /** Server-computed CANCEL permission; false hides the Cancel button. */
+  canCancel?: boolean;
+  /** Server-computed REOPEN permission; false shows the "ask a manager" note. */
+  canReopen?: boolean;
 }): JSX.Element {
   const isReadOnly =
     entity.type !== "PROJECT" &&
@@ -69,7 +74,7 @@ export function LifecycleHeader({
 
   // Cancel lives in the strip's control cluster (no dedicated row = no dead
   // whitespace); only an actual cancellation earns its own banner row.
-  const showCancel = !isReadOnly && entity.type !== "PROJECT";
+  const showCancel = !isReadOnly && entity.type !== "PROJECT" && canCancel;
 
   return (
     <div className="mb-4 space-y-2.5">
@@ -86,7 +91,7 @@ export function LifecycleHeader({
         }
       />
       {isReadOnly && (
-        <CancelledBanner entity={entity} viewerRole={viewerRole} cancelInfo={cancelInfo} />
+        <CancelledBanner entity={entity} cancelInfo={cancelInfo} canReopen={canReopen} />
       )}
     </div>
   );
@@ -284,14 +289,13 @@ function NavButton({
 
 function CancelledBanner({
   entity,
-  viewerRole,
   cancelInfo,
+  canReopen,
 }: {
   entity: LifecycleHeaderEntity;
-  viewerRole: string;
   cancelInfo: CancelInfo;
+  canReopen: boolean;
 }) {
-  const canReopen = (REOPEN_ROLES as readonly string[]).includes(viewerRole);
   const when = cancelInfo?.at ? formatDate(cancelInfo.at) : null;
   const who = cancelInfo?.by ?? "someone";
   const reason = cancelInfo?.reason;

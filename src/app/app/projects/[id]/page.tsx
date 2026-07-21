@@ -7,6 +7,7 @@ import { RecordAuditTrail } from "@/components/audit/record-audit-trail";
 import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
 import { ThreadTimeline } from "@/components/lifecycle/thread-insights";
 import { getLifecycleThread } from "@/lib/lifecycle";
+import { can } from "@/lib/permissions";
 import { ProjectPlanner, type PlannerProject } from "@/components/projects/project-planner";
 import type { RaidItem } from "@/components/projects/raid-register";
 import type { SavedEstimate } from "@/components/projects/project-estimator";
@@ -17,6 +18,7 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  if (!(await can(session.user.organizationId, session.user.role, "PROJECTS", "read"))) redirect("/app");
 
   const project = await prisma.project.findFirst({
     where: { id, organizationId: session.user.organizationId },

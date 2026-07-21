@@ -26,6 +26,7 @@ export default async function AdminPage() {
         image: true,
         role: true,
         isActive: true,
+        mustChangePassword: true,
         lastLoginAt: true,
       },
     }),

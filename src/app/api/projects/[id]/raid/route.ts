@@ -3,6 +3,7 @@ import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 
 /* RAID register — Risks, Assumptions, Issues, Dependencies for a project. */
 
@@ -49,6 +50,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = createSchema.safeParse(await req.json().catch(() => null));
@@ -120,6 +123,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
@@ -198,6 +203,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const raidId = new URL(req.url).searchParams.get("raidId") ?? "";

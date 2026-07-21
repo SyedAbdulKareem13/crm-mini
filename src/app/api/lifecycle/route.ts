@@ -4,7 +4,7 @@ import type { LeadStatus, OpportunityStage, RFQStatus, QuotationStatus } from "@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit, type AuditInput } from "@/lib/audit";
-import { REOPEN_ROLES } from "@/lib/lifecycle-status";
+import { requirePermission, type PermissionModule } from "@/lib/permissions";
 
 /**
  * Lifecycle governance — controlled CANCEL / REOPEN for the four presales
@@ -33,6 +33,14 @@ const APP_PATH: Record<Entity, string> = {
   OPPORTUNITY: "opportunities",
   RFQ: "rfqs",
   QUOTATION: "quotations",
+};
+
+/** Lifecycle entity → permission module (drives the cancel/reopen matrix). */
+const MODULE_BY_ENTITY: Record<Entity, PermissionModule> = {
+  LEAD: "LEADS",
+  OPPORTUNITY: "OPPORTUNITIES",
+  RFQ: "RFQS",
+  QUOTATION: "QUOTATIONS",
 };
 
 /** Statuses a record may legitimately be restored to on reopen (excludes CANCELLED). */
@@ -185,13 +193,9 @@ async function doCancel(entity: Entity, id: string, reason: string, ctx: Ctx): P
 }
 
 async function doReopen(entity: Entity, id: string, ctx: Ctx): Promise<NextResponse> {
-  if (!(REOPEN_ROLES as readonly string[]).includes(ctx.role)) {
-    return NextResponse.json(
-      { error: "Only Sales Managers, Business Heads or Admins can reopen cancelled records." },
-      { status: 403 }
-    );
-  }
-
+  // Reopen authorization is enforced by the permission matrix in POST
+  // (requirePermission(session, module, "reopen")) — the seeded defaults
+  // already restrict reopen to manager / business-head / admin roles.
   const restoreFrom = (prev: string | null) =>
     prev && RESTORABLE[entity].includes(prev) ? prev : FALLBACK[entity];
   const reopenSummary = (prevReason: string | null) =>
@@ -250,6 +254,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
   }
   const { action, entityType, id, reason } = parsed.data;
+
+  // Permission matrix: cancel/reopen are gated per entity's module. This
+  // replaces the former hardcoded REOPEN_ROLES check.
+  const denied = await requirePermission(session, MODULE_BY_ENTITY[entityType], action);
+  if (denied) return denied;
+
   const ctx: Ctx = {
     orgId: session.user.organizationId,
     actorId: session.user.id,

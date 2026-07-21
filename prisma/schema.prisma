@@ -62,6 +62,7 @@ model Organization {
   transformationTypes TransformationType[]
   projects            Project[]
   pipelineGateConfig  PipelineGateConfig?
+  rolePermissions     RolePermission[]
 }
 
 // -------------------------------------------------------------
@@ -123,6 +124,8 @@ model User {
   email         String    @unique
   emailVerified DateTime?
   passwordHash  String?
+  // Onboarded employees get a one-time temp password and must set their own.
+  mustChangePassword Boolean @default(false)
   name          String?
   image         String?
   mobile        String?
@@ -1092,6 +1095,31 @@ model ProjectTaskDependency {
 
   @@unique([predecessorId, successorId])
   @@index([successorId])
+}
+
+/// Role-based access matrix — one row per (role, module) with CRUD + special
+/// action flags. Seeded with sensible defaults on first read; fully editable
+/// in Admin → Access. Every employee inherits from their assigned role.
+model RolePermission {
+  id             String @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  role   UserRole
+  module String // LEADS | OPPORTUNITIES | RFQS | QUOTATIONS | PROJECTS | CUSTOMERS | ACTIVITIES | RATE_CARDS | APPROVALS | REPORTS | ADMIN
+
+  canRead    Boolean @default(true)
+  canCreate  Boolean @default(false)
+  canUpdate  Boolean @default(false)
+  canDelete  Boolean @default(false)
+  canCancel  Boolean @default(false)
+  canReopen  Boolean @default(false)
+  canApprove Boolean @default(false)
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, role, module])
+  @@index([organizationId, role])
 }
 
 model PipelineGateConfig {

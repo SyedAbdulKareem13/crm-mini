@@ -5,6 +5,7 @@ import { nextQuotationNumber } from "@/lib/numbering";
 import { computeQuotation } from "@/lib/quotation-engine";
 import { recordAudit } from "@/lib/audit";
 import type { EstimateResult } from "@/lib/estimator";
+import { requirePermission } from "@/lib/permissions";
 
 const MARKUP_PCT = 35;
 const TAX_PCT = 18;
@@ -17,6 +18,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  // This turns a saved estimate into a DRAFT quotation → gate on QUOTATIONS/create.
+  const denied = await requirePermission(session, "QUOTATIONS", "create");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const project = await prisma.project.findFirst({

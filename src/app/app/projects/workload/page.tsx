@@ -4,6 +4,7 @@ import { ArrowLeft, Users2 } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { WorkloadBoard, type WorkloadTask, type WorkloadMember } from "@/components/projects/workload-board";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ const addDays = (d: Date, n: number) => new Date(d.getTime() + n * DAY);
 export default async function WorkloadPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "PROJECTS", "read"));
+  if (denied) redirect("/app");
   const orgId = session.user.organizationId;
 
   const [members, projects] = await Promise.all([

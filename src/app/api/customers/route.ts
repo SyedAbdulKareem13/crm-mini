@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requirePermission } from "@/lib/permissions";
 
 const schema = z.object({
   name: z.string().min(1),
@@ -19,6 +20,8 @@ const schema = z.object({
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "CUSTOMERS", "read");
+  if (denied) return denied;
   const customers = await prisma.customer.findMany({
     where: { organizationId: session.user.organizationId },
     include: { _count: { select: { opportunities: true, rfqs: true, quotations: true } } },
@@ -30,6 +33,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "CUSTOMERS", "create");
+  if (denied) return denied;
   const parsed = schema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
   const { data: customData, ...core } = parsed.data;

@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.21.0";
+export const CURRENT_VERSION = "0.22.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,19 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.22.0",
+    date: "2026-07-21",
+    title: "Role-based access & real employee onboarding",
+    summary: "A full permission matrix — READ / CREATE / UPDATE / DELETE plus Cancel, Reopen and Approve per module and role — enforced on every API, reflected in the navigation, and paired with proper employee onboarding.",
+    items: [
+      { type: "new", text: "Access matrix in Admin — every role's permissions across all eleven modules as editable toggles; the Admin role always keeps full access so an organisation can never lock itself out." },
+      { type: "new", text: "Enforced everywhere — every create, update, delete, cancel, reopen and approve API checks the matrix server-side; modules a role can't read disappear from the navigation and redirect if visited; the Cancel button only renders for roles allowed to cancel." },
+      { type: "new", text: "Onboard employees — Admin → Users creates a member with name, email and role, and shows a one-time temporary password to share securely; they must set their own password on first sign-in (a banner follows them until they do)." },
+      { type: "new", text: "Safety rails — you can't demote or deactivate the last admin, change your own role, or deactivate yourself." },
+      { type: "improved", text: "Authentic sign-in — the demo credentials are gone from the login form; everyone enters their own." },
+    ],
+  },
   {
     version: "0.21.0",
     date: "2026-07-21",

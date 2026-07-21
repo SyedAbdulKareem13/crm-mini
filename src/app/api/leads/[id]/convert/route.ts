@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextOppNumber } from "@/lib/numbering";
 import { recordAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 
 /**
  * Convert Lead → Opportunity. Carries customer/contacts/activities/notes/docs.
@@ -13,6 +14,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   if (!session?.user?.organizationId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  // Conversion CREATES an opportunity — gate on OPPORTUNITIES/create.
+  const denied = await requirePermission(session, "OPPORTUNITIES", "create");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
   const lead = await prisma.lead.findFirst({
     where: { id, organizationId: orgId },

@@ -10,6 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
 import { ThreadTimeline } from "@/components/lifecycle/thread-insights";
 import { getLifecycleThread } from "@/lib/lifecycle";
+import { can } from "@/lib/permissions";
 import { formatDate } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,11 @@ export default async function RFQDetailPage({ params }: { params: Promise<{ id: 
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const orgId = session.user.organizationId;
+  const role = session.user.role;
+  if (!(await can(orgId, role, "RFQS", "read"))) redirect("/app");
+  const canCancel = await can(orgId, role, "RFQS", "cancel");
+  const canReopen = await can(orgId, role, "RFQS", "reopen");
   const rfq = await prisma.rFQ.findFirst({
     where: { id, organizationId: session.user.organizationId },
     include: {
@@ -50,6 +56,8 @@ export default async function RFQDetailPage({ params }: { params: Promise<{ id: 
             thread={thread}
             entity={{ type: "RFQ", id: rfq.id, status: rfq.status }}
             viewerRole={session.user.role ?? ""}
+            canCancel={canCancel}
+            canReopen={canReopen}
             cancelInfo={
               rfq.cancelledAt
                 ? {

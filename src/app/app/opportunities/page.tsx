@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/app/page-header";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OpportunityCreate } from "@/components/opportunities/opportunity-create";
+import { can } from "@/lib/permissions";
 import { OpportunitiesClient } from "./opportunities-client";
 
 export const dynamic = "force-dynamic";
@@ -15,6 +16,8 @@ export const dynamic = "force-dynamic";
 export default async function OpportunitiesPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "OPPORTUNITIES", "read"));
+  if (denied) redirect("/app");
 
   const [opps, customers] = await Promise.all([
     prisma.opportunity.findMany({

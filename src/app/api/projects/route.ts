@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { nextProjectNumber } from "@/lib/numbering";
 import { recordAudit } from "@/lib/audit";
 import { ensureSapConfig } from "@/lib/sap-config";
+import { requirePermission } from "@/lib/permissions";
 
 const createSchema = z.object({
   name: z.string().min(2),
@@ -17,6 +18,8 @@ const createSchema = z.object({
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "read");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
   const projects = await prisma.project.findMany({
     where: { organizationId: orgId },
@@ -38,6 +41,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "create");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = createSchema.safeParse(await req.json().catch(() => null));

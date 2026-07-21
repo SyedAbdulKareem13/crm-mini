@@ -8,6 +8,7 @@ import {
   projectDependencyEdges,
   enforceProjectDependencies,
 } from "@/lib/task-dependencies";
+import { requirePermission } from "@/lib/permissions";
 
 const createSchema = z.object({
   predecessorId: z.string().min(1),
@@ -21,6 +22,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = createSchema.safeParse(await req.json().catch(() => null));
@@ -88,6 +91,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const url = new URL(req.url);

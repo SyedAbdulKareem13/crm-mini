@@ -133,7 +133,6 @@ export function LoginCard() {
                       autoComplete="email"
                       className="pl-9"
                       placeholder="you@company.com"
-                      defaultValue="admin@nova.crm"
                     />
                   </div>
                 </div>
@@ -153,7 +152,7 @@ export function LoginCard() {
                       required
                       autoComplete="current-password"
                       className="pl-9"
-                      defaultValue="password123"
+                      placeholder="••••••••"
                     />
                   </div>
                 </div>

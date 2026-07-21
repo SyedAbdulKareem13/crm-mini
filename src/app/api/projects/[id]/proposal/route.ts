@@ -7,6 +7,7 @@ import { buildProposal } from "@/lib/proposal";
 import { getGeminiKey, getGeminiModel } from "@/lib/app-config";
 import { geminiGenerate } from "@/lib/ai";
 import type { EstimatorInputs, EstimateResult } from "@/lib/estimator";
+import { requirePermission } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -18,6 +19,8 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const project = await prisma.project.findFirst({

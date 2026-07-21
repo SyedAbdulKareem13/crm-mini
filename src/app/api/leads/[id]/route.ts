@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit, diffFields } from "@/lib/audit";
 import { mergeCustomData } from "@/lib/field-config";
+import { requirePermission } from "@/lib/permissions";
 
 /** Human-readable read-only notice for a cancelled record (lifecycle governance). */
 function cancelledMessage(
@@ -38,6 +39,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!session?.user?.organizationId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const denied = await requirePermission(session, "LEADS", "update");
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
@@ -89,6 +92,8 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!session?.user?.organizationId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const denied = await requirePermission(session, "LEADS", "delete");
+  if (denied) return denied;
   const existing = await prisma.lead.findFirst({
     where: { id, organizationId: session.user.organizationId },
     select: { leadNumber: true, name: true, status: true, cancelledByName: true, cancelledAt: true },

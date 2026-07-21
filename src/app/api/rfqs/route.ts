@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { nextRfqNumber } from "@/lib/numbering";
 import { getPipelineGates } from "@/lib/sap-config";
+import { requirePermission } from "@/lib/permissions";
 
 const lineItemSchema = z.object({
   lineType: z.enum(["MANPOWER", "NON_MANPOWER", "SOFTWARE_LICENSE", "HARDWARE", "SERVICE"]),
@@ -31,6 +32,8 @@ const createSchema = z.object({
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "RFQS", "create");
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   const parsed = createSchema.safeParse(body);
   if (!parsed.success) {
@@ -82,6 +85,8 @@ export async function POST(req: Request) {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "RFQS", "read");
+  if (denied) return denied;
   const rfqs = await prisma.rFQ.findMany({
     where: { organizationId: session.user.organizationId },
     include: {

@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { formatCompactCurrency, formatDate } from "@/lib/utils";
+import { can } from "@/lib/permissions";
 import { DraftWithAiButton } from "./draft-with-ai-button";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,8 @@ export const dynamic = "force-dynamic";
 export default async function QuotationsPage() {
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const denied = !(await can(session.user.organizationId, session.user.role, "QUOTATIONS", "read"));
+  if (denied) redirect("/app");
   const quotations = await prisma.quotation.findMany({
     where: { organizationId: session.user.organizationId },
     include: { customer: { select: { name: true } } },

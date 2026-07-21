@@ -17,6 +17,7 @@ import { LifecycleHeader } from "@/components/lifecycle/lifecycle-header";
 import { ThreadTimeline, ThreadHistory } from "@/components/lifecycle/thread-insights";
 import { getLifecycleThread } from "@/lib/lifecycle";
 import { getModuleConfig } from "@/lib/field-config";
+import { can } from "@/lib/permissions";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,11 @@ export default async function OpportunityDetailPage({
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
+  const orgId = session.user.organizationId;
+  const role = session.user.role;
+  if (!(await can(orgId, role, "OPPORTUNITIES", "read"))) redirect("/app");
+  const canCancel = await can(orgId, role, "OPPORTUNITIES", "cancel");
+  const canReopen = await can(orgId, role, "OPPORTUNITIES", "reopen");
 
   const opp = await prisma.opportunity.findFirst({
     where: { id, organizationId: session.user.organizationId },
@@ -87,6 +93,8 @@ export default async function OpportunityDetailPage({
             thread={thread}
             entity={{ type: "OPPORTUNITY", id: opp.id, status: opp.stage }}
             viewerRole={session.user.role ?? ""}
+            canCancel={canCancel}
+            canReopen={canReopen}
             cancelInfo={
               opp.cancelledAt
                 ? {

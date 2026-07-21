@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { computeQuotation } from "@/lib/quotation-engine";
 import { recordAudit, diffFields } from "@/lib/audit";
 import { mergeCustomData } from "@/lib/field-config";
+import { requirePermission } from "@/lib/permissions";
 
 const itemSchema = z.object({
   itemType: z.enum(["MANPOWER", "NON_MANPOWER", "LICENSE"]),
@@ -45,6 +46,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "QUOTATIONS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const existing = await prisma.quotation.findFirst({

@@ -7,6 +7,7 @@ import { nextQuotationNumber } from "@/lib/numbering";
 import { computeQuotation } from "@/lib/quotation-engine";
 import { recordAudit } from "@/lib/audit";
 import { getPipelineGates } from "@/lib/sap-config";
+import { requirePermission } from "@/lib/permissions";
 
 const itemSchema = z.object({
   itemType: z.enum(["MANPOWER", "NON_MANPOWER", "LICENSE"]),
@@ -53,6 +54,8 @@ const schema = z.object({
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "QUOTATIONS", "create");
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
@@ -139,6 +142,8 @@ export async function POST(req: Request) {
 export async function GET() {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "QUOTATIONS", "read");
+  if (denied) return denied;
   const quotations = await prisma.quotation.findMany({
     where: { organizationId: session.user.organizationId },
     include: { customer: { select: { name: true } } },

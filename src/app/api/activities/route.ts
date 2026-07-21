@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 
 const TYPES = ["CALL", "MEETING", "EMAIL", "FOLLOW_UP", "TASK", "NOTE"] as const;
 const STATUSES = ["PLANNED", "COMPLETED", "CANCELLED", "OVERDUE"] as const;
@@ -26,6 +27,8 @@ const createSchema = z
 export async function GET(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "ACTIVITIES", "read");
+  if (denied) return denied;
   const sp = new URL(req.url).searchParams;
   const leadId = sp.get("leadId");
   const opportunityId = sp.get("opportunityId");
@@ -45,6 +48,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "ACTIVITIES", "create");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
   const parsed = createSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });
@@ -114,6 +119,8 @@ const patchSchema = z
 export async function PATCH(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "ACTIVITIES", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
   const parsed = patchSchema.safeParse(await req.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid" }, { status: 400 });

@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { APPROVAL_CHAIN_DEFAULT } from "@/lib/constants";
 import { recordAudit } from "@/lib/audit";
+import { requirePermission } from "@/lib/permissions";
 
 const schema = z.object({
   action: z.enum(["SUBMIT", "APPROVE", "REJECT"]),
@@ -17,6 +18,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
+
+  // Submitting a quote for approval is an UPDATE; acting on the approval
+  // (APPROVE / REJECT) requires the APPROVE permission on Quotations.
+  const denied = await requirePermission(
+    session,
+    "QUOTATIONS",
+    parsed.data.action === "SUBMIT" ? "update" : "approve"
+  );
+  if (denied) return denied;
 
   const quotation = await prisma.quotation.findFirst({
     where: { id, organizationId: session.user.organizationId },

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { requirePermission } from "@/lib/permissions";
 
 const schema = z.object({
   designation: z.string().min(1),
@@ -17,6 +18,8 @@ const schema = z.object({
 export async function POST(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "RATE_CARDS", "create");
+  if (denied) return denied;
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid" }, { status: 400 });
@@ -29,6 +32,8 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "RATE_CARDS", "delete");
+  if (denied) return denied;
   const { id } = await req.json().catch(() => ({ id: null }));
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
   await prisma.manpowerRateCard.delete({ where: { id, organizationId: session.user.organizationId } });

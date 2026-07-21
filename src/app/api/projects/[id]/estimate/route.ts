@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { recordAudit } from "@/lib/audit";
 import { estimate, ESTIMATOR_FIELDS, type EstimatorInputs } from "@/lib/estimator";
 import { computeCalibration } from "@/lib/estimator-calibration";
+import { requirePermission } from "@/lib/permissions";
 
 const inputsSchema = z.object(
   Object.fromEntries(
@@ -19,6 +20,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.organizationId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const denied = await requirePermission(session, "PROJECTS", "update");
+  if (denied) return denied;
   const orgId = session.user.organizationId;
 
   const parsed = inputsSchema.safeParse(await req.json().catch(() => null));
