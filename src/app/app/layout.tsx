@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { Sidebar } from "@/components/app/sidebar";
 import { Topbar } from "@/components/app/topbar";
 import { MobileNav } from "@/components/app/mobile-nav";
+import { AppBreadcrumbs } from "@/components/app/app-breadcrumbs";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Topbar user={topbarUser} />
           {/* pb-24 below md: keep content clear of the fixed bottom nav bar */}
           <main className="flex-1 px-4 py-6 pb-24 md:pb-6 lg:px-8">
-            <div className="mx-auto w-full max-w-[1480px]">{children}</div>
+            <div className="mx-auto w-full max-w-[1480px]">
+              <AppBreadcrumbs />
+              {children}
+            </div>
           </main>
         </div>
       </div>

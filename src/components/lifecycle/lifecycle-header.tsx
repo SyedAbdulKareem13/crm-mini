@@ -67,17 +67,27 @@ export function LifecycleHeader({
   const currentNumber =
     thread.stations.find((s) => s.isCurrent)?.record?.number ?? entity.type.toLowerCase();
 
+  // Cancel lives in the strip's control cluster (no dedicated row = no dead
+  // whitespace); only an actual cancellation earns its own banner row.
+  const showCancel = !isReadOnly && entity.type !== "PROJECT";
+
   return (
-    <div className="mb-4 space-y-3">
+    <div className="mb-4 space-y-2.5">
       <Breadcrumbs crumbs={thread.crumbs} />
-      <FlowStrip stations={thread.stations} />
-      <GovernanceBar
-        entity={entity}
-        viewerRole={viewerRole}
-        cancelInfo={cancelInfo}
-        isReadOnly={isReadOnly}
-        recordNumber={currentNumber}
+      <FlowStrip
+        stations={thread.stations}
+        trailing={
+          showCancel ? (
+            <CancelDialog
+              entity={{ type: entity.type as CancelableEntity, id: entity.id }}
+              recordNumber={currentNumber}
+            />
+          ) : null
+        }
       />
+      {isReadOnly && (
+        <CancelledBanner entity={entity} viewerRole={viewerRole} cancelInfo={cancelInfo} />
+      )}
     </div>
   );
 }
@@ -108,7 +118,13 @@ function Breadcrumbs({ crumbs }: { crumbs: LifecycleThreadDTO["crumbs"] }) {
 
 /* --------------------------- Row 2: flow strip --------------------------- */
 
-function FlowStrip({ stations }: { stations: ThreadStation[] }) {
+function FlowStrip({
+  stations,
+  trailing,
+}: {
+  stations: ThreadStation[];
+  trailing?: React.ReactNode;
+}) {
   const currentIdx = stations.findIndex((s) => s.isCurrent);
 
   const prev = (() => {
@@ -142,6 +158,7 @@ function FlowStrip({ stations }: { stations: ThreadStation[] }) {
       <div className="flex shrink-0 items-center gap-1">
         <NavButton station={prev} direction="prev" />
         <NavButton station={next} direction="next" />
+        {trailing}
       </div>
     </div>
   );
@@ -263,32 +280,7 @@ function NavButton({
   );
 }
 
-/* ------------------------- Row 3: governance bar ------------------------- */
-
-function GovernanceBar({
-  entity,
-  viewerRole,
-  cancelInfo,
-  isReadOnly,
-  recordNumber,
-}: {
-  entity: LifecycleHeaderEntity;
-  viewerRole: string;
-  cancelInfo: CancelInfo;
-  isReadOnly: boolean;
-  recordNumber: string;
-}) {
-  if (isReadOnly) {
-    return <CancelledBanner entity={entity} viewerRole={viewerRole} cancelInfo={cancelInfo} />;
-  }
-  // Projects cancel via their own status select — no cancel action here.
-  if (entity.type === "PROJECT") return null;
-  return (
-    <div className="flex justify-end">
-      <CancelDialog entity={{ type: entity.type, id: entity.id }} recordNumber={recordNumber} />
-    </div>
-  );
-}
+/* --------------------- cancelled banner + cancel action ------------------ */
 
 function CancelledBanner({
   entity,

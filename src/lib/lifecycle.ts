@@ -123,7 +123,6 @@ export async function getLifecycleThread(
           select: { id: true, leadNumber: true, name: true, status: true, createdAt: true },
         })
       : null);
-  if (!opp && !lead) return null;
 
   const rfq = opp
     ? entry.type === "RFQ"
@@ -152,7 +151,19 @@ export async function getLifecycleThread(
       : null;
 
   const approval = quotation?.approvalRequest ?? null;
-  const project = opp?.project ?? null;
+  // Standalone projects (no linked opportunity) still get their own station.
+  const project =
+    opp?.project ??
+    (entry.type === "PROJECT"
+      ? await prisma.project.findFirst({
+          where: { id: entry.id, organizationId },
+          select: { id: true, projectNumber: true, name: true, status: true, createdAt: true },
+        })
+      : null);
+
+  // A record always threads to itself, even with no ancestors (e.g. an
+  // AI-drafted quotation without an RFQ) — later/earlier stations show pending.
+  if (!lead && !opp && !rfq && !quotation && !project) return null;
 
   // 3. Assemble the seven stations.
   const tone = (e: LifecycleEntity, s: string): StatusTone => statusTone(e, s);
