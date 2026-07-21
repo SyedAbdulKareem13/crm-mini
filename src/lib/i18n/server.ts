@@ -15,15 +15,55 @@ function toDir(d: string): Dir {
   return d === "RTL" ? "rtl" : "ltr";
 }
 
+/**
+ * The English-only baseline used whenever the i18n tables/columns aren't
+ * reachable yet (e.g. the migration SQL hasn't been applied on this database).
+ * Every reader below degrades to English rather than throwing, so the app is
+ * never blocked on migration ordering — it simply renders in English until the
+ * localization data exists. Logged once (dev) to aid setup, silent in prod.
+ */
+const EN_ONLY: LanguageDTO[] = [
+  {
+    code: DEFAULT_LANGUAGE,
+    name: "English",
+    nativeName: "English",
+    direction: "ltr",
+    locale: "en-US",
+    canBePrimary: true,
+    canBeSecondary: false,
+    productionReady: true,
+  },
+];
+
+let warnedMissing = false;
+function onI18nUnavailable(where: string, err: unknown): void {
+  if (!IS_PROD && !warnedMissing) {
+    warnedMissing = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `[i18n] localization data unavailable in ${where} — falling back to English. ` +
+        `Has the i18n migration SQL been applied to this database?`,
+      err instanceof Error ? err.message : err
+    );
+  }
+}
+
 /** Languages a user may pick right now. Full-UI languages that aren't
  *  productionReady are still offered OUTSIDE production (dev/preview) so the
  *  pack can be exercised before sign-off; in production they're hidden until
  *  approved. Secondary (beside-headings) languages are always offerable. */
 export async function getEnabledLanguages(): Promise<LanguageDTO[]> {
-  const rows = await prisma.language.findMany({
-    where: { enabled: true },
-    orderBy: { position: "asc" },
-  });
+  let rows;
+  try {
+    rows = await prisma.language.findMany({
+      where: { enabled: true },
+      orderBy: { position: "asc" },
+    });
+  } catch (err) {
+    onI18nUnavailable("getEnabledLanguages", err);
+    return EN_ONLY;
+  }
+  if (rows.length === 0) return EN_ONLY;
   return rows
     .map((l) => ({
       code: l.code,
@@ -53,21 +93,34 @@ export async function getEnabledLanguages(): Promise<LanguageDTO[]> {
 /** True when a language may be the full UI language in the current environment. */
 export async function isFullModeAllowed(code: string): Promise<boolean> {
   if (code === DEFAULT_LANGUAGE) return true;
-  const l = await prisma.language.findUnique({ where: { code } });
-  if (!l || !l.enabled || !l.canBePrimary) return false;
-  return !IS_PROD || l.productionReady;
+  try {
+    const l = await prisma.language.findUnique({ where: { code } });
+    if (!l || !l.enabled || !l.canBePrimary) return false;
+    return !IS_PROD || l.productionReady;
+  } catch (err) {
+    onI18nUnavailable("isFullModeAllowed", err);
+    return false; // only English is guaranteed available
+  }
 }
 
 /** The user's stored preference, validated against currently-allowed languages
  *  (falls back safely so a gated/removed language never breaks the UI). */
 export async function getUserLocalePreference(userId: string): Promise<LocalePreference> {
-  const [user, langs] = await Promise.all([
-    prisma.user.findUnique({
-      where: { id: userId },
-      select: { uiLanguage: true, bilingualSecondary: true },
-    }),
-    getEnabledLanguages(),
-  ]);
+  let user: { uiLanguage: string; bilingualSecondary: string } | null = null;
+  let langs: LanguageDTO[];
+  try {
+    [user, langs] = await Promise.all([
+      prisma.user.findUnique({
+        where: { id: userId },
+        select: { uiLanguage: true, bilingualSecondary: true },
+      }),
+      getEnabledLanguages(),
+    ]);
+  } catch (err) {
+    // Columns/tables may not exist yet (pre-migration) — render English.
+    onI18nUnavailable("getUserLocalePreference", err);
+    return { uiLanguage: DEFAULT_LANGUAGE, bilingualSecondary: NO_SECONDARY };
+  }
   const byCode = new Map(langs.map((l) => [l.code, l]));
 
   let uiLanguage = user?.uiLanguage ?? DEFAULT_LANGUAGE;
@@ -85,8 +138,13 @@ export async function getUserLocalePreference(userId: string): Promise<LocalePre
 }
 
 export async function resolveDirection(code: string): Promise<Dir> {
-  const l = await prisma.language.findUnique({ where: { code }, select: { direction: true } });
-  return toDir(l?.direction ?? "LTR");
+  try {
+    const l = await prisma.language.findUnique({ where: { code }, select: { direction: true } });
+    return toDir(l?.direction ?? "LTR");
+  } catch (err) {
+    onI18nUnavailable("resolveDirection", err);
+    return "ltr";
+  }
 }
 
 /**
@@ -97,26 +155,35 @@ export async function resolveDirection(code: string): Promise<Dir> {
  * dev but never leak to production).
  */
 export async function getBundle(lang: string, namespaces: string[]): Promise<Bundle> {
-  const nsRows = await prisma.translationNamespace.findMany({
-    where: { name: { in: namespaces } },
-    select: { id: true, name: true, version: true },
-  });
-  if (nsRows.length === 0) return { lang, version: 1, values: {} };
-  const nsById = new Map(nsRows.map((n) => [n.id, n.name]));
+  let nsRows;
+  let keys;
+  try {
+    nsRows = await prisma.translationNamespace.findMany({
+      where: { name: { in: namespaces } },
+      select: { id: true, name: true, version: true },
+    });
+    if (nsRows.length === 0) return { lang, version: 1, values: {} };
 
-  const keys = await prisma.translationKey.findMany({
-    where: { namespaceId: { in: nsRows.map((n) => n.id) } },
-    select: {
-      id: true,
-      namespaceId: true,
-      key: true,
-      sourceText: true,
-      values: {
-        where: { languageCode: { in: [lang, FALLBACK_LANGUAGE] } },
-        select: { languageCode: true, value: true, status: true },
+    keys = await prisma.translationKey.findMany({
+      where: { namespaceId: { in: nsRows.map((n) => n.id) } },
+      select: {
+        id: true,
+        namespaceId: true,
+        key: true,
+        sourceText: true,
+        values: {
+          where: { languageCode: { in: [lang, FALLBACK_LANGUAGE] } },
+          select: { languageCode: true, value: true, status: true },
+        },
       },
-    },
-  });
+    });
+  } catch (err) {
+    // Tables not present yet (pre-migration) — empty bundle; the client's
+    // key-humanizing fallback keeps every screen readable in the meantime.
+    onI18nUnavailable("getBundle", err);
+    return { lang, version: 1, values: {} };
+  }
+  const nsById = new Map(nsRows.map((n) => [n.id, n.name]));
 
   const usable = (status: string) =>
     status === "APPROVED" || (!IS_PROD && (status === "MACHINE_DRAFT" || status === "PENDING_REVIEW"));
