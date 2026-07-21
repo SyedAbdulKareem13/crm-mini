@@ -14,6 +14,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -130,6 +131,7 @@ function FlowStrip({
   stations: ThreadStation[];
   trailing?: React.ReactNode;
 }) {
+  const reduce = useReducedMotion();
   const currentIdx = stations.findIndex((s) => s.isCurrent);
 
   const prev = (() => {
@@ -146,16 +148,33 @@ function FlowStrip({
     return null;
   })();
 
+  // A connector leading into node i is "traversed" once the previous node is
+  // completed or is the current one — this paints the progress rail up to today.
+  const traversed = (i: number) =>
+    i > 0 && (stations[i - 1].tone === "completed" || stations[i - 1].isCurrent);
+
   return (
     <div className="flex items-center gap-2">
-      <div className="min-w-0 flex-1 overflow-x-auto">
-        <ol className="flex min-w-max items-stretch gap-0">
+      <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+        <ol className="flex min-w-max items-center py-0.5">
           {stations.map((st, i) => (
             <li key={st.key} className="flex items-center">
-              <StationChip station={st} />
-              {i < stations.length - 1 ? (
-                <span className="mx-1 h-px w-4 shrink-0 bg-border sm:w-6" aria-hidden />
+              {i > 0 ? (
+                <span
+                  aria-hidden
+                  className="relative mx-1.5 h-[3px] w-6 shrink-0 overflow-hidden rounded-full bg-border/60 sm:w-10"
+                >
+                  {traversed(i) ? (
+                    <motion.span
+                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-500"
+                      initial={reduce ? false : { width: 0 }}
+                      animate={{ width: "100%" }}
+                      transition={{ duration: 0.4, ease: "easeOut", delay: reduce ? 0 : 0.12 + i * 0.05 }}
+                    />
+                  ) : null}
+                </span>
               ) : null}
+              <StationChip station={st} index={i} reduce={!!reduce} />
             </li>
           ))}
         </ol>
@@ -169,32 +188,55 @@ function FlowStrip({
   );
 }
 
-function StationChip({ station }: { station: ThreadStation }) {
+function StationChip({
+  station,
+  index,
+  reduce,
+}: {
+  station: ThreadStation;
+  index: number;
+  reduce: boolean;
+}) {
   const tone = station.tone;
   const isPending = tone === "pending";
-  const dotClass = tone === "pending" ? "bg-muted-foreground/40" : TONE_STYLES[tone].dot;
   const badgeClass =
     tone === "pending" ? "border-border text-muted-foreground" : TONE_STYLES[tone].badge;
-
   const clickable = !!station.record?.href && !station.isCurrent;
 
   const body = (
-    <div
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut", delay: reduce ? 0 : index * 0.06 }}
+      whileHover={clickable && !reduce ? { y: -2 } : undefined}
       className={cn(
-        "flex min-w-[6.5rem] flex-col gap-0.5 rounded-xl border px-3 py-1.5 transition-colors",
+        "group relative flex min-w-[7rem] flex-col gap-0.5 rounded-2xl border px-3 py-2 transition-shadow",
         station.isCurrent
-          ? "border-blue-500/40 bg-blue-500/10 ring-2 ring-blue-500/40"
-          : isPending
-            ? "border-dashed border-border bg-transparent"
-            : "border-border bg-card/60",
-        clickable && "hover:bg-accent/50"
+          ? "border-blue-500/50 bg-gradient-to-b from-blue-500/[0.12] to-blue-500/[0.03] shadow-[0_8px_20px_-10px_hsl(217_91%_60%/0.5)] ring-1 ring-blue-500/30"
+          : tone === "completed"
+            ? "border-emerald-500/30 bg-emerald-500/[0.06]"
+            : tone === "cancelled"
+              ? "border-destructive/30 bg-destructive/[0.06]"
+              : isPending
+                ? "border-dashed border-border/70 bg-transparent"
+                : "border-border bg-card/70",
+        clickable && "cursor-pointer hover:border-primary/40 hover:shadow-md"
       )}
     >
-      <div className="flex items-center gap-1.5">
-        <StationDot tone={tone} dotClass={dotClass} />
+      {/* soft pulsing halo on the current stage — the premium focal cue */}
+      {station.isCurrent && !reduce ? (
+        <motion.span
+          aria-hidden
+          className="pointer-events-none absolute -inset-px rounded-2xl ring-2 ring-blue-500/30"
+          animate={{ opacity: [0.2, 0.55, 0.2] }}
+          transition={{ repeat: Infinity, duration: 2.6, ease: "easeInOut" }}
+        />
+      ) : null}
+      <div className="relative flex items-center gap-1.5">
+        <StationDot tone={tone} />
         <span
           className={cn(
-            "text-xs font-medium",
+            "text-xs font-semibold tracking-tight",
             isPending && !station.isCurrent ? "text-muted-foreground" : "text-foreground"
           )}
         >
@@ -203,7 +245,7 @@ function StationChip({ station }: { station: ThreadStation }) {
         {station.isCurrent && station.record ? (
           <span
             className={cn(
-              "ml-auto rounded-full border px-1.5 py-px text-[9px] font-medium uppercase tracking-wide",
+              "ml-auto rounded-full border px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide",
               badgeClass
             )}
           >
@@ -212,17 +254,21 @@ function StationChip({ station }: { station: ThreadStation }) {
         ) : null}
       </div>
       {station.record ? (
-        <span className="truncate text-[10px] text-muted-foreground">{station.record.number}</span>
-      ) : null}
+        <span className="relative truncate text-[10px] font-medium text-muted-foreground">
+          {station.record.number}
+        </span>
+      ) : (
+        <span className="relative truncate text-[10px] text-muted-foreground/50">Not reached</span>
+      )}
       {station.siblingNote ? (
-        <span className="truncate text-[9px] text-muted-foreground/70">{station.siblingNote}</span>
+        <span className="relative truncate text-[9px] text-muted-foreground/70">{station.siblingNote}</span>
       ) : null}
-    </div>
+    </motion.div>
   );
 
   if (clickable && station.record?.href) {
     return (
-      <Link href={station.record.href} title={station.record.title} className="block">
+      <Link href={station.record.href} title={station.record.title} className="block rounded-2xl">
         {body}
       </Link>
     );
@@ -230,27 +276,22 @@ function StationChip({ station }: { station: ThreadStation }) {
   return body;
 }
 
-function StationDot({
-  tone,
-  dotClass,
-}: {
-  tone: ThreadStation["tone"];
-  dotClass: string;
-}) {
+function StationDot({ tone }: { tone: ThreadStation["tone"] }) {
   if (tone === "completed") {
     return (
-      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-emerald-500 text-white">
+      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-emerald-600 text-white shadow-sm">
         <Check className="h-2.5 w-2.5" strokeWidth={3} />
       </span>
     );
   }
   if (tone === "cancelled") {
     return (
-      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-destructive-foreground">
+      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow-sm">
         <X className="h-2.5 w-2.5" strokeWidth={3} />
       </span>
     );
   }
+  const dotClass = tone === "pending" ? "bg-muted-foreground/40" : TONE_STYLES[tone].dot;
   return <span className={cn("h-2.5 w-2.5 rounded-full", dotClass)} aria-hidden />;
 }
 

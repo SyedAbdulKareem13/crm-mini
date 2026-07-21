@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.22.0";
+export const CURRENT_VERSION = "0.23.1";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,39 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.23.1",
+    date: "2026-07-22",
+    title: "A more premium lifecycle pipeline",
+    summary: "The Lead → Opportunity → RFQ → Quotation → Approval → Won → Project strip at the top of every record is redrawn as a polished, connected progress rail with animation — clearer at a glance and worthy of the workspace around it.",
+    items: [
+      { type: "improved", text: "The flow strip is now a continuous progress rail: connectors fill in emerald as each stage completes, the current stage glows with a soft animated halo, and completed stages carry a gradient check." },
+      { type: "improved", text: "Every station animates in with a gentle stagger; hovering a clickable stage lifts it; pending stages read clearly as “not reached” instead of washed-out boxes." },
+      { type: "improved", text: "Honours reduced-motion preferences and still scrolls neatly inside its own lane on narrow screens — the page never widens." },
+    ],
+  },
+  {
+    version: "0.23.0",
+    date: "2026-07-22",
+    title: "Enterprise role tiers",
+    summary: "A cleaner role ladder — Super User, Super Admin, Admin, Sales Owner, Sales Head, Business Head, Finance Analyst, Finance Head — with a clear separation between who can use the platform and who can grant access.",
+    items: [
+      { type: "new", text: "Super User and Super Admin have full access to everything; only the Super Admin can grant access — onboard employees and edit the permission matrix." },
+      { type: "new", text: "The client-side Admin role is fully tunable in the access matrix (it no longer holds unconditional access), with sensible starting defaults for every sales and finance role." },
+      { type: "improved", text: "The Admin area now appears in the navigation only for Super Admin, Super User and Admin; the last active Super Admin is protected from demotion or deactivation." },
+    ],
+  },
+  {
+    version: "0.22.1",
+    date: "2026-07-22",
+    title: "Sign-in reliability",
+    summary: "Cleaner, more honest authentication — clear messages instead of confusing failures, and a Google button that only appears where it actually works.",
+    items: [
+      { type: "fixed", text: "Requesting an OTP for an address with no account now says so immediately, instead of failing later as “invalid or expired code”; email is matched case-insensitively and codes are trimmed." },
+      { type: "fixed", text: "“Continue with Google” now performs a real redirect and is shown only where Google sign-in is configured — no more dead button." },
+      { type: "improved", text: "Deactivated accounts are refused at sign-in with a clear message." },
+    ],
+  },
   {
     version: "0.22.0",
     date: "2026-07-21",
