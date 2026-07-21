@@ -13,9 +13,10 @@ import {
   resolveDirection,
   getEnabledLanguages,
 } from "@/lib/i18n/server";
-import { CORE_NAMESPACES, NO_SECONDARY } from "@/lib/i18n/config";
-import type { Bundle } from "@/lib/i18n/types";
+import { CORE_NAMESPACES, NO_SECONDARY, DEFAULT_LANGUAGE } from "@/lib/i18n/config";
+import type { Bundle, LocalePreference } from "@/lib/i18n/types";
 import { I18nProvider } from "@/components/i18n/provider";
+import { getLanguageUiEnabled } from "@/lib/app-config";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +30,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   //  - pref: the validated locale preference (production gate + English fallback
   //    are enforced inside getUserLocalePreference).
   //  - languages: the pickable languages, also used to resolve Intl locales.
-  const [dbUser, pref, languages] = await Promise.all([
+  const [dbUser, storedPref, languages, featureEnabled] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       select: { name: true, email: true, image: true, role: true, mustChangePassword: true },
     }),
     getUserLocalePreference(session.user.id),
     getEnabledLanguages(),
+    getLanguageUiEnabled(),
   ]);
+
+  // When the language switcher is disabled (production default), the app renders
+  // in its pre-i18n form: forced English + LTR, no second script — so nothing a
+  // user sees changes until the feature is rolled out via Supabase config. The
+  // stored preference is honoured only once the feature is on.
+  const pref: LocalePreference = featureEnabled
+    ? storedPref
+    : { uiLanguage: DEFAULT_LANGUAGE, bilingualSecondary: NO_SECONDARY };
 
   // Localization hydration — depends on the resolved preference. The full
   // namespace set (CORE_NAMESPACES) is server-rendered so the first paint has
@@ -77,6 +87,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     <I18nProvider
       lang={pref.uiLanguage}
       secondary={pref.bilingualSecondary}
+      featureEnabled={featureEnabled}
       dir={dir}
       locale={locale}
       secondaryLocale={secondaryLocale}

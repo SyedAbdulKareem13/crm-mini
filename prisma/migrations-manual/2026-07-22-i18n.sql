@@ -14,6 +14,9 @@ DO $$ BEGIN CREATE TYPE "TranslationStatus" AS ENUM ('MISSING','MACHINE_DRAFT','
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "uiLanguage" TEXT NOT NULL DEFAULT 'en';
 ALTER TABLE "User" ADD COLUMN IF NOT EXISTS "bilingualSecondary" TEXT NOT NULL DEFAULT 'none';
 
+-- language-switcher UI rollout flag (default OFF; flip to true to roll out)
+ALTER TABLE IF EXISTS "AppConfig" ADD COLUMN IF NOT EXISTS "languageUiEnabled" BOOLEAN NOT NULL DEFAULT false;
+
 -- tables
 CREATE TABLE IF NOT EXISTS "Language" (
   "id" TEXT PRIMARY KEY, "code" TEXT NOT NULL, "name" TEXT NOT NULL, "nativeName" TEXT NOT NULL,

@@ -62,6 +62,38 @@ export async function getGeminiModel(): Promise<string> {
   }
 }
 
+/**
+ * Master switch for the language-switcher UI (the profile-menu "Language" item
+ * and the Settings language row). This is the rollout gate:
+ *  - `true` when the dev-preview unlock env is set (so staging keeps the feature
+ *    on for testing), OR when the Supabase config row `languageUiEnabled` is
+ *    true (flip it in Supabase to roll out to production — no redeploy).
+ *  - `false` by default (production ships with the feature dormant).
+ * Falls back to false if the column/table is missing (pre-migration) so the
+ * feature stays hidden and the app renders exactly as before.
+ */
+export async function getLanguageUiEnabled(): Promise<boolean> {
+  if (process.env.I18N_UNLOCK_GATED === "true") return true;
+  try {
+    const cfg = await prisma.appConfig.findUnique({
+      where: { id: SINGLETON_ID },
+      select: { languageUiEnabled: true },
+    });
+    return cfg?.languageUiEnabled === true;
+  } catch {
+    return false;
+  }
+}
+
+/** Enable/disable the language switcher UI (admin/rollout). */
+export async function setLanguageUiEnabled(enabled: boolean): Promise<void> {
+  await prisma.appConfig.upsert({
+    where: { id: SINGLETON_ID },
+    update: { languageUiEnabled: enabled },
+    create: { id: SINGLETON_ID, languageUiEnabled: enabled },
+  });
+}
+
 /** Store/rotate the Gemini key (admin). Pass null to clear. */
 export async function setGeminiKey(key: string | null): Promise<void> {
   await prisma.appConfig.upsert({

@@ -32,6 +32,7 @@ export type I18nProviderProps = {
   children: React.ReactNode;
   lang?: string;
   secondary?: string;
+  featureEnabled?: boolean;
   dir?: Dir;
   locale?: string;
   secondaryLocale?: string | null;
@@ -44,6 +45,7 @@ export function I18nProvider({
   children,
   lang = DEFAULT_LANGUAGE,
   secondary = NO_SECONDARY,
+  featureEnabled = false,
   dir = "ltr",
   locale = "en-US",
   secondaryLocale = null,
@@ -157,6 +159,7 @@ export function I18nProvider({
   const value: I18nContextValue = {
     lang,
     secondary,
+    featureEnabled,
     dir,
     locale,
     secondaryLocale,
@@ -181,6 +184,7 @@ export function useI18n(): I18nContextValue {
   return {
     lang: DEFAULT_LANGUAGE,
     secondary: NO_SECONDARY,
+    featureEnabled: false,
     dir: "ltr",
     locale: "en-US",
     secondaryLocale: null,

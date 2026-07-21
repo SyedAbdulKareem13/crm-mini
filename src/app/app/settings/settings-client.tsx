@@ -42,7 +42,7 @@ const THEME_OPTIONS: ThemeOption[] = [
 
 export function SettingsClient({ user }: { user: SettingsUser }) {
   const { theme, setTheme } = useTheme();
-  const { t, lang, secondary } = useI18n();
+  const { t, lang, secondary, featureEnabled } = useI18n();
   const [mounted, setMounted] = React.useState(false);
   const [langOpen, setLangOpen] = React.useState(false);
   const [languages, setLanguages] = React.useState<LanguageDTO[]>([]);
@@ -151,9 +151,12 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
             </div>
           </section>
 
+          {featureEnabled ? (
+          <>
           <Separator />
 
-          {/* Language — current mode + a Change button opening the selector. */}
+          {/* Language — current mode + a Change button opening the selector.
+              Hidden until the language switcher is rolled out (Supabase config). */}
           <section className="grid gap-3">
             <div className="flex items-center gap-2">
               <Languages className="size-4 text-muted-foreground" />
@@ -200,12 +203,14 @@ export function SettingsClient({ user }: { user: SettingsUser }) {
               </Button>
             </div>
           </section>
+          </>
+          ) : null}
         </CardContent>
       </Card>
 
       <SecurityCard />
 
-      <LanguageSelector open={langOpen} onOpenChange={setLangOpen} />
+      {featureEnabled ? <LanguageSelector open={langOpen} onOpenChange={setLangOpen} /> : null}
     </div>
   );
 }

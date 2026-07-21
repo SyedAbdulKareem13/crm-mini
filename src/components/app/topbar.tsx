@@ -32,7 +32,7 @@ export function Topbar({
   const router = useRouter();
   // Shared translate-with-English-fallback: returns the seeded value when
   // present, else the clean English literal (never a raw key segment).
-  const { tx } = useI18n();
+  const { tx, featureEnabled } = useI18n();
 
   // Live avatar/name — updated instantly when the profile is saved in Settings.
   const [image, setImage] = useState<string | null>(user.image ?? null);
@@ -105,9 +105,11 @@ export function Topbar({
             <DropdownMenuItem onClick={() => router.push("/app/settings")}>
               <Settings /> {tx("common.settings", "Settings")}
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setLangOpen(true)}>
-              <Languages /> {tx("common.language", "Language")}
-            </DropdownMenuItem>
+            {featureEnabled ? (
+              <DropdownMenuItem onClick={() => setLangOpen(true)}>
+                <Languages /> {tx("common.language", "Language")}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => signOut({ callbackUrl: "/login" })}>
               <LogOut /> {tx("common.signOut", "Sign out")}
@@ -117,7 +119,7 @@ export function Topbar({
       </div>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
-      <LanguageSelector open={langOpen} onOpenChange={setLangOpen} />
+      {featureEnabled ? <LanguageSelector open={langOpen} onOpenChange={setLangOpen} /> : null}
     </header>
   );
 }

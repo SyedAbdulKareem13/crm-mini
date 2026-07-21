@@ -27,6 +27,10 @@ export type Bundle = {
 export type I18nContextValue = {
   lang: string; // active full-UI language
   secondary: string; // "none" | code for beside-headings
+  /** Master switch for the language-switcher UI. When false the switcher is
+   *  hidden and the app renders in its pre-i18n form (English + legacy Urdu
+   *  beside headings). Controlled by Supabase config (AppConfig.languageUiEnabled). */
+  featureEnabled: boolean;
   dir: Dir;
   locale: string;
   secondaryLocale: string | null;

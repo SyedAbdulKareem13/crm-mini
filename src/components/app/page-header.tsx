@@ -82,7 +82,26 @@ export function PageHeader({
   descriptionKey?: string;
   className?: string;
 }) {
-  const { t, ts, secondary } = useI18n();
+  const { t, ts, secondary, featureEnabled } = useI18n();
+
+  // Legacy mode = the language switcher hasn't been rolled out. In that case the
+  // header renders EXACTLY as it did before i18n: English title + the always-on
+  // owner Urdu beside it. Nothing about production changes until the feature is on.
+  const legacyUrdu = urdu ?? TITLE_URDU[title] ?? (title.startsWith("Welcome back") ? "خوش آمدید" : undefined);
+
+  if (!featureEnabled) {
+    return (
+      <HeaderShell
+        heading={title}
+        descText={description}
+        secondaryText={legacyUrdu}
+        secondaryDir="rtl"
+        secondaryFont="font-urdu"
+        actions={actions}
+        className={className}
+      />
+    );
+  }
 
   // Resolve a translation key for this heading: an explicit `tKey` wins,
   // otherwise fall back to the title→key map for standard pages. With a key,
@@ -107,7 +126,7 @@ export function PageHeader({
     : key
     ? ts(key)
     : secondary === "ur"
-    ? urdu ?? TITLE_URDU[title] ?? (title.startsWith("Welcome back") ? "خوش آمدید" : undefined)
+    ? legacyUrdu
     : undefined;
 
   // Urdu & Arabic are both RTL scripts; the font follows the active secondary
@@ -115,6 +134,37 @@ export function PageHeader({
   const secondaryDir = secondary === "ur" || secondary === "ar" ? "rtl" : "ltr";
   const secondaryFont = secondary === "ur" ? "font-urdu" : "font-arabic";
 
+  return (
+    <HeaderShell
+      heading={heading}
+      descText={descText}
+      secondaryText={secondaryText ?? undefined}
+      secondaryDir={secondaryDir}
+      secondaryFont={secondaryFont}
+      actions={actions}
+      className={className}
+    />
+  );
+}
+
+/** Shared presentational shell for both the localized and legacy header paths. */
+function HeaderShell({
+  heading,
+  descText,
+  secondaryText,
+  secondaryDir,
+  secondaryFont,
+  actions,
+  className,
+}: {
+  heading: string;
+  descText?: string;
+  secondaryText?: string;
+  secondaryDir: "rtl" | "ltr";
+  secondaryFont: string;
+  actions?: React.ReactNode;
+  className?: string;
+}) {
   return (
     <div
       className={cn(

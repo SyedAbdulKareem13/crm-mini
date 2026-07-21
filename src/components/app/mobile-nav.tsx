@@ -49,13 +49,14 @@ const ALWAYS_VISIBLE_HREFS = ["/app", "/app/ai", "/app/releases"];
 
 export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
-  const { t, tx } = useI18n();
+  const { tx } = useI18n();
   const [moreOpen, setMoreOpen] = React.useState(false);
 
-  // Localized label for a nav href (falls back to the English NAV_ITEMS label).
+  // Localized label for a nav href. tx keeps the English NAV_ITEMS label as the
+  // fallback, so nav never regresses to a lowercased key on an unseeded database.
   const labelFor = (href: string, fallback: string) => {
     const key = NAV_KEY_BY_HREF[href];
-    return key ? t(key) : fallback;
+    return key ? tx(key, fallback) : fallback;
   };
 
   // Navigating anywhere closes the sheet.
@@ -157,7 +158,7 @@ export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
           )}
         >
           <Icon name="LayoutGrid" className="h-4 w-4" />
-          {t("nav.more")}
+          {tx("nav.more", "More")}
         </button>
       </nav>
     </>

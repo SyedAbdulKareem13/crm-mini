@@ -41,7 +41,7 @@ const NAV_KEY_BY_HREF: Record<string, string> = {
 
 export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
-  const { t, tx } = useI18n();
+  const { tx } = useI18n();
 
   // Pro-tip hint splits around a {key} slot so the ⌘K keycap stays an inline
   // <kbd> element while the surrounding sentence localizes.
@@ -76,7 +76,9 @@ export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
               ? pathname === "/app"
               : pathname === item.href || pathname.startsWith(item.href + "/");
           const navKey = NAV_KEY_BY_HREF[item.href];
-          const label = navKey ? t(navKey) : item.label;
+          // tx keeps the English NAV_ITEMS label as the fallback, so nav never
+          // regresses to a lowercased key even on an unseeded database.
+          const label = navKey ? tx(navKey, item.label) : item.label;
           return (
             <Link
               key={item.href}

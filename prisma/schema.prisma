@@ -18,11 +18,12 @@ datasource db {
 // -------------------------------------------------------------
 
 model AppConfig {
-  id           String   @id @default("singleton")
-  heroVersion  String   @default("v1") // "v1" | "v2" — controls the public landing hero
-  geminiApiKey String?  // Gemini API key (server-only; never sent to the client)
-  geminiModel  String?  // e.g. "gemini-2.5-flash"
-  updatedAt    DateTime @updatedAt
+  id                String   @id @default("singleton")
+  heroVersion       String   @default("v1") // "v1" | "v2" — controls the public landing hero
+  geminiApiKey      String?  // Gemini API key (server-only; never sent to the client)
+  geminiModel       String?  // e.g. "gemini-2.5-flash"
+  languageUiEnabled Boolean  @default(false) // master switch for the language switcher UI (rollout gate; flip in Supabase, no deploy)
+  updatedAt         DateTime @updatedAt
 }
 
 // -------------------------------------------------------------
