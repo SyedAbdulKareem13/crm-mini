@@ -28,12 +28,27 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn, formatDate } from "@/lib/utils";
+import { ScrollCarousel } from "@/components/ui/scroll-carousel";
+import { useI18n } from "@/components/i18n/provider";
 import {
   READ_ONLY_STATUSES,
   TONE_STYLES,
+  type FlowStationKey,
   type LifecycleThreadDTO,
   type ThreadStation,
 } from "@/lib/lifecycle-status";
+
+/** Flow-strip station identity → seeded i18n label key (falls back to the
+ *  station's own English label when a station has no mapping). */
+const STATION_LABEL_KEYS: Partial<Record<FlowStationKey, string>> = {
+  LEAD: "lifecycle.lead",
+  OPPORTUNITY: "lifecycle.opportunity",
+  RFQ: "lifecycle.rfq",
+  QUOTATION: "lifecycle.quotation",
+  APPROVAL: "lifecycle.approval",
+  AWARD: "lifecycle.won",
+  PROJECT: "lifecycle.project",
+};
 
 type CancelableEntity = "LEAD" | "OPPORTUNITY" | "RFQ" | "QUOTATION";
 
@@ -132,6 +147,7 @@ function FlowStrip({
   trailing?: React.ReactNode;
 }) {
   const reduce = useReducedMotion();
+  const { tx } = useI18n();
   const currentIdx = stations.findIndex((s) => s.isCurrent);
 
   const prev = (() => {
@@ -155,7 +171,10 @@ function FlowStrip({
 
   return (
     <div className="flex items-center gap-2">
-      <div className="min-w-0 flex-1 overflow-x-auto pb-1">
+      <ScrollCarousel
+        className="min-w-0 flex-1"
+        ariaLabel={tx("lifecycle.flowStrip", "Lifecycle flow")}
+      >
         <ol className="flex min-w-max items-center py-0.5">
           {stations.map((st, i) => (
             <li key={st.key} className="flex items-center">
@@ -166,7 +185,7 @@ function FlowStrip({
                 >
                   {traversed(i) ? (
                     <motion.span
-                      className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-500"
+                      className="absolute inset-y-0 start-0 rounded-full bg-gradient-to-r from-emerald-500/60 to-emerald-500 rtl:bg-gradient-to-l"
                       initial={reduce ? false : { width: 0 }}
                       animate={{ width: "100%" }}
                       transition={{ duration: 0.4, ease: "easeOut", delay: reduce ? 0 : 0.12 + i * 0.05 }}
@@ -178,7 +197,7 @@ function FlowStrip({
             </li>
           ))}
         </ol>
-      </div>
+      </ScrollCarousel>
       <div className="flex shrink-0 items-center gap-1">
         <NavButton station={prev} direction="prev" />
         <NavButton station={next} direction="next" />
@@ -197,6 +216,7 @@ function StationChip({
   index: number;
   reduce: boolean;
 }) {
+  const { tx } = useI18n();
   const tone = station.tone;
   const isPending = tone === "pending";
   const badgeClass =
@@ -240,7 +260,7 @@ function StationChip({
             isPending && !station.isCurrent ? "text-muted-foreground" : "text-foreground"
           )}
         >
-          {station.label}
+          {tx(STATION_LABEL_KEYS[station.key] ?? "", station.label)}
         </span>
         {station.isCurrent && station.record ? (
           <span
@@ -305,9 +325,9 @@ function NavButton({
   const label = direction === "prev" ? "Previous stage" : "Next stage";
   const icon =
     direction === "prev" ? (
-      <ChevronLeft className="h-4 w-4" />
+      <ChevronLeft className="h-4 w-4 rtl:-scale-x-100" />
     ) : (
-      <ChevronRight className="h-4 w-4" />
+      <ChevronRight className="h-4 w-4 rtl:-scale-x-100" />
     );
 
   if (!station?.record?.href) {

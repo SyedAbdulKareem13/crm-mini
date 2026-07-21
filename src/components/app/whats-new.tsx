@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RELEASES, CURRENT_VERSION, type ChangeType } from "@/lib/releases";
 import { formatDate } from "@/lib/utils";
+import { useI18n } from "@/components/i18n/provider";
 
 const KEY = "manzil:lastSeenVersion";
 
@@ -17,7 +18,15 @@ const TYPE_META: Record<ChangeType, { label: string; variant: any }> = {
   fixed: { label: "Fixed", variant: "success" },
 };
 
+/** Change-type → i18n key (resolved at render since TYPE_META is module-level). */
+const CHANGE_LABEL_KEY: Record<ChangeType, string> = {
+  new: "chrome.changeNew",
+  improved: "chrome.changeImproved",
+  fixed: "chrome.changeFixed",
+};
+
 export function WhatsNew() {
+  const { tx } = useI18n();
   const latest = RELEASES[0];
   const [open, setOpen] = useState(false);
   const [unseen, setUnseen] = useState(false);
@@ -53,7 +62,7 @@ export function WhatsNew() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="What's new"
+        aria-label={tx("chrome.whatsNew", "What's new")}
         className="relative grid h-10 w-10 place-items-center rounded-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <Sparkles className="h-4 w-4" />
@@ -64,11 +73,13 @@ export function WhatsNew() {
 
       <Dialog open={open} onOpenChange={(v) => (v ? setOpen(true) : dismiss())}>
         <DialogContent className="overflow-hidden p-0 sm:max-w-lg">
-          <DialogTitle className="sr-only">What's new in Manzil One</DialogTitle>
+          <DialogTitle className="sr-only">
+            {tx("chrome.whatsNewSrTitle", "What's new in Manzil One")}
+          </DialogTitle>
 
           <div className="btn-gradient px-6 py-5 text-white">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-white/85">
-              <Sparkles className="h-3.5 w-3.5" /> What's new
+              <Sparkles className="h-3.5 w-3.5" /> {tx("chrome.whatsNew", "What's new")}
             </div>
             <div className="mt-1.5 flex items-baseline gap-2">
               <span className="font-display text-2xl font-semibold tracking-tight">v{latest.version}</span>
@@ -82,7 +93,7 @@ export function WhatsNew() {
               {latest.items.map((it, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm">
                   <Badge variant={TYPE_META[it.type].variant} className="mt-0.5 shrink-0">
-                    {TYPE_META[it.type].label}
+                    {tx(CHANGE_LABEL_KEY[it.type], TYPE_META[it.type].label)}
                   </Badge>
                   <span className="text-foreground/85">{it.text}</span>
                 </li>
@@ -96,10 +107,11 @@ export function WhatsNew() {
               onClick={dismiss}
               className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
             >
-              All release notes <ArrowRight className="h-3.5 w-3.5" />
+              {tx("chrome.allReleaseNotes", "All release notes")}{" "}
+              <ArrowRight className="h-3.5 w-3.5 rtl:-scale-x-100" />
             </Link>
             <Button variant="gradient" size="sm" onClick={dismiss}>
-              Got it
+              {tx("common.gotIt", "Got it")}
             </Button>
           </div>
         </DialogContent>

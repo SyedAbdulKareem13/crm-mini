@@ -28,6 +28,7 @@ import { signOut } from "next-auth/react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { ManzOrb } from "@/components/app/manz-orb";
+import { useI18n } from "@/components/i18n/provider";
 
 type SearchResult = {
   type: "lead" | "opportunity" | "customer" | "rfq" | "quotation";
@@ -35,6 +36,30 @@ type SearchResult = {
   title: string;
   subtitle: string;
   href: string;
+};
+
+/**
+ * NAV_ITEMS href → i18n key. The Navigation group reuses the SAME nav.* keys the
+ * sidebar renders (no duplicate rows); /app/ai maps to the chrome brand key.
+ * Hrefs without an entry fall back to their English NAV_ITEMS label.
+ */
+const NAV_KEY_BY_HREF: Record<string, string> = {
+  "/app": "nav.dashboard",
+  "/app/ai": "chrome.manzAi",
+  "/app/leads": "nav.leads",
+  "/app/opportunities": "nav.opportunities",
+  "/app/pipeline": "nav.pipeline",
+  "/app/rfqs": "nav.rfqs",
+  "/app/quotations": "nav.quotations",
+  "/app/projects": "nav.projects",
+  "/app/customers": "nav.customers",
+  "/app/activities": "nav.activities",
+  "/app/rate-cards": "nav.rateCards",
+  "/app/approvals": "nav.approvals",
+  "/app/reports": "nav.reports",
+  "/app/audit": "nav.audit",
+  "/app/releases": "nav.releases",
+  "/app/admin": "nav.admin",
 };
 
 const RESULT_ICON: Record<SearchResult["type"], React.ComponentType<{ className?: string }>> = {
@@ -54,6 +79,7 @@ export function CommandPalette({
 }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
+  const { tx } = useI18n();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [searching, setSearching] = useState(false);
@@ -119,28 +145,37 @@ export function CommandPalette({
         body: JSON.stringify({ prompt }),
       }).then(async (r) => {
         const data = await r.json();
-        if (!r.ok) throw new Error(data.error ?? "Couldn't log that");
+        if (!r.ok) throw new Error(data.error ?? tx("chrome.aiLogErrorFallback", "Couldn't log that"));
         return data as {
           activity: { subject: string; type: string };
           target: { label: string; href: string };
         };
       }),
       {
-        loading: "Manz AI is logging that…",
+        loading: tx("chrome.aiLoggingToast", "Manz AI is logging that…"),
         success: (data) => {
           router.push(data.target.href);
           router.refresh();
-          return `Logged ${data.activity.type.toLowerCase().replace("_", " ")} “${data.activity.subject}” on ${data.target.label}`;
+          return tx("chrome.aiLoggedToast", "Logged {type} “{subject}” on {target}", {
+            type: data.activity.type.toLowerCase().replace("_", " "),
+            subject: data.activity.subject,
+            target: data.target.label,
+          });
         },
         error: (e: Error) => e.message,
       }
     );
   }
 
+  // Split the log-activity label around its {query} slot so the typed query
+  // stays a bold inline element while the rest of the phrase localizes.
+  const cmdLogActivity = tx("chrome.cmdLogActivity", "Log activity: {query}");
+  const [logBefore, logAfter] = cmdLogActivity.split("{query}");
+
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
       <CommandInput
-        placeholder="Search records, or type a command…"
+        placeholder={tx("chrome.commandPlaceholder", "Search records, or type a command…")}
         value={query}
         onValueChange={setQuery}
       />
@@ -148,25 +183,29 @@ export function CommandPalette({
         <CommandEmpty>
           {searching ? (
             <span className="inline-flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+              <Loader2 className="h-4 w-4 animate-spin" /> {tx("common.searching", "Searching…")}
             </span>
           ) : (
-            "No results found."
+            tx("common.noResults", "No results found.")
           )}
         </CommandEmpty>
         {query.trim().length >= 6 && (
-          <CommandGroup heading="Manz AI">
+          <CommandGroup heading={tx("chrome.manzAi", "Manz AI")}>
             <CommandItem value={`manz-ai-log ${query}`} onSelect={aiLogActivity}>
               <ManzOrb size={18} />
               <span className="truncate">
-                Log activity: <span className="font-medium">“{query.trim()}”</span>
+                {logBefore}
+                <span className="font-medium">“{query.trim()}”</span>
+                {logAfter ?? ""}
               </span>
-              <span className="ml-auto pl-3 text-xs text-muted-foreground">✨ AI</span>
+              <span className="ms-auto ps-3 text-xs text-muted-foreground">
+                {tx("chrome.cmdAiBadge", "✨ AI")}
+              </span>
             </CommandItem>
           </CommandGroup>
         )}
         {results.length > 0 && (
-          <CommandGroup heading="Records">
+          <CommandGroup heading={tx("chrome.cmdRecords", "Records")}>
             {results.map((r) => {
               const Ico = RESULT_ICON[r.type];
               return (
@@ -177,7 +216,7 @@ export function CommandPalette({
                 >
                   <Ico className="h-4 w-4" />
                   <span className="truncate">{r.title}</span>
-                  <span className="ml-auto truncate pl-3 text-xs text-muted-foreground">
+                  <span className="ms-auto truncate ps-3 text-xs text-muted-foreground">
                     {r.subtitle}
                   </span>
                 </CommandItem>
@@ -185,36 +224,39 @@ export function CommandPalette({
             })}
           </CommandGroup>
         )}
-        <CommandGroup heading="Navigation">
-          {NAV_ITEMS.map((item) => (
-            <CommandItem key={item.href} onSelect={() => go(item.href)}>
-              <Icon name={item.icon} className="h-4 w-4" />
-              {item.label}
-            </CommandItem>
-          ))}
+        <CommandGroup heading={tx("chrome.cmdNavigation", "Navigation")}>
+          {NAV_ITEMS.map((item) => {
+            const navKey = NAV_KEY_BY_HREF[item.href];
+            return (
+              <CommandItem key={item.href} onSelect={() => go(item.href)}>
+                <Icon name={item.icon} className="h-4 w-4" />
+                {navKey ? tx(navKey, item.label) : item.label}
+              </CommandItem>
+            );
+          })}
         </CommandGroup>
-        <CommandGroup heading="Quick actions">
+        <CommandGroup heading={tx("chrome.cmdQuickActions", "Quick actions")}>
           <CommandItem onSelect={() => go("/app/leads?new=1")}>
-            <Icon name="Sparkles" /> Create lead
+            <Icon name="Sparkles" /> {tx("chrome.cmdCreateLead", "Create lead")}
             <CommandShortcut>L</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => go("/app/opportunities?new=1")}>
-            <Icon name="Target" /> Create opportunity
+            <Icon name="Target" /> {tx("chrome.cmdCreateOpportunity", "Create opportunity")}
             <CommandShortcut>O</CommandShortcut>
           </CommandItem>
           <CommandItem onSelect={() => go("/app/rfqs?new=1")}>
-            <Icon name="FileText" /> Create RFQ
+            <Icon name="FileText" /> {tx("chrome.cmdCreateRfq", "Create RFQ")}
           </CommandItem>
           <CommandItem onSelect={() => go("/app/quotations?new=1")}>
-            <Icon name="Receipt" /> Create quotation
+            <Icon name="Receipt" /> {tx("chrome.cmdCreateQuotation", "Create quotation")}
           </CommandItem>
         </CommandGroup>
-        <CommandGroup heading="Preferences">
+        <CommandGroup heading={tx("chrome.cmdPreferences", "Preferences")}>
           <CommandItem onSelect={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            {theme === "dark" ? <Sun /> : <Moon />} Toggle theme
+            {theme === "dark" ? <Sun /> : <Moon />} {tx("chrome.cmdToggleTheme", "Toggle theme")}
           </CommandItem>
           <CommandItem onSelect={() => signOut({ callbackUrl: "/login" })}>
-            <LogOut /> Sign out
+            <LogOut /> {tx("common.signOut", "Sign out")}
           </CommandItem>
         </CommandGroup>
       </CommandList>

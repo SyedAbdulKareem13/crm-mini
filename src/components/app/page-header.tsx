@@ -62,6 +62,7 @@ export function PageHeader({
   actions,
   urdu,
   tKey,
+  descriptionKey,
   className,
 }: {
   /** English title — still required for backward-compat and as the fallback. */
@@ -76,6 +77,9 @@ export function PageHeader({
    * original behaviour: English `title` + the owner Urdu-map fallback.
    */
   tKey?: string;
+  /** Optional i18n key for the description line. When provided, the description
+   *  is localized via t(descriptionKey); otherwise the raw `description` shows. */
+  descriptionKey?: string;
   className?: string;
 }) {
   const { t, ts, secondary } = useI18n();
@@ -86,6 +90,7 @@ export function PageHeader({
   // without one it stays the given English `title`.
   const key = tKey ?? TITLE_KEY[title];
   const heading = key ? t(key) : title;
+  const descText = descriptionKey ? t(descriptionKey) : description;
 
   // The beside-heading script only appears when the user has actually chosen a
   // second script. When it's "none", NOTHING is shown — this is what fixes the
@@ -131,8 +136,8 @@ export function PageHeader({
             </span>
           ) : null}
         </div>
-        {description ? (
-          <p className="mt-1 text-sm text-muted-foreground">{description}</p>
+        {descText ? (
+          <p className="mt-1 text-sm text-muted-foreground">{descText}</p>
         ) : null}
       </div>
       {actions ? <div className="flex items-center gap-2">{actions}</div> : null}

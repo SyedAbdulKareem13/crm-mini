@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/i18n/provider";
 import { OpportunityDialog } from "./opportunity-dialog";
 
 export function OpportunityCreate({ customers }: { customers: { id: string; name: string }[] }) {
+  const { tx } = useI18n();
   const params = useSearchParams();
   const [open, setOpen] = useState(false);
 
@@ -18,7 +20,7 @@ export function OpportunityCreate({ customers }: { customers: { id: string; name
   return (
     <>
       <Button variant="gradient" onClick={() => setOpen(true)}>
-        <Plus className="h-4 w-4" /> New
+        <Plus className="h-4 w-4" /> {tx("common.new", "New")}
       </Button>
       <OpportunityDialog open={open} onOpenChange={setOpen} customers={customers} />
     </>

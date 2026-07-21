@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/i18n/provider";
 import type { LifecycleEntity } from "@/lib/lifecycle-status";
 
 export type ThreadInsightsProps = {
@@ -115,6 +116,7 @@ function useThread<T extends object>(
 /* --------------------------- stage timeline --------------------------- */
 
 export function ThreadTimeline({ entityType, entityId }: ThreadInsightsProps) {
+  const { tx } = useI18n();
   const { data, loading, error } = useThread<{ milestones: Milestone[] }>(entityType, entityId);
 
   if (error) return null;
@@ -122,7 +124,7 @@ export function ThreadTimeline({ entityType, entityId }: ThreadInsightsProps) {
   return (
     <Card className="luxury-card">
       <CardHeader>
-        <CardTitle className="text-base">Stage timeline</CardTitle>
+        <CardTitle className="text-base">{tx("common.stageTimeline", "Stage timeline")}</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -138,9 +140,9 @@ export function ThreadTimeline({ entityType, entityId }: ThreadInsightsProps) {
             ))}
           </div>
         ) : !data || data.milestones.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No stage activity recorded yet.</p>
+          <p className="text-sm text-muted-foreground">{tx("common.noStageActivity", "No stage activity recorded yet.")}</p>
         ) : (
-          <ol className="relative space-y-5 pl-1">
+          <ol className="relative space-y-5 ps-1">
             {data.milestones.map((m, i) => {
               const last = i === data.milestones.length - 1;
               return (
@@ -165,7 +167,7 @@ export function ThreadTimeline({ entityType, entityId }: ThreadInsightsProps) {
                     </div>
                     <div className="mt-0.5 text-xs text-muted-foreground">
                       {formatMoment(m.at)}
-                      {m.by ? ` · by ${m.by}` : ""}
+                      {m.by ? ` · ${tx("common.byName", "by {name}", { name: m.by })}` : ""}
                     </div>
                   </div>
                 </li>
@@ -183,6 +185,7 @@ export function ThreadTimeline({ entityType, entityId }: ThreadInsightsProps) {
 const INITIAL_COUNT = 12;
 
 export function ThreadHistory({ entityType, entityId }: ThreadInsightsProps) {
+  const { tx } = useI18n();
   const { data, loading, error } = useThread<{ history: HistoryEntry[] }>(entityType, entityId);
   const [showAll, setShowAll] = React.useState(false);
 
@@ -194,7 +197,7 @@ export function ThreadHistory({ entityType, entityId }: ThreadInsightsProps) {
   return (
     <Card className="luxury-card">
       <CardHeader>
-        <CardTitle className="text-base">Lifecycle history</CardTitle>
+        <CardTitle className="text-base">{tx("common.lifecycleHistory", "Lifecycle history")}</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -210,7 +213,7 @@ export function ThreadHistory({ entityType, entityId }: ThreadInsightsProps) {
             ))}
           </div>
         ) : history.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No lifecycle activity yet.</p>
+          <p className="text-sm text-muted-foreground">{tx("common.noLifecycleActivity", "No lifecycle activity yet.")}</p>
         ) : (
           <>
             <ul className="space-y-4">
@@ -242,7 +245,9 @@ export function ThreadHistory({ entityType, entityId }: ThreadInsightsProps) {
                 className="mt-3 h-8 text-xs text-muted-foreground"
                 onClick={() => setShowAll((v) => !v)}
               >
-                {showAll ? "Show less" : `Show all ${history.length}`}
+                {showAll
+                  ? tx("common.showLess", "Show less")
+                  : tx("common.showAllCount", "Show all {count}", { count: history.length })}
               </Button>
             )}
           </>

@@ -1,22 +1,29 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Calendar, CheckCircle2 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { useI18n } from "@/components/i18n/provider";
 
 export function UpcomingTasks({
   tasks,
 }: {
   tasks: Array<{ id: string; subject: string; dueAt: Date | null; type: string }>;
 }) {
+  const { tx, formatDate } = useI18n();
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Upcoming follow-ups</CardTitle>
-        <CardDescription>What needs your attention next</CardDescription>
+        <CardTitle>{tx("dashboard.upcomingTasks.title", "Upcoming follow-ups")}</CardTitle>
+        <CardDescription>{tx("dashboard.upcomingTasks.subtitle", "What needs your attention next")}</CardDescription>
       </CardHeader>
       <CardContent>
         {tasks.length === 0 ? (
-          <EmptyState title="All clear" description="No follow-ups due — well played." icon={<CheckCircle2 className="h-7 w-7" />} />
+          <EmptyState
+            title={tx("dashboard.upcomingTasks.emptyTitle", "All clear")}
+            description={tx("dashboard.upcomingTasks.emptyDesc", "No follow-ups due — well played.")}
+            icon={<CheckCircle2 className="h-7 w-7" />}
+          />
         ) : (
           <ul className="space-y-2">
             {tasks.map((t) => (
@@ -30,7 +37,7 @@ export function UpcomingTasks({
                     {t.type.toLowerCase().replace("_", " ")}
                   </div>
                 </div>
-                <div className="text-xs text-muted-foreground">{formatDate(t.dueAt)}</div>
+                <div className="text-xs text-muted-foreground">{t.dueAt ? formatDate(t.dueAt) : "—"}</div>
               </li>
             ))}
           </ul>

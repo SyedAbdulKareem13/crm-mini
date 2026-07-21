@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/components/i18n/provider";
 import { OpportunityDialog, type OppForEdit } from "./opportunity-dialog";
 
 export function OpportunityEditButton({
@@ -12,11 +13,12 @@ export function OpportunityEditButton({
   opportunity: OppForEdit;
   customers: { id: string; name: string }[];
 }) {
+  const { tx } = useI18n();
   const [open, setOpen] = useState(false);
   return (
     <>
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
-        <Pencil className="h-3.5 w-3.5" /> Edit
+        <Pencil className="h-3.5 w-3.5" /> {tx("common.edit", "Edit")}
       </Button>
       <OpportunityDialog
         open={open}

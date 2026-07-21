@@ -27,6 +27,7 @@ export default async function PipelinePage() {
       <PageHeader
         title="Pipeline"
         description="Drag deals across stages — values, probability and aging update live."
+        descriptionKey="pipeline.boardDescription"
       />
       <PipelineBoard initialOpportunities={JSON.parse(JSON.stringify(opps))} />
     </>

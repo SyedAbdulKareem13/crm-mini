@@ -1,8 +1,11 @@
+"use client";
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatRelativeTime, initials } from "@/lib/utils";
+import { useI18n } from "@/components/i18n/provider";
 
 export function RecentActivities({
   activities,
@@ -15,15 +18,19 @@ export function RecentActivities({
     owner: { name: string | null; image: string | null } | null;
   }>;
 }) {
+  const { tx } = useI18n();
   if (activities.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Recent activities</CardTitle>
-          <CardDescription>Your team's latest moves</CardDescription>
+          <CardTitle>{tx("dashboard.recentActivities.title", "Recent activities")}</CardTitle>
+          <CardDescription>{tx("dashboard.recentActivities.subtitle", "Your team's latest moves")}</CardDescription>
         </CardHeader>
         <CardContent>
-          <EmptyState title="No activities yet" description="Calls, meetings and notes will appear here." />
+          <EmptyState
+            title={tx("dashboard.recentActivities.emptyTitle", "No activities yet")}
+            description={tx("dashboard.recentActivities.emptyDesc", "Calls, meetings and notes will appear here.")}
+          />
         </CardContent>
       </Card>
     );
@@ -31,8 +38,8 @@ export function RecentActivities({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Recent activities</CardTitle>
-        <CardDescription>Your team's latest moves</CardDescription>
+        <CardTitle>{tx("dashboard.recentActivities.title", "Recent activities")}</CardTitle>
+        <CardDescription>{tx("dashboard.recentActivities.subtitle", "Your team's latest moves")}</CardDescription>
       </CardHeader>
       <CardContent>
         <ul className="space-y-3">

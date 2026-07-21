@@ -30,14 +30,9 @@ export function Topbar({
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const router = useRouter();
-  const { t } = useI18n();
-
-  // Prefer a real translation; fall back to clean English when a key isn't
-  // seeded (the provider otherwise surfaces the raw key segment).
-  const tx = (key: string, english: string) => {
-    const value = t(key);
-    return value === (key.split(".").pop() ?? key) ? english : value;
-  };
+  // Shared translate-with-English-fallback: returns the seeded value when
+  // present, else the clean English literal (never a raw key segment).
+  const { tx } = useI18n();
 
   // Live avatar/name — updated instantly when the profile is saved in Settings.
   const [image, setImage] = useState<string | null>(user.image ?? null);
@@ -63,16 +58,18 @@ export function Topbar({
         className="flex w-full max-w-md items-center gap-2 rounded-xl border bg-card/60 px-3 py-2 text-sm text-muted-foreground hover:bg-card transition-colors"
       >
         <Search className="h-4 w-4" />
-        <span className="hidden sm:inline">Search leads, opportunities, customers…</span>
-        <span className="sm:hidden">Search</span>
-        <kbd className="ml-auto rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+        <span className="hidden sm:inline">
+          {tx("chrome.searchPlaceholder", "Search leads, opportunities, customers…")}
+        </span>
+        <span className="sm:hidden">{tx("chrome.searchShort", "Search")}</span>
+        <kbd className="ms-auto rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd>
       </button>
 
-      <div className="ml-auto flex items-center gap-2">
+      <div className="ms-auto flex items-center gap-2">
         <Link
           href="/app/ai"
-          aria-label="Manz AI"
-          title="Manz AI"
+          aria-label={tx("chrome.manzAi", "Manz AI")}
+          title={tx("chrome.manzAi", "Manz AI")}
           className="group relative inline-flex h-9 items-center gap-1.5 overflow-hidden rounded-xl border border-primary/30 bg-primary/5 px-2.5 text-sm font-medium text-primary transition-colors hover:bg-primary/10"
         >
           <span
@@ -81,7 +78,7 @@ export function Topbar({
             style={{ background: "linear-gradient(120deg, hsl(var(--chart-1)/.18), hsl(var(--chart-5)/.18))" }}
           />
           <ManzOrb size={20} className="transition-transform duration-300 group-hover:scale-110" />
-          <span className="hidden sm:inline">Manz AI</span>
+          <span className="hidden sm:inline">{tx("chrome.manzAi", "Manz AI")}</span>
         </Link>
 
         <ThemeMenu />
@@ -96,8 +93,8 @@ export function Topbar({
               {image ? <AvatarImage src={image} alt={name ?? ""} /> : null}
               <AvatarFallback>{initials(name ?? user.email ?? "?")}</AvatarFallback>
             </Avatar>
-            <div className="hidden text-left text-sm md:block">
-              <div className="font-medium leading-tight">{name ?? "User"}</div>
+            <div className="hidden text-start text-sm md:block">
+              <div className="font-medium leading-tight">{name ?? tx("chrome.userFallback", "User")}</div>
               <div className="text-xs text-muted-foreground leading-tight">{user.email}</div>
             </div>
           </DropdownMenuTrigger>

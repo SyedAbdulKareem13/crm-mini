@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Filter, Pencil, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { StatusBadge } from "@/components/ui/status-badge";
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select";
@@ -13,7 +12,27 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { EmptyState } from "@/components/ui/empty-state";
 import { OpportunityDialog, type OppForEdit } from "@/components/opportunities/opportunity-dialog";
 import { OPP_STAGES } from "@/lib/constants";
-import { formatCompactCurrency, formatDate } from "@/lib/utils";
+import { cn, formatCompactCurrency, formatDate } from "@/lib/utils";
+import { statusTone, TONE_STYLES } from "@/lib/lifecycle-status";
+import { useI18n } from "@/components/i18n/provider";
+import { stageKey } from "@/lib/i18n/labels";
+
+/** Opportunity-stage pill — mirrors StatusBadge's tone styling but resolves the
+ *  label through the `stages` i18n namespace (keyed on the enum value). */
+function StageBadge({ stage, label }: { stage: string; label: string }) {
+  const styles = TONE_STYLES[statusTone("OPPORTUNITY", stage)];
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+        styles.badge
+      )}
+    >
+      <span className={cn("h-1.5 w-1.5 shrink-0 rounded-full", styles.dot)} />
+      {label}
+    </span>
+  );
+}
 
 type Opp = {
   id: string;
@@ -36,6 +55,14 @@ export function OpportunitiesClient({
   opps: Opp[];
   customers: { id: string; name: string }[];
 }) {
+  const { tx, loadNamespace } = useI18n();
+  useEffect(() => {
+    loadNamespace("opportunities");
+    loadNamespace("filters");
+    loadNamespace("table");
+    loadNamespace("stages");
+  }, [loadNamespace]);
+
   const [q, setQ] = useState("");
   const [stage, setStage] = useState("ALL");
   const [owner, setOwner] = useState("ALL");
@@ -64,43 +91,53 @@ export function OpportunitiesClient({
     <>
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input placeholder="Search opportunities…" value={q} onChange={(e) => setQ(e.target.value)} className="pl-9" />
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            placeholder={tx("opportunities.searchPlaceholder", "Search opportunities…")}
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            className="ps-9"
+          />
         </div>
         <div className="flex flex-1 items-center gap-2">
           <Filter className="hidden h-3.5 w-3.5 text-muted-foreground sm:block" />
           <Select value={stage} onValueChange={setStage}>
-            <SelectTrigger className="w-[170px]"><SelectValue placeholder="Stage" /></SelectTrigger>
+            <SelectTrigger className="w-[170px]"><SelectValue placeholder={tx("filters.stage", "Stage")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All stages</SelectItem>
-              {OPP_STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>)}
+              <SelectItem value="ALL">{tx("filters.allStages", "All stages")}</SelectItem>
+              {OPP_STAGES.map((s) => <SelectItem key={s.value} value={s.value}>{tx(stageKey(s.value), s.label)}</SelectItem>)}
             </SelectContent>
           </Select>
           <Select value={owner} onValueChange={setOwner}>
-            <SelectTrigger className="w-[160px]"><SelectValue placeholder="Owner" /></SelectTrigger>
+            <SelectTrigger className="w-[160px]"><SelectValue placeholder={tx("filters.owner", "Owner")} /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="ALL">All owners</SelectItem>
+              <SelectItem value="ALL">{tx("filters.allOwners", "All owners")}</SelectItem>
               {owners.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
             </SelectContent>
           </Select>
-          <span className="ml-auto text-xs text-muted-foreground">{filtered.length} of {opps.length}</span>
+          <span className="ms-auto text-xs text-muted-foreground">
+            {tx("common.countOf", "{shown} of {total}", { shown: filtered.length, total: opps.length })}
+          </span>
         </div>
       </div>
 
       {filtered.length === 0 ? (
-        <EmptyState title="No matching opportunities" description="Adjust the search, stage or owner filters." />
+        <EmptyState
+          title={tx("opportunities.noMatchTitle", "No matching opportunities")}
+          description={tx("opportunities.noMatchDescription", "Adjust the search, stage or owner filters.")}
+        />
       ) : (
         <div className="luxury-card overflow-hidden">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Opportunity</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Stage</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead className="text-right">Expected</TableHead>
-                <TableHead className="text-right">Prob.</TableHead>
-                <TableHead>Close</TableHead>
+                <TableHead>{tx("table.opportunity", "Opportunity")}</TableHead>
+                <TableHead>{tx("table.customer", "Customer")}</TableHead>
+                <TableHead>{tx("table.stage", "Stage")}</TableHead>
+                <TableHead>{tx("table.owner", "Owner")}</TableHead>
+                <TableHead className="text-end">{tx("table.expected", "Expected")}</TableHead>
+                <TableHead className="text-end">{tx("table.probability", "Prob.")}</TableHead>
+                <TableHead>{tx("table.close", "Close")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -112,16 +149,21 @@ export function OpportunitiesClient({
                     <div className="text-xs text-muted-foreground">{o.oppNumber}</div>
                   </TableCell>
                   <TableCell>{o.customer.name}</TableCell>
-                  <TableCell><StatusBadge entity="OPPORTUNITY" status={o.stage} /></TableCell>
+                  <TableCell>
+                    <StageBadge
+                      stage={o.stage}
+                      label={tx(stageKey(o.stage), OPP_STAGES.find((s) => s.value === o.stage)?.label ?? o.stage)}
+                    />
+                  </TableCell>
                   <TableCell className="text-sm">{o.owner?.name ?? "—"}</TableCell>
-                  <TableCell className="text-right font-medium">{formatCompactCurrency(Number(o.expectedRevenue))}</TableCell>
-                  <TableCell className="text-right">{o.probability}%</TableCell>
+                  <TableCell className="text-end font-medium">{formatCompactCurrency(Number(o.expectedRevenue))}</TableCell>
+                  <TableCell className="text-end">{o.probability}%</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDate(o.expectedCloseDate)}</TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-end">
                     <Button
                       size="sm"
                       variant="ghost"
-                      aria-label="Edit opportunity"
+                      aria-label={tx("opportunities.editAria", "Edit opportunity")}
                       onClick={() =>
                         setEditOpp({
                           id: o.id,

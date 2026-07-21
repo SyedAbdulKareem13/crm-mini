@@ -49,7 +49,7 @@ const ALWAYS_VISIBLE_HREFS = ["/app", "/app/ai", "/app/releases"];
 
 export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, tx } = useI18n();
   const [moreOpen, setMoreOpen] = React.useState(false);
 
   // Localized label for a nav href (falls back to the English NAV_ITEMS label).
@@ -82,7 +82,7 @@ export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
           <>
             <motion.button
               type="button"
-              aria-label="Close menu"
+              aria-label={tx("chrome.closeMenu", "Close menu")}
               className="fixed inset-0 z-40 bg-background/60 backdrop-blur-[2px] md:hidden"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -148,7 +148,7 @@ export function MobileNav({ allowedHrefs }: { allowedHrefs?: string[] }) {
           type="button"
           onClick={() => setMoreOpen((v) => !v)}
           aria-expanded={moreOpen}
-          aria-label="More navigation"
+          aria-label={tx("chrome.moreNavigation", "More navigation")}
           className={cn(
             "flex flex-col items-center gap-0.5 rounded-xl px-3 py-1.5 text-[10px] font-medium transition-colors",
             moreOpen || moreActive

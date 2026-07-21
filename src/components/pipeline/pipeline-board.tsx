@@ -1,13 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { toast } from "sonner";
 import { GripVertical } from "lucide-react";
 import { OPP_STAGES } from "@/lib/constants";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn, formatCompactCurrency, initials } from "@/lib/utils";
+import { cn, initials } from "@/lib/utils";
+import { useI18n } from "@/components/i18n/provider";
+import { stageKey } from "@/lib/i18n/labels";
 
 type Opp = {
   id: string;
@@ -53,6 +55,16 @@ function hexToRgba(hex: string, alpha: number) {
 }
 
 export function PipelineBoard({ initialOpportunities }: { initialOpportunities: Opp[] }) {
+  const { tx, formatNumber, loadNamespace } = useI18n();
+  useEffect(() => {
+    loadNamespace("pipeline");
+    loadNamespace("stages");
+  }, [loadNamespace]);
+  // Locale-aware money (compact, INR) + percent — replaces en-IN utils/'%' literals.
+  const money = (n: number) =>
+    formatNumber(n, { style: "currency", currency: "INR", notation: "compact", maximumFractionDigits: 1 });
+  const pct = (n: number) => formatNumber(n / 100, { style: "percent", maximumFractionDigits: 0 });
+
   const [opps, setOpps] = useState(initialOpportunities);
   const [dragging, setDragging] = useState<string | null>(null);
   const [hoverStage, setHoverStage] = useState<string | null>(null);
@@ -72,10 +84,10 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
     if (!res.ok) {
       setOpps(prev);
       const data = await res.json().catch(() => null);
-      toast.error(data?.error ?? "Move failed");
+      toast.error(data?.error ?? tx("pipeline.moveFailed", "Move failed"));
     } else {
-      const label = OPP_STAGES.find((s) => s.value === stage)?.label ?? stage;
-      toast.success(`Moved to ${label}`);
+      const label = tx(stageKey(stage), OPP_STAGES.find((s) => s.value === stage)?.label ?? stage);
+      toast.success(tx("pipeline.movedToStage", "Moved to {stage}", { stage: label }));
     }
   }
 
@@ -138,10 +150,10 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
                     }}
                   />
                   <span className="truncate text-[11px] font-bold uppercase tracking-[0.08em] text-foreground">
-                    {stage.label}
+                    {tx(stageKey(stage.value), stage.label)}
                   </span>
                   <span
-                    className="ml-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums"
+                    className="ms-0.5 shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold tabular-nums"
                     style={{
                       color,
                       borderColor: hexToRgba(color, 0.3),
@@ -151,12 +163,12 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
                     {items.length}
                   </span>
                 </div>
-                <span className="shrink-0 text-[10px] font-medium text-muted-foreground">
-                  {stage.probability}%
+                <span className="shrink-0 text-[10px] font-medium tabular-nums text-muted-foreground">
+                  {pct(stage.probability)}
                 </span>
               </div>
               <div className="mt-1.5 text-[13px] font-semibold tabular-nums text-foreground/90">
-                {formatCompactCurrency(totalValue)}
+                {money(totalValue)}
               </div>
             </div>
 
@@ -183,13 +195,13 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
                         setHoverStage(null);
                       }}
                       className={cn(
-                        "group relative cursor-grab overflow-hidden rounded-xl border bg-background pl-3.5 pr-3 py-3 shadow-sm transition-[transform,box-shadow] duration-200 will-change-transform hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing",
+                        "group relative cursor-grab overflow-hidden rounded-xl border bg-background ps-3.5 pe-3 py-3 shadow-sm transition-[transform,box-shadow] duration-200 will-change-transform hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing",
                         dragging === o.id && "opacity-40"
                       )}
                     >
-                      {/* Left color stripe */}
+                      {/* Leading color stripe */}
                       <span
-                        className="absolute left-0 top-2.5 bottom-2.5 w-1 rounded-r"
+                        className="absolute start-0 top-2.5 bottom-2.5 w-1 rounded-e"
                         style={{ backgroundColor: color }}
                       />
 
@@ -202,8 +214,8 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
                           >
                             {o.name}
                           </Link>
-                          <div className="mt-0.5 truncate text-xs text-muted-foreground">
-                            {o.customer.name} · {o.oppNumber}
+                          <div className="mt-0.5 truncate text-xs text-muted-foreground" dir="auto">
+                            {o.customer.name} · <bdi>{o.oppNumber}</bdi>
                           </div>
                         </div>
                       </div>
@@ -214,13 +226,13 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
                             className="rounded px-1.5 py-0.5"
                             style={{ backgroundColor: hexToRgba(color, 0.1), color }}
                           >
-                            {o.probability}%
+                            {pct(o.probability)}
                           </span>
-                          <span>{ageDays}d in stage</span>
+                          <span>{tx("pipeline.daysInStage", "{days}d in stage", { days: ageDays })}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs font-semibold tabular-nums text-foreground">
-                            {formatCompactCurrency(Number(o.expectedRevenue))}
+                            {money(Number(o.expectedRevenue))}
                           </span>
                           <Avatar className="h-6 w-6">
                             {o.owner?.image ? <AvatarImage src={o.owner.image} alt="" /> : null}
@@ -240,7 +252,7 @@ export function PipelineBoard({ initialOpportunities }: { initialOpportunities: 
                   className="flex flex-1 items-center justify-center rounded-xl border border-dashed py-8 text-center text-xs text-muted-foreground transition-colors"
                   style={isHover ? { borderColor: hexToRgba(color, 0.5), color } : undefined}
                 >
-                  Drop a deal here
+                  {tx("pipeline.dropHere", "Drop a deal here")}
                 </div>
               ) : null}
             </div>

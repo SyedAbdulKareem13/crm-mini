@@ -8,6 +8,7 @@ import {
   Tooltip,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useI18n } from "@/components/i18n/provider";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -25,12 +26,13 @@ export function LeadSourcesChart({
 }: {
   data: { source: string; count: number }[];
 }) {
+  const { tx, formatNumber } = useI18n();
   const total = data.reduce((a, b) => a + b.count, 0);
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lead sources</CardTitle>
-        <CardDescription>Where leads come from</CardDescription>
+        <CardTitle>{tx("dashboard.leadSources.title", "Lead sources")}</CardTitle>
+        <CardDescription>{tx("dashboard.leadSources.subtitle", "Where leads come from")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="relative h-72 w-full">
@@ -58,7 +60,9 @@ export function LeadSourcesChart({
                       <div className="font-semibold capitalize">
                         {String(payload[0].payload.source).toLowerCase().replace("_", " ")}
                       </div>
-                      <div className="text-muted-foreground">{payload[0].value} leads</div>
+                      <div className="text-muted-foreground">
+                        {formatNumber(Number(payload[0].value))} {tx("dashboard.leadSources.leadsCount", "leads")}
+                      </div>
                     </div>
                   ) : null
                 }
@@ -66,8 +70,8 @@ export function LeadSourcesChart({
             </PieChart>
           </ResponsiveContainer>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <div className="font-display text-2xl font-semibold">{total}</div>
-            <div className="text-xs text-muted-foreground">Total leads</div>
+            <div className="font-display text-2xl font-semibold">{formatNumber(total)}</div>
+            <div className="text-xs text-muted-foreground">{tx("dashboard.leadSources.totalLeads", "Total leads")}</div>
           </div>
         </div>
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
@@ -78,7 +82,7 @@ export function LeadSourcesChart({
                 style={{ background: COLORS[i % COLORS.length] }}
               />
               <span className="capitalize">{d.source.toLowerCase().replace("_", " ")}</span>
-              <span className="text-muted-foreground">{d.count}</span>
+              <span className="text-muted-foreground">{formatNumber(d.count)}</span>
             </span>
           ))}
         </div>

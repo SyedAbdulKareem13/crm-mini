@@ -6,7 +6,14 @@
  */
 
 import { prisma } from "@/lib/prisma";
-import { DEFAULT_LANGUAGE, FALLBACK_LANGUAGE, NO_SECONDARY, type Dir } from "./config";
+import {
+  DEFAULT_LANGUAGE,
+  FALLBACK_LANGUAGE,
+  NO_SECONDARY,
+  I18N_NAMESPACES,
+  interpolate,
+  type Dir,
+} from "./config";
 import type { Bundle, LanguageDTO, LocalePreference } from "./types";
 
 /**
@@ -225,4 +232,43 @@ export async function getBundle(lang: string, namespaces: string[]): Promise<Bun
 
   const version = Math.max(1, ...nsRows.map((n) => n.version));
   return { lang, version, values };
+}
+
+/**
+ * Server-side translator for SERVER components (which can't use the client
+ * useI18n hook). Resolves the signed-in user's preference, hydrates the full
+ * namespace set, and returns a bound translator:
+ *
+ *   const { t, lang, dir } = await getServerT();
+ *   <span>{t("opportunities.metricOwner", "Owner")}</span>
+ *   <span>{t("pipeline.daysInStage", "{days}d in stage", { days })}</span>
+ *
+ * Like the client `tx`, `t(key, english?, vars?)` returns the seeded value when
+ * present, else the supplied English literal (never a raw key) — so server-
+ * rendered English stays perfect before/after the pack is seeded, and Arabic
+ * shows once seeded. Safe when unauthenticated or pre-migration (English).
+ */
+export async function getServerT(): Promise<{
+  t: (key: string, english?: string, vars?: Record<string, string | number>) => string;
+  lang: string;
+  dir: Dir;
+}> {
+  let pref: LocalePreference = { uiLanguage: DEFAULT_LANGUAGE, bilingualSecondary: NO_SECONDARY };
+  try {
+    const { auth } = await import("@/lib/auth");
+    const session = await auth();
+    if (session?.user?.id) pref = await getUserLocalePreference(session.user.id);
+  } catch {
+    /* unauthenticated / auth unavailable — English */
+  }
+  const [bundle, dir] = await Promise.all([
+    getBundle(pref.uiLanguage, [...I18N_NAMESPACES]),
+    resolveDirection(pref.uiLanguage),
+  ]);
+  const values = bundle.values;
+  const t = (key: string, english?: string, vars?: Record<string, string | number>) => {
+    const v = values[key];
+    return interpolate(v === undefined ? english ?? (key.split(".").pop() ?? key) : v, vars);
+  };
+  return { t, lang: pref.uiLanguage, dir };
 }

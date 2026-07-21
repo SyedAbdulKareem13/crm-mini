@@ -126,6 +126,17 @@ export function I18nProvider({
     [secValues, secondary]
   );
 
+  // translate-with-English-fallback: returns the seeded value if present, else
+  // the caller-supplied English literal (never the humanized key). Keeps the
+  // English UI pixel-perfect even before the translation rows exist in the DB.
+  const tx = React.useCallback(
+    (key: string, english: string, vars?: Record<string, string | number>) => {
+      const v = values[key];
+      return interpolate(v === undefined ? english : v, vars);
+    },
+    [values]
+  );
+
   const formatDate = React.useCallback(
     (d: Date | string | number, opts?: Intl.DateTimeFormatOptions) =>
       new Intl.DateTimeFormat(locale, opts ?? { day: "numeric", month: "short", year: "numeric" }).format(
@@ -151,6 +162,7 @@ export function I18nProvider({
     secondaryLocale,
     t,
     ts,
+    tx,
     ready: true,
     loadNamespace,
     formatDate,
@@ -174,6 +186,7 @@ export function useI18n(): I18nContextValue {
     secondaryLocale: null,
     t: (k, v) => interpolate(k.split(".").pop() ?? k, v),
     ts: () => null,
+    tx: (_k, english, v) => interpolate(english, v),
     ready: false,
     loadNamespace: () => {},
     formatDate: (d, o) =>

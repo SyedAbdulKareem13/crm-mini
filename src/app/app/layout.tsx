@@ -38,10 +38,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     getEnabledLanguages(),
   ]);
 
-  // Localization hydration — depends on the resolved preference. The core
-  // ("common","nav") bundles are server-rendered so the first paint has no
-  // flash; further namespaces lazy-load via /api/i18n/bundle. All degrade to
-  // English/keys when the i18n tables are empty.
+  // Localization hydration — depends on the resolved preference. The full
+  // namespace set (CORE_NAMESPACES) is server-rendered so the first paint has
+  // no flash and every screen is covered with no per-page loadNamespace wiring.
+  // All degrade to English/keys when the i18n tables are empty.
   const [dir, initialBundle, initialSecondaryBundle] = await Promise.all([
     resolveDirection(pref.uiLanguage),
     getBundle(pref.uiLanguage, CORE_NAMESPACES),

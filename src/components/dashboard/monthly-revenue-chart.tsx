@@ -10,7 +10,8 @@ import {
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn, formatCompactCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { useI18n } from "@/components/i18n/provider";
 
 export function MonthlyRevenueChart({
   data,
@@ -19,11 +20,14 @@ export function MonthlyRevenueChart({
   data: { month: string; revenue: number; deals: number }[];
   className?: string;
 }) {
+  const { tx, formatNumber } = useI18n();
+  const inr = (n: number) =>
+    formatNumber(n, { style: "currency", currency: "INR", notation: "compact", maximumFractionDigits: 1 });
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardHeader>
-        <CardTitle>Monthly revenue</CardTitle>
-        <CardDescription>Closed-won revenue over the last 6 months</CardDescription>
+        <CardTitle>{tx("dashboard.monthlyRevenue.title", "Monthly revenue")}</CardTitle>
+        <CardDescription>{tx("dashboard.monthlyRevenue.subtitle", "Closed-won revenue over the last 6 months")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="h-72 w-full">
@@ -42,7 +46,7 @@ export function MonthlyRevenueChart({
                 fontSize={12}
                 tickLine={false}
                 axisLine={false}
-                tickFormatter={(v) => formatCompactCurrency(Number(v))}
+                tickFormatter={(v) => inr(Number(v))}
               />
               <Tooltip
                 content={({ active, payload, label }) =>
@@ -50,12 +54,14 @@ export function MonthlyRevenueChart({
                     <div className="rounded-xl border bg-card/95 p-3 text-xs shadow-luxury backdrop-blur">
                       <div className="font-semibold">{label}</div>
                       <div className="mt-1 flex items-center gap-2 text-muted-foreground">
-                        Revenue:{" "}
+                        {tx("dashboard.monthlyRevenue.revenueLabel", "Revenue:")}{" "}
                         <span className="font-semibold text-foreground">
-                          {formatCompactCurrency(payload[0].value as number)}
+                          {inr(payload[0].value as number)}
                         </span>
                       </div>
-                      <div className="text-muted-foreground">Deals: {payload[0].payload.deals}</div>
+                      <div className="text-muted-foreground">
+                        {tx("dashboard.monthlyRevenue.dealsLabel", "Deals:")} {formatNumber(payload[0].payload.deals as number)}
+                      </div>
                     </div>
                   ) : null
                 }

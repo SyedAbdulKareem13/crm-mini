@@ -30,6 +30,7 @@ import {
   seedCustomValues,
   type ConfigField as SharedConfigField,
 } from "@/components/config/custom-fields";
+import { useI18n } from "@/components/i18n/provider";
 
 const LEAD_STATUSES = ["NEW", "CONTACTED", "QUALIFIED", "UNQUALIFIED", "CONVERTED", "LOST"] as const;
 
@@ -105,6 +106,7 @@ export function LeadDialog({
   lead?: LeadForEdit | null;
 }) {
   const router = useRouter();
+  const { tx } = useI18n();
   const isEdit = !!lead;
   const [loading, setLoading] = useState(false);
   const [source, setSource] = useState<string>(lead?.source ?? "WEBSITE");
@@ -179,12 +181,12 @@ export function LeadDialog({
         !valueFor(f.fieldKey)
     );
     if (missing) {
-      toast.error(`${missing.label} is required`);
+      toast.error(`${missing.label} ${tx("common.fieldRequired", "is required")}`);
       return;
     }
     const missingCustom = missingRequiredCustom(customVisible, custom);
     if (missingCustom) {
-      toast.error(`${missingCustom.label} is required`);
+      toast.error(`${missingCustom.label} ${tx("common.fieldRequired", "is required")}`);
       return;
     }
 
@@ -203,8 +205,8 @@ export function LeadDialog({
         body: JSON.stringify(payload),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
-      toast.success(isEdit ? "Lead updated" : "Lead created");
+      if (!res.ok) throw new Error(data.error ?? tx("common.failed", "Failed"));
+      toast.success(isEdit ? tx("leads.dialog.updated", "Lead updated") : tx("leads.dialog.created", "Lead created"));
       onOpenChange(false);
       if (isEdit) {
         onSaved?.(data.lead);
@@ -269,7 +271,7 @@ export function LeadDialog({
           </Label>
           <Select value={industry} onValueChange={setIndustry}>
             <SelectTrigger className="mt-1.5">
-              <SelectValue placeholder="Select industry" />
+              <SelectValue placeholder={tx("leads.dialog.selectIndustry", "Select industry")} />
             </SelectTrigger>
             <SelectContent>
               {INDUSTRIES.map((i) => (
@@ -361,11 +363,11 @@ export function LeadDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit lead" : "New lead"}</DialogTitle>
+          <DialogTitle>{isEdit ? tx("leads.dialog.editTitle", "Edit lead") : tx("leads.dialog.newTitle", "New lead")}</DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Update this lead's details."
-              : "Capture an inbound interest. You can convert to an opportunity later."}
+              ? tx("leads.dialog.editDesc", "Update this lead's details.")
+              : tx("leads.dialog.newDesc", "Capture an inbound interest. You can convert to an opportunity later.")}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -388,10 +390,10 @@ export function LeadDialog({
             )}
           <DialogFooter className="sm:col-span-2 mt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancel
+              {tx("common.cancel", "Cancel")}
             </Button>
             <Button type="submit" variant="gradient" disabled={loading}>
-              {loading ? "Saving…" : isEdit ? "Save changes" : "Create lead"}
+              {loading ? tx("common.saving", "Saving…") : isEdit ? tx("common.saveChanges", "Save changes") : tx("leads.dialog.createButton", "Create lead")}
             </Button>
           </DialogFooter>
         </form>

@@ -14,13 +14,31 @@ export const DEFAULT_LANGUAGE = "en";
 export const FALLBACK_LANGUAGE = "en";
 export const NO_SECONDARY = "none";
 
-/** Namespaces the client can request. Lazy-loaded on demand; "common" + "nav"
- *  are hydrated on first paint by the server layout. Extend freely. */
-export const I18N_NAMESPACES = ["common", "nav", "settings"] as const;
+/** The full namespace catalogue. Adding a namespace is pure data + one entry
+ *  here. The whole UI-string set is small (a few hundred short strings), so we
+ *  server-hydrate ALL of them on first paint (see CORE_NAMESPACES) — this gives
+ *  zero flash and removes any need for per-page loadNamespace() wiring. */
+export const I18N_NAMESPACES = [
+  "common",
+  "nav",
+  "settings",
+  "chrome",
+  "table",
+  "filters",
+  "stages",
+  "dashboard",
+  "leads",
+  "opportunities",
+  "pipeline",
+  "rfqs",
+  "quotations",
+  "lifecycle",
+] as const;
 export type Namespace = (typeof I18N_NAMESPACES)[number];
 
-/** Namespaces every page needs immediately (server-hydrated, no flash). */
-export const CORE_NAMESPACES: Namespace[] = ["common", "nav"];
+/** Namespaces every page needs immediately (server-hydrated, no flash).
+ *  Hydrating the full set is cheap here and guarantees complete coverage. */
+export const CORE_NAMESPACES: Namespace[] = [...I18N_NAMESPACES];
 
 /** localStorage cache key — version-scoped so a pack bump invalidates it. */
 export const bundleCacheKey = (lang: string, ns: string, version: number) =>

@@ -9,11 +9,13 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { OpportunityCreate } from "@/components/opportunities/opportunity-create";
 import { can } from "@/lib/permissions";
+import { getServerT } from "@/lib/i18n/server";
 import { OpportunitiesClient } from "./opportunities-client";
 
 export const dynamic = "force-dynamic";
 
 export default async function OpportunitiesPage() {
+  const { t: st } = await getServerT();
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
   const denied = !(await can(session.user.organizationId, session.user.role, "OPPORTUNITIES", "read"));
@@ -41,11 +43,12 @@ export default async function OpportunitiesPage() {
       <PageHeader
         title="Opportunities"
         description="Every active and historical deal across the business."
+        descriptionKey="opportunities.description"
         actions={
           <div className="flex gap-2">
             <Link href="/app/pipeline">
               <Button variant="outline">
-                <KanbanIcon className="h-4 w-4" /> Pipeline view
+                <KanbanIcon className="h-4 w-4" /> {st("opportunities.pipelineView", "Pipeline view")}
               </Button>
             </Link>
             <Suspense fallback={null}>
@@ -57,11 +60,11 @@ export default async function OpportunitiesPage() {
 
       {opps.length === 0 ? (
         <EmptyState
-          title="No opportunities yet"
-          description="Create your first deal — or convert a qualified lead."
+          title={st("opportunities.emptyTitle", "No opportunities yet")}
+          description={st("opportunities.emptyDescription", "Create your first deal — or convert a qualified lead.")}
           action={
             <Link href="/app/leads">
-              <Button variant="gradient">Convert a lead</Button>
+              <Button variant="gradient">{st("opportunities.convertLead", "Convert a lead")}</Button>
             </Link>
           }
         />

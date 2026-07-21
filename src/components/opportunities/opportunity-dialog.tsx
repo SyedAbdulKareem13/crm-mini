@@ -24,6 +24,8 @@ import {
 } from "@/components/ui/select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { OPP_STAGES } from "@/lib/constants";
+import { useI18n } from "@/components/i18n/provider";
+import { stageKey } from "@/lib/i18n/labels";
 import {
   CustomFieldItem,
   buildCustomData,
@@ -60,6 +62,11 @@ export function OpportunityDialog({
   onSaved?: (o: any) => void;
 }) {
   const router = useRouter();
+  const { tx, loadNamespace } = useI18n();
+  useEffect(() => {
+    loadNamespace("opportunities");
+    loadNamespace("stages");
+  }, [loadNamespace]);
   const isEdit = !!opportunity;
   const [loading, setLoading] = useState(false);
   const [customerId, setCustomerId] = useState(opportunity?.customerId ?? "");
@@ -113,7 +120,7 @@ export function OpportunityDialog({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!customerId) {
-      toast.error("Pick a customer");
+      toast.error(tx("opportunities.pickCustomerError", "Pick a customer"));
       return;
     }
     const form = new FormData(e.currentTarget);
@@ -130,16 +137,18 @@ export function OpportunityDialog({
 
     // Configured `required` on core fields rendered without native validation.
     if (requiredOf("expectedCloseDate") && !close) {
-      toast.error(`${labelOf("expectedCloseDate", "Expected close date")} is required`);
+      toast.error(
+        `${labelOf("expectedCloseDate", tx("opportunities.fieldCloseDate", "Expected close date"))} ${tx("common.fieldRequired", "is required")}`
+      );
       return;
     }
     if (requiredOf("notes") && !String(form.get("notes") ?? "").trim()) {
-      toast.error(`${labelOf("notes", "Notes")} is required`);
+      toast.error(`${labelOf("notes", tx("opportunities.fieldNotes", "Notes"))} ${tx("common.fieldRequired", "is required")}`);
       return;
     }
     const missingCustom = missingRequiredCustom(customFields, custom);
     if (missingCustom) {
-      toast.error(`${missingCustom.label} is required`);
+      toast.error(`${missingCustom.label} ${tx("common.fieldRequired", "is required")}`);
       return;
     }
 
@@ -158,8 +167,12 @@ export function OpportunityDialog({
         }
       );
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
-      toast.success(isEdit ? "Opportunity updated" : "Opportunity created");
+      if (!res.ok) throw new Error(data.error ?? tx("common.failed", "Failed"));
+      toast.success(
+        isEdit
+          ? tx("opportunities.updatedToast", "Opportunity updated")
+          : tx("opportunities.createdToast", "Opportunity created")
+      );
       onOpenChange(false);
       onSaved?.(data.opportunity);
       if (isEdit) router.refresh();
@@ -175,17 +188,24 @@ export function OpportunityDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>{isEdit ? "Edit opportunity" : "New opportunity"}</DialogTitle>
+          <DialogTitle>
+            {isEdit
+              ? tx("opportunities.dialogEditTitle", "Edit opportunity")
+              : tx("opportunities.dialogNewTitle", "New opportunity")}
+          </DialogTitle>
           <DialogDescription>
             {isEdit
-              ? "Update the deal details."
-              : "Create a deal and drive it through the pipeline."}
+              ? tx("opportunities.dialogEditDesc", "Update the deal details.")
+              : tx("opportunities.dialogNewDesc", "Create a deal and drive it through the pipeline.")}
           </DialogDescription>
         </DialogHeader>
 
         {customers.length === 0 ? (
           <p className="py-4 text-sm text-muted-foreground">
-            You need a customer first — convert a qualified lead or add a customer, then create the opportunity.
+            {tx(
+              "opportunities.noCustomerHint",
+              "You need a customer first — convert a qualified lead or add a customer, then create the opportunity."
+            )}
           </p>
         ) : (
           <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -206,7 +226,7 @@ export function OpportunityDialog({
                   return (
                     <div key={key} className="sm:col-span-2">
                       <Label htmlFor="name">
-                        {labelOf("title", "Opportunity name")}
+                        {labelOf("title", tx("opportunities.fieldTitle", "Opportunity name"))}
                         <span className="text-destructive"> *</span>
                       </Label>
                       <Input id="name" name="name" required defaultValue={opportunity?.name ?? ""} className="mt-1.5" />
@@ -216,12 +236,12 @@ export function OpportunityDialog({
                   return (
                     <div key={key}>
                       <Label>
-                        {labelOf("customerId", "Customer")}
+                        {labelOf("customerId", tx("opportunities.fieldCustomer", "Customer"))}
                         <span className="text-destructive"> *</span>
                       </Label>
                       <Select value={customerId} onValueChange={setCustomerId}>
                         <SelectTrigger className="mt-1.5">
-                          <SelectValue placeholder="Select customer" />
+                          <SelectValue placeholder={tx("opportunities.selectCustomer", "Select customer")} />
                         </SelectTrigger>
                         <SelectContent>
                           {customers.map((c) => (
@@ -236,7 +256,7 @@ export function OpportunityDialog({
                 case "stage":
                   return (
                     <div key={key}>
-                      <Label>{labelOf("stage", "Stage")}</Label>
+                      <Label>{labelOf("stage", tx("opportunities.fieldStage", "Stage"))}</Label>
                       <Select value={stage} onValueChange={setStage}>
                         <SelectTrigger className="mt-1.5">
                           <SelectValue />
@@ -244,7 +264,7 @@ export function OpportunityDialog({
                         <SelectContent>
                           {OPP_STAGES.map((s) => (
                             <SelectItem key={s.value} value={s.value}>
-                              {s.label}
+                              {tx(stageKey(s.value), s.label)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -255,7 +275,7 @@ export function OpportunityDialog({
                   return (
                     <div key={key}>
                       <Label htmlFor="expectedRevenue">
-                        {labelOf("expectedRevenue", "Expected revenue (₹)")}
+                        {labelOf("expectedRevenue", tx("opportunities.fieldExpectedRevenue", "Expected revenue (₹)"))}
                         {requiredOf("expectedRevenue") && <span className="text-destructive"> *</span>}
                       </Label>
                       <Input
@@ -271,7 +291,7 @@ export function OpportunityDialog({
                 case "probability":
                   return (
                     <div key={key}>
-                      <Label htmlFor="probability">{labelOf("probability", "Probability %")}</Label>
+                      <Label htmlFor="probability">{labelOf("probability", tx("opportunities.fieldProbability", "Probability %"))}</Label>
                       <Input
                         id="probability"
                         name="probability"
@@ -287,14 +307,14 @@ export function OpportunityDialog({
                   return (
                     <div key={key} className="sm:col-span-2">
                       <Label>
-                        {labelOf("expectedCloseDate", "Expected close date")}
+                        {labelOf("expectedCloseDate", tx("opportunities.fieldCloseDate", "Expected close date"))}
                         {requiredOf("expectedCloseDate") && <span className="text-destructive"> *</span>}
                       </Label>
                       <div className="mt-1.5">
                         <DatePicker
                           name="expectedCloseDate"
                           defaultValue={opportunity?.expectedCloseDate ? opportunity.expectedCloseDate.slice(0, 10) : ""}
-                          placeholder="Select close date"
+                          placeholder={tx("opportunities.selectCloseDate", "Select close date")}
                         />
                       </div>
                     </div>
@@ -303,7 +323,7 @@ export function OpportunityDialog({
                   return (
                     <div key={key} className="sm:col-span-2">
                       <Label htmlFor="notes">
-                        {labelOf("notes", "Notes")}
+                        {labelOf("notes", tx("opportunities.fieldNotes", "Notes"))}
                         {requiredOf("notes") && <span className="text-destructive"> *</span>}
                       </Label>
                       <Textarea id="notes" name="notes" defaultValue={opportunity?.notes ?? ""} className="mt-1.5" />
@@ -315,10 +335,14 @@ export function OpportunityDialog({
             })}
             <DialogFooter className="sm:col-span-2 mt-2">
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                Cancel
+                {tx("common.cancel", "Cancel")}
               </Button>
               <Button type="submit" variant="gradient" disabled={loading}>
-                {loading ? "Saving…" : isEdit ? "Save changes" : "Create opportunity"}
+                {loading
+                  ? tx("common.saving", "Saving…")
+                  : isEdit
+                    ? tx("common.saveChanges", "Save changes")
+                    : tx("opportunities.createButton", "Create opportunity")}
               </Button>
             </DialogFooter>
           </form>

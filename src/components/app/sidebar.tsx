@@ -41,7 +41,12 @@ const NAV_KEY_BY_HREF: Record<string, string> = {
 
 export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, tx } = useI18n();
+
+  // Pro-tip hint splits around a {key} slot so the ⌘K keycap stays an inline
+  // <kbd> element while the surrounding sentence localizes.
+  const proTip = tx("chrome.proTipBody", "Press {key} anywhere to search.");
+  const [proTipBefore, proTipAfter] = proTip.split("{key}");
 
   // Contract: `allowedHrefs` undefined → show everything (backward safe). When
   // provided, an item renders only if it's an always-visible surface or the
@@ -61,7 +66,7 @@ export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
     // divider must sit on its inner (left) edge — swap border-r → border-l.
     <aside className="sticky top-0 hidden h-screen w-64 shrink-0 border-r rtl:border-l rtl:border-r-0 bg-card/95 supports-[backdrop-filter]:bg-card/80 md:flex md:flex-col">
       <Link href="/app" className="flex h-16 items-center border-b px-5">
-        <Logo />
+        <Logo crmSuiteLabel={tx("chrome.crmSuite", "CRM Suite")} />
       </Link>
 
       <nav className="flex-1 overflow-y-auto px-3 py-4 scrollbar-thin">
@@ -98,9 +103,13 @@ export function Sidebar({ allowedHrefs }: { allowedHrefs?: string[] }) {
       </nav>
 
       <div className="m-3 rounded-2xl border bg-gradient-to-br from-primary/10 to-primary/0 p-4">
-        <div className="text-xs font-semibold uppercase tracking-widest text-primary">Pro tip</div>
+        <div className="text-xs font-semibold uppercase tracking-widest text-primary">
+          {tx("chrome.proTipTitle", "Pro tip")}
+        </div>
         <p className="mt-1 text-xs text-muted-foreground">
-          Press <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd> anywhere to search.
+          {proTipBefore}
+          <kbd className="rounded bg-muted px-1.5 py-0.5 text-[10px]">⌘K</kbd>
+          {proTipAfter ?? ""}
         </p>
       </div>
     </aside>

@@ -2,8 +2,10 @@
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OPP_STAGES } from "@/lib/constants";
-import { cn, formatCompactCurrency } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useI18n } from "@/components/i18n/provider";
+import { stageKey } from "@/lib/i18n/labels";
 
 export function FunnelChart({
   data,
@@ -12,6 +14,9 @@ export function FunnelChart({
   data: { stage: string; count: number; value: number }[];
   className?: string;
 }) {
+  const { tx, formatNumber } = useI18n();
+  const inr = (n: number) =>
+    formatNumber(n, { style: "currency", currency: "INR", notation: "compact", maximumFractionDigits: 1 });
   const byStage = new Map(data.map((d) => [d.stage, d]));
   const ordered = OPP_STAGES.filter((s) => s.value !== "LOST");
   const max = Math.max(1, ...ordered.map((s) => byStage.get(s.value)?.count ?? 0));
@@ -19,8 +24,8 @@ export function FunnelChart({
   return (
     <Card className={cn("overflow-hidden", className)}>
       <CardHeader>
-        <CardTitle>Sales funnel</CardTitle>
-        <CardDescription>Opportunities by stage</CardDescription>
+        <CardTitle>{tx("dashboard.funnel.title", "Sales funnel")}</CardTitle>
+        <CardDescription>{tx("dashboard.funnel.subtitle", "Opportunities by stage")}</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
@@ -37,7 +42,7 @@ export function FunnelChart({
                 transition={{ delay: i * 0.04 }}
                 className="flex items-center gap-3"
               >
-                <div className="w-44 shrink-0 text-sm text-muted-foreground">{s.label}</div>
+                <div className="w-44 shrink-0 text-sm text-muted-foreground">{tx(stageKey(s.value), s.label)}</div>
                 <div className="relative h-9 flex-1 overflow-hidden rounded-xl bg-muted/40">
                   <motion.div
                     className={cn("h-full rounded-xl bg-gradient-to-r", s.tone)}
@@ -46,8 +51,8 @@ export function FunnelChart({
                     transition={{ duration: 0.7, ease: "easeOut" }}
                   />
                   <div className="absolute inset-0 flex items-center justify-between px-3 text-xs">
-                    <span className="font-medium">{count}</span>
-                    <span className="text-muted-foreground">{formatCompactCurrency(value)}</span>
+                    <span className="font-medium">{formatNumber(count)}</span>
+                    <span className="text-muted-foreground">{inr(value)}</span>
                   </div>
                 </div>
               </motion.div>

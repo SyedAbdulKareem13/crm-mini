@@ -3,7 +3,7 @@
  * "What's new" dialog. Plain data (not user data), edited per release.
  */
 
-export const CURRENT_VERSION = "0.24.0";
+export const CURRENT_VERSION = "0.25.0";
 
 export type ChangeType = "new" | "improved" | "fixed";
 
@@ -16,6 +16,20 @@ export type Release = {
 };
 
 export const RELEASES: Release[] = [
+  {
+    version: "0.25.0",
+    date: "2026-07-22",
+    title: "Arabic, end to end — full coverage & smoother pipelines",
+    summary: "The multilingual system now reaches the whole product: dashboard, opportunities, pipeline, leads, tables, filters, the command palette and every menu translate — with Gulf-standard right-to-left layout throughout. Full Arabic is selectable on staging. The lifecycle and pipeline-stage strips are now smooth, scrollbar-free carousels.",
+    items: [
+      { type: "new", text: "Full-Arabic interface across the app — dashboard KPIs and widgets, opportunities (list, detail and dialogs), the pipeline board and stage stepper, leads, tables, filters, breadcrumbs, the command palette, notifications and the profile menu all localize." },
+      { type: "new", text: "Full Arabic can now be selected as the interface language on staging (Language → Arabic); real production stays gated until native-linguist review." },
+      { type: "improved", text: "Right-to-left polish to a Gulf-standard bar: logical spacing and alignment, mirrored directional icons, correct ellipsis and punctuation, and stage names resolved from a single source so they read consistently everywhere." },
+      { type: "improved", text: "The lifecycle flow strip and the pipeline-stage strip are now scrollbar-free carousels — hidden scrollbar, on-demand ‹ › arrows that disable at the ends, plus wheel and drag-to-scroll, all RTL-aware and honouring reduced-motion." },
+      { type: "improved", text: "Every localized string keeps a built-in English fallback, so the interface stays pixel-perfect in English before a translation pack is loaded and switches to Arabic the moment it is." },
+      { type: "improved", text: "Arabic integrity safeguard unchanged: only secular business terminology is machine-drafted (as reviewable drafts), no religious or Qur'anic content is machine-generated, and Full Arabic remains gated from production pending native-linguist and scholarly review." },
+    ],
+  },
   {
     version: "0.24.0",
     date: "2026-07-22",

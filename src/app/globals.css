@@ -298,6 +298,10 @@
   .scrollbar-thin::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted-foreground) / 0.4);
   }
+  /* Fully hide the native scrollbar while keeping the element scrollable
+     (used by the pipeline carousels, which provide their own ‹ › controls). */
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  .no-scrollbar::-webkit-scrollbar { width: 0; height: 0; display: none; }
   .text-gradient {
     background: linear-gradient(135deg, hsl(var(--chart-1)), hsl(var(--chart-5)));
     -webkit-background-clip: text;

@@ -32,6 +32,14 @@ const SEGMENT_KEYS: Record<string, string> = {
   releases: "nav.releases",
   admin: "nav.admin",
   workload: "nav.workload",
+  // Previously un-keyed segments — these render via the chrome/common
+  // namespaces so they localize instead of falling back to raw English.
+  ai: "chrome.manzAi",
+  settings: "common.settings",
+  proposal: "chrome.breadcrumbProposal",
+  plan: "chrome.breadcrumbPlan",
+  new: "common.new",
+  print: "common.print",
 };
 
 const SEGMENT_LABELS: Record<string, string> = {
@@ -63,7 +71,7 @@ const LIFECYCLE_DETAIL = /^\/app\/(leads|opportunities|rfqs|quotations|projects)
 
 export function AppBreadcrumbs() {
   const pathname = usePathname();
-  const { t } = useI18n();
+  const { t, tx } = useI18n();
   if (!pathname?.startsWith("/app")) return null;
   if (pathname === "/app") return null; // dashboard — no trail needed
   if (LIFECYCLE_DETAIL.test(pathname)) return null; // LifecycleHeader owns it
@@ -78,14 +86,14 @@ export function AppBreadcrumbs() {
     const navKey = SEGMENT_KEYS[seg];
     const fallback = SEGMENT_LABELS[seg];
     if (!navKey && !fallback) continue; // opaque ids — the trail skips them
-    crumbs.push({ label: navKey ? t(navKey) : fallback!, href: path });
+    crumbs.push({ label: navKey ? tx(navKey, fallback ?? t(navKey)) : fallback!, href: path });
   }
   if (crumbs.length < 2) return null;
   crumbs[crumbs.length - 1].href = null; // current page is plain text
 
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={tx("chrome.breadcrumbLabel", "Breadcrumb")}
       className="mb-3 flex items-center gap-1 text-xs text-muted-foreground"
     >
       {crumbs.map((c, i) => (

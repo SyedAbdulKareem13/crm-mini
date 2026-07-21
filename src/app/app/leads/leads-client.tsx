@@ -22,7 +22,8 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/ui/empty-state";
 import { LeadDialog } from "@/components/leads/lead-dialog";
-import { formatCompactCurrency, formatRelativeTime, initials } from "@/lib/utils";
+import { formatRelativeTime, initials } from "@/lib/utils";
+import { useI18n } from "@/components/i18n/provider";
 
 type Lead = {
   id: string;
@@ -43,6 +44,7 @@ type Lead = {
 
 export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
   const router = useRouter();
+  const { tx, formatNumber } = useI18n();
   const [leads, setLeads] = useState(initialLeads);
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ALL");
@@ -62,10 +64,10 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
     const res = await fetch(`/api/leads/${leadId}/convert`, { method: "POST" });
     const data = await res.json();
     if (!res.ok) {
-      toast.error(data.error ?? "Failed to convert");
+      toast.error(data.error ?? tx("leads.convertError", "Failed to convert"));
       return;
     }
-    toast.success("Converted to opportunity");
+    toast.success(tx("leads.convertSuccess", "Converted to opportunity"));
     router.push(`/app/opportunities/${data.opportunity.id}`);
   }
 
@@ -74,26 +76,27 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
       <PageHeader
         title="Leads"
         description="Capture every inbound interest and convert into pipeline-ready opportunities."
+        descriptionKey="leads.subtitle"
         actions={
           <Button variant="gradient" onClick={() => setOpenDialog(true)}>
-            <Plus className="h-4 w-4" /> New lead
+            <Plus className="h-4 w-4" /> {tx("leads.newButton", "New lead")}
           </Button>
         }
       />
 
       <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute start-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
-            placeholder="Search leads…"
+            placeholder={tx("leads.searchPlaceholder", "Search leads…")}
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            className="pl-9"
+            className="ps-9"
           />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground inline-flex items-center gap-1">
-            <Filter className="h-3 w-3" /> Status:
+            <Filter className="h-3 w-3" /> {tx("filters.statusLabel", "Status:")}
           </span>
           {["ALL", "NEW", "CONTACTED", "QUALIFIED", "CONVERTED", "LOST"].map((s) => (
             <button
@@ -113,11 +116,11 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
 
       {filtered.length === 0 ? (
         <EmptyState
-          title="No leads yet"
-          description="Capture your first lead — its activities, notes and documents will carry forward when you convert it."
+          title={tx("leads.emptyTitle", "No leads yet")}
+          description={tx("leads.emptyDesc", "Capture your first lead — its activities, notes and documents will carry forward when you convert it.")}
           action={
             <Button variant="gradient" onClick={() => setOpenDialog(true)}>
-              <Plus className="h-4 w-4" /> Create your first lead
+              <Plus className="h-4 w-4" /> {tx("leads.createFirst", "Create your first lead")}
             </Button>
           }
         />
@@ -130,13 +133,13 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Lead</TableHead>
-                <TableHead>Company</TableHead>
-                <TableHead>Source</TableHead>
-                <TableHead>Owner</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Expected</TableHead>
-                <TableHead>Added</TableHead>
+                <TableHead>{tx("table.col.lead", "Lead")}</TableHead>
+                <TableHead>{tx("table.col.company", "Company")}</TableHead>
+                <TableHead>{tx("table.col.source", "Source")}</TableHead>
+                <TableHead>{tx("table.col.owner", "Owner")}</TableHead>
+                <TableHead>{tx("table.col.status", "Status")}</TableHead>
+                <TableHead className="text-end">{tx("table.col.expected", "Expected")}</TableHead>
+                <TableHead>{tx("table.col.added", "Added")}</TableHead>
                 <TableHead></TableHead>
               </TableRow>
             </TableHeader>
@@ -166,29 +169,34 @@ export function LeadsPageClient({ initialLeads }: { initialLeads: Lead[] }) {
                           {initials(lead.owner?.name)}
                         </AvatarFallback>
                       </Avatar>
-                      <span className="text-sm">{lead.owner?.name ?? "Unassigned"}</span>
+                      <span className="text-sm">{lead.owner?.name ?? tx("common.unassigned", "Unassigned")}</span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <StatusBadge entity="LEAD" status={lead.status} />
                   </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCompactCurrency(lead.expectedRevenue ? Number(lead.expectedRevenue) : 0)}
+                  <TableCell className="text-end font-medium">
+                    {formatNumber(lead.expectedRevenue ? Number(lead.expectedRevenue) : 0, {
+                      style: "currency",
+                      currency: "INR",
+                      notation: "compact",
+                      maximumFractionDigits: 1,
+                    })}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {formatRelativeTime(lead.createdAt)}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
-                      <Button size="sm" variant="ghost" onClick={() => setEditLead(lead)} aria-label="Edit lead">
+                      <Button size="sm" variant="ghost" onClick={() => setEditLead(lead)} aria-label={tx("leads.editAria", "Edit lead")}>
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       {lead.status !== "CONVERTED" ? (
                         <Button size="sm" variant="ghost" onClick={() => convert(lead.id)}>
-                          Convert <ArrowRight className="h-3.5 w-3.5" />
+                          {tx("leads.convert", "Convert")} <ArrowRight className="h-3.5 w-3.5 rtl:-scale-x-100" />
                         </Button>
                       ) : (
-                        <Badge variant="success">Converted</Badge>
+                        <Badge variant="success">{tx("leads.converted", "Converted")}</Badge>
                       )}
                     </div>
                   </TableCell>

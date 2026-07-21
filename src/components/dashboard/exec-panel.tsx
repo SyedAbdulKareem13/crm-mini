@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import {
   ArrowUpRight,
@@ -14,13 +16,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { HEALTH_META, type ProjectHealth } from "@/lib/project-health";
 import type { ExecDashboardData } from "@/lib/exec-dashboard";
-
-const inr = new Intl.NumberFormat("en-IN", {
-  style: "currency",
-  currency: "INR",
-  notation: "compact",
-  maximumFractionDigits: 1,
-});
+import { useI18n } from "@/components/i18n/provider";
 
 const HEALTH_COLOR: Record<ProjectHealth, string> = {
   ON_TRACK: "bg-emerald-500",
@@ -28,6 +24,16 @@ const HEALTH_COLOR: Record<ProjectHealth, string> = {
   DELAYED: "bg-destructive",
   ON_HOLD: "bg-slate-400",
   COMPLETED: "bg-primary/60",
+};
+
+/** Project-health enum value → i18n key (label resolved via tx with the
+ *  HEALTH_META English label as the fallback). */
+const HEALTH_KEY: Record<ProjectHealth, string> = {
+  ON_TRACK: "dashboard.health.onTrack",
+  AT_RISK: "dashboard.health.atRisk",
+  DELAYED: "dashboard.health.delayed",
+  ON_HOLD: "dashboard.health.onHold",
+  COMPLETED: "dashboard.health.completed",
 };
 
 function Widget({
@@ -56,7 +62,7 @@ function Widget({
           href={href}
           className="inline-flex items-center gap-0.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-primary"
         >
-          {hrefLabel} <ArrowUpRight className="h-3 w-3" />
+          {hrefLabel} <ArrowUpRight className="h-3 w-3 rtl:-scale-x-100" />
         </Link>
       </CardHeader>
       <CardContent className="flex-1">{children}</CardContent>
@@ -71,29 +77,49 @@ function Empty({ children }: { children: React.ReactNode }) {
 /** Executive Dashboard (PPT slide 11) — the eight leadership widgets.
  *  Every number reuses the source of truth of its feature page. */
 export function ExecPanel({ data }: { data: ExecDashboardData }) {
+  const { tx, ts, secondary, formatNumber } = useI18n();
+  const inr = (n: number) =>
+    formatNumber(n, { style: "currency", currency: "INR", notation: "compact", maximumFractionDigits: 1 });
+  const pct = (n: number) => formatNumber(n / 100, { style: "percent", maximumFractionDigits: 1 });
+
   const maxPipeline = Math.max(...data.pipelineByProduct.map((p) => p.value), 1);
   const maxForecast = Math.max(...data.forecastByMonth.map((m) => m.weighted), 1);
   const healthTotal = data.projectHealth.reduce((n, h) => n + h.count, 0);
+
+  // Beside-heading secondary script (Urdu/Arabic) — only when a secondary is
+  // chosen; follows the user's selection instead of the old hardcoded Urdu.
+  const execSecondary = ts("dashboard.exec.title");
+  const secDir = secondary === "ur" || secondary === "ar" ? "rtl" : "ltr";
+  const secFont = secondary === "ur" ? "font-urdu" : "font-arabic";
 
   return (
     <section className="mt-8">
       <div className="mb-3 flex items-baseline justify-between gap-3">
         <div>
           <h2 className="flex items-baseline gap-3 text-lg font-semibold tracking-tight">
-            Executive Dashboard
-            <span dir="rtl" className="font-urdu text-sm text-muted-foreground">ایگزیکٹو ڈیش بورڈ</span>
+            {tx("dashboard.exec.title", "Executive Dashboard")}
+            {execSecondary ? (
+              <span dir={secDir} className={cn("text-sm text-muted-foreground", secFont)}>
+                {execSecondary}
+              </span>
+            ) : null}
           </h2>
           <p className="text-xs text-muted-foreground">
-            Presales &amp; delivery leadership — live from pipeline, quotations and project data.
+            {tx("dashboard.exec.subtitle", "Presales & delivery leadership — live from pipeline, quotations and project data.")}
           </p>
         </div>
       </div>
 
       <div className="mz-stagger grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {/* 1 · Pipeline by SAP product */}
-        <Widget icon={Boxes} title="Pipeline by SAP Product" href="/app/pipeline" hrefLabel="Pipeline">
+        <Widget
+          icon={Boxes}
+          title={tx("dashboard.exec.pipelineByProduct.title", "Pipeline by SAP Product")}
+          href="/app/pipeline"
+          hrefLabel={tx("dashboard.exec.link.pipeline", "Pipeline")}
+        >
           {data.pipelineByProduct.length === 0 ? (
-            <Empty>No open opportunities yet.</Empty>
+            <Empty>{tx("dashboard.exec.pipelineByProduct.empty", "No open opportunities yet.")}</Empty>
           ) : (
             <div className="space-y-2">
               {data.pipelineByProduct.map((p) => (
@@ -101,7 +127,7 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                   <div className="flex items-baseline justify-between gap-2 text-xs">
                     <span className="truncate">{p.name}</span>
                     <span className="shrink-0 tabular-nums text-muted-foreground">
-                      {p.count} · {inr.format(p.value)}
+                      {formatNumber(p.count)} · {inr(p.value)}
                     </span>
                   </div>
                   <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -113,35 +139,49 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                 </div>
               ))}
               <p className="pt-1 text-[10px] text-muted-foreground">
-                Product = the transformation type of the opportunity's project; convert opportunities to classify them.
+                {tx("dashboard.exec.pipelineByProduct.footnote", "Product = the transformation type of the opportunity's project; convert opportunities to classify them.")}
               </p>
             </div>
           )}
         </Widget>
 
         {/* 2 · Revenue forecast */}
-        <Widget icon={TrendingUp} title="Revenue Forecast" href="/app/opportunities" hrefLabel="Deals">
-          <div className="font-display text-2xl font-semibold tabular-nums">{inr.format(data.forecastTotal)}</div>
-          <p className="text-[11px] text-muted-foreground">probability-weighted, open deals</p>
+        <Widget
+          icon={TrendingUp}
+          title={tx("dashboard.exec.forecast.title", "Revenue Forecast")}
+          href="/app/opportunities"
+          hrefLabel={tx("dashboard.exec.link.deals", "Deals")}
+        >
+          <div className="font-display text-2xl font-semibold tabular-nums">{inr(data.forecastTotal)}</div>
+          <p className="text-[11px] text-muted-foreground">{tx("dashboard.exec.forecast.caption", "probability-weighted, open deals")}</p>
           <div className="mt-3 flex h-16 items-end gap-1">
-            {data.forecastByMonth.map((m) => (
-              <div key={m.month} className="flex min-w-0 flex-1 flex-col items-center gap-1" title={`${m.month}: ${inr.format(m.weighted)} · ${m.deals} deal${m.deals === 1 ? "" : "s"}`}>
-                <div
-                  className={cn("w-full rounded-t", m.month === "No date" ? "bg-muted-foreground/30" : "bg-primary/70")}
-                  style={{ height: `${Math.max(3, (m.weighted / maxForecast) * 100)}%` }}
-                />
-                <span className="truncate text-[8px] uppercase text-muted-foreground">{m.month}</span>
-              </div>
-            ))}
+            {data.forecastByMonth.map((m) => {
+              const monthLabel = m.month === "No date" ? tx("dashboard.exec.forecast.noDate", "No date") : m.month;
+              return (
+                <div key={m.month} className="flex min-w-0 flex-1 flex-col items-center gap-1" title={`${monthLabel}: ${inr(m.weighted)} · ${formatNumber(m.deals)}`}>
+                  <div
+                    className={cn("w-full rounded-t", m.month === "No date" ? "bg-muted-foreground/30" : "bg-primary/70")}
+                    style={{ height: `${Math.max(3, (m.weighted / maxForecast) * 100)}%` }}
+                  />
+                  <span className="truncate text-[8px] uppercase text-muted-foreground">{monthLabel}</span>
+                </div>
+              );
+            })}
           </div>
         </Widget>
 
         {/* 3 · Resource utilization */}
-        <Widget icon={Gauge} title="Resource Utilization" href="/app/projects/workload" hrefLabel="Workload">
+        <Widget
+          icon={Gauge}
+          title={tx("dashboard.exec.utilization.title", "Resource Utilization")}
+          href="/app/projects/workload"
+          hrefLabel={tx("dashboard.exec.link.workload", "Workload")}
+        >
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-semibold tabular-nums">{data.utilization.pct}%</span>
+            <span className="font-display text-2xl font-semibold tabular-nums">{pct(data.utilization.pct)}</span>
             <span className="text-[11px] text-muted-foreground">
-              {data.utilization.busy}/{data.utilization.members} members on tasks this week
+              {formatNumber(data.utilization.busy)}/{formatNumber(data.utilization.members)}{" "}
+              {tx("dashboard.exec.utilization.membersOnTasks", "members on tasks this week")}
             </span>
           </div>
           <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-muted">
@@ -149,31 +189,36 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
           </div>
           <div className="mt-3 space-y-1 text-[11px] text-muted-foreground">
             <div className="flex justify-between">
-              <span>Overloaded members</span>
+              <span>{tx("dashboard.exec.utilization.overloaded", "Overloaded members")}</span>
               <span className={cn("font-semibold tabular-nums", data.utilization.overloaded > 0 && "text-destructive")}>
-                {data.utilization.overloaded}
+                {formatNumber(data.utilization.overloaded)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span>Unassigned tasks (this week)</span>
+              <span>{tx("dashboard.exec.utilization.unassigned", "Unassigned tasks (this week)")}</span>
               <span className={cn("font-semibold tabular-nums", data.utilization.unassignedTasks > 0 && "text-amber-600 dark:text-amber-400")}>
-                {data.utilization.unassignedTasks}
+                {formatNumber(data.utilization.unassignedTasks)}
               </span>
             </div>
           </div>
         </Widget>
 
         {/* 4 · Win probability */}
-        <Widget icon={Percent} title="Win Probability" href="/app/opportunities" hrefLabel="Deals">
+        <Widget
+          icon={Percent}
+          title={tx("dashboard.exec.winProbability.title", "Win Probability")}
+          href="/app/opportunities"
+          hrefLabel={tx("dashboard.exec.link.deals", "Deals")}
+        >
           {data.winProbability.openDeals === 0 ? (
-            <Empty>No open deals to score.</Empty>
+            <Empty>{tx("dashboard.exec.winProbability.empty", "No open deals to score.")}</Empty>
           ) : (
             <div className="space-y-3">
               <div>
                 <div className="flex items-baseline justify-between text-xs">
-                  <span className="text-muted-foreground">Open pipeline (value-weighted)</span>
+                  <span className="text-muted-foreground">{tx("dashboard.exec.winProbability.openPipeline", "Open pipeline (value-weighted)")}</span>
                   <span className="font-display text-lg font-semibold tabular-nums">
-                    {data.winProbability.avgOpenProbability}%
+                    {pct(data.winProbability.avgOpenProbability)}
                   </span>
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
@@ -182,9 +227,9 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
               </div>
               <div>
                 <div className="flex items-baseline justify-between text-xs">
-                  <span className="text-muted-foreground">Realized win rate (closed deals)</span>
+                  <span className="text-muted-foreground">{tx("dashboard.exec.winProbability.realized", "Realized win rate (closed deals)")}</span>
                   <span className="font-display text-lg font-semibold tabular-nums">
-                    {data.winProbability.realizedWinRate}%
+                    {pct(data.winProbability.realizedWinRate)}
                   </span>
                 </div>
                 <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
@@ -192,23 +237,31 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                 </div>
               </div>
               <p className="text-[10px] text-muted-foreground">
-                {data.winProbability.openDeals} open deal{data.winProbability.openDeals === 1 ? "" : "s"} — gap between the two = optimism in stage probabilities.
+                {formatNumber(data.winProbability.openDeals)}{" "}
+                {tx("dashboard.exec.winProbability.footnote", "open deal — gap between the two = optimism in stage probabilities.")}
               </p>
             </div>
           )}
         </Widget>
 
         {/* 5 · Gross margin */}
-        <Widget icon={Warehouse} title="Gross Margin" href="/app/quotations" hrefLabel="Quotes">
+        <Widget
+          icon={Warehouse}
+          title={tx("dashboard.exec.grossMargin.title", "Gross Margin")}
+          href="/app/quotations"
+          hrefLabel={tx("dashboard.exec.link.quotes", "Quotes")}
+        >
           {data.grossMargin.quotes === 0 ? (
-            <Empty>No active quotations (sent / approval / accepted).</Empty>
+            <Empty>{tx("dashboard.exec.grossMargin.empty", "No active quotations (sent / approval / accepted).")}</Empty>
           ) : (
             <>
               <div className="flex items-baseline gap-2">
                 <span className="font-display text-2xl font-semibold tabular-nums">
-                  {data.grossMargin.avgMarginPct}%
+                  {pct(data.grossMargin.avgMarginPct)}
                 </span>
-                <span className="text-[11px] text-muted-foreground">avg across {data.grossMargin.quotes} active quotes</span>
+                <span className="text-[11px] text-muted-foreground">
+                  {tx("dashboard.exec.grossMargin.avgAcross", "avg across {quotes} active quotes", { quotes: formatNumber(data.grossMargin.quotes) })}
+                </span>
               </div>
               <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-muted">
                 <div
@@ -220,16 +273,21 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                 />
               </div>
               <p className="mt-3 text-[11px] text-muted-foreground">
-                Projected profit <span className="font-semibold text-foreground">{inr.format(data.grossMargin.totalProfit)}</span> if all active quotes close.
+                {tx("dashboard.exec.grossMargin.projectedProfit", "Projected profit {amount} if all active quotes close.", { amount: inr(data.grossMargin.totalProfit) })}
               </p>
             </>
           )}
         </Widget>
 
         {/* 6 · Project health */}
-        <Widget icon={HeartPulse} title="Project Health" href="/app/projects" hrefLabel="Projects">
+        <Widget
+          icon={HeartPulse}
+          title={tx("dashboard.exec.projectHealth.title", "Project Health")}
+          href="/app/projects"
+          hrefLabel={tx("dashboard.exec.link.projects", "Projects")}
+        >
           {healthTotal === 0 ? (
-            <Empty>No projects yet — convert a won opportunity.</Empty>
+            <Empty>{tx("dashboard.exec.projectHealth.empty", "No projects yet — convert a won opportunity.")}</Empty>
           ) : (
             <>
               <div className="flex h-2.5 overflow-hidden rounded-full bg-muted">
@@ -238,7 +296,7 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                     key={h.health}
                     className={HEALTH_COLOR[h.health]}
                     style={{ width: `${(h.count / healthTotal) * 100}%` }}
-                    title={`${HEALTH_META[h.health].label}: ${h.count}`}
+                    title={`${tx(HEALTH_KEY[h.health], HEALTH_META[h.health].label)}: ${formatNumber(h.count)}`}
                   />
                 ))}
               </div>
@@ -246,8 +304,8 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                 {data.projectHealth.map((h) => (
                   <li key={h.health} className="flex items-center gap-2 text-xs">
                     <span className={cn("h-2 w-2 rounded-full", HEALTH_COLOR[h.health])} />
-                    <span className="text-muted-foreground">{HEALTH_META[h.health].label}</span>
-                    <span className="ml-auto font-semibold tabular-nums">{h.count}</span>
+                    <span className="text-muted-foreground">{tx(HEALTH_KEY[h.health], HEALTH_META[h.health].label)}</span>
+                    <span className="ms-auto font-semibold tabular-nums">{formatNumber(h.count)}</span>
                   </li>
                 ))}
               </ul>
@@ -256,9 +314,14 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
         </Widget>
 
         {/* 7 · Duration benchmarks */}
-        <Widget icon={Ruler} title="Duration Benchmarks" href="/app/admin" hrefLabel="Config">
+        <Widget
+          icon={Ruler}
+          title={tx("dashboard.exec.durationBenchmarks.title", "Duration Benchmarks")}
+          href="/app/admin"
+          hrefLabel={tx("dashboard.exec.link.config", "Config")}
+        >
           {data.durationBenchmarks.length === 0 ? (
-            <Empty>No methodologies configured.</Empty>
+            <Empty>{tx("dashboard.exec.durationBenchmarks.empty", "No methodologies configured.")}</Empty>
           ) : (
             <div className="space-y-3">
               {data.durationBenchmarks.map((b) => {
@@ -268,13 +331,16 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                     <div className="flex items-baseline justify-between text-xs">
                       <span className="truncate">{b.methodology}</span>
                       <span className="shrink-0 text-[10px] tabular-nums text-muted-foreground">
-                        {b.projects} project{b.projects === 1 ? "" : "s"}
+                        {formatNumber(b.projects)} {tx("dashboard.exec.durationBenchmarks.projectCount", "project")}
                       </span>
                     </div>
                     <div className="mt-1 space-y-0.5">
                       <div className="flex items-center gap-1.5">
                         <div className="h-1.5 rounded-full bg-muted-foreground/40" style={{ width: `${(b.baselineWeeks / max) * 100}%` }} />
-                        <span className="text-[9px] tabular-nums text-muted-foreground">baseline {b.baselineWeeks}wk</span>
+                        <span className="text-[9px] tabular-nums text-muted-foreground">
+                          {tx("dashboard.exec.durationBenchmarks.baseline", "baseline")}{" "}
+                          {tx("common.weeksShort", "{weeks}wk", { weeks: formatNumber(b.baselineWeeks) })}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         <div
@@ -282,7 +348,14 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
                           style={{ width: `${((b.avgActualWeeks || 0) / max) * 100}%` }}
                         />
                         <span className="text-[9px] tabular-nums text-muted-foreground">
-                          {b.projects ? `planned avg ${b.avgActualWeeks}wk` : "no projects"}
+                          {b.projects ? (
+                            <>
+                              {tx("dashboard.exec.durationBenchmarks.plannedAvg", "planned avg")}{" "}
+                              {tx("common.weeksShort", "{weeks}wk", { weeks: formatNumber(b.avgActualWeeks) })}
+                            </>
+                          ) : (
+                            tx("dashboard.exec.durationBenchmarks.noProjects", "no projects")
+                          )}
                         </span>
                       </div>
                     </div>
@@ -294,11 +367,19 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
         </Widget>
 
         {/* 8 · Delivery capacity */}
-        <Widget icon={Users2} title="Delivery Capacity" href="/app/projects/workload" hrefLabel="Workload">
+        <Widget
+          icon={Users2}
+          title={tx("dashboard.exec.capacity.title", "Delivery Capacity")}
+          href="/app/projects/workload"
+          hrefLabel={tx("dashboard.exec.link.workload", "Workload")}
+        >
           <div className="flex items-baseline gap-2">
-            <span className="font-display text-2xl font-semibold tabular-nums">{data.capacity.slotsFree}</span>
+            <span className="font-display text-2xl font-semibold tabular-nums">{formatNumber(data.capacity.slotsFree)}</span>
             <span className="text-[11px] text-muted-foreground">
-              free task slots of {data.capacity.slotsTotal} ({data.capacity.members} members × 2 concurrent)
+              {tx("dashboard.exec.capacity.freeSlots", "free task slots of {slotsTotal} ({members} members × 2 concurrent)", {
+                slotsTotal: formatNumber(data.capacity.slotsTotal),
+                members: formatNumber(data.capacity.members),
+              })}
             </span>
           </div>
           <div className="mt-3 flex h-2 overflow-hidden rounded-full bg-muted">
@@ -308,12 +389,13 @@ export function ExecPanel({ data }: { data: ExecDashboardData }) {
             />
           </div>
           <p className="mt-3 text-[11px] text-muted-foreground">
-            {data.capacity.slotsUsed} slot{data.capacity.slotsUsed === 1 ? "" : "s"} in use this week ·{" "}
+            {formatNumber(data.capacity.slotsUsed)}{" "}
+            {tx("dashboard.exec.capacity.slotsInUse", "slot in use this week ·")}{" "}
             {data.capacity.pct >= 90
-              ? "at capacity — hire or reschedule before committing new work"
+              ? tx("dashboard.exec.capacity.statusFull", "at capacity — hire or reschedule before committing new work")
               : data.capacity.pct >= 70
-                ? "tightening — sequence new starts carefully"
-                : "room to take on new delivery work"}
+                ? tx("dashboard.exec.capacity.statusTight", "tightening — sequence new starts carefully")
+                : tx("dashboard.exec.capacity.statusOpen", "room to take on new delivery work")}
           </p>
         </Widget>
       </div>

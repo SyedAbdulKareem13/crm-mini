@@ -32,6 +32,14 @@ export type I18nContextValue = {
   secondaryLocale: string | null;
   /** translate: t("nav.leads") — falls back to the English source, then the key. */
   t: (key: string, vars?: Record<string, string | number>) => string;
+  /**
+   * translate-with-explicit-English-fallback: tx("chrome.searchShort", "Search").
+   * Returns the translated value when the key is present in the active bundle,
+   * otherwise the given English literal (NOT the humanized key). Use this for
+   * every hardcoded string you localize so the English UI stays perfect even
+   * before the translation rows are seeded in the database.
+   */
+  tx: (key: string, english: string, vars?: Record<string, string | number>) => string;
   /** translate into the secondary script (for bilingual headings); null if none. */
   ts: (key: string, vars?: Record<string, string | number>) => string | null;
   ready: boolean;

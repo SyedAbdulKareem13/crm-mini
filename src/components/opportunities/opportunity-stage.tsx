@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Ban, Check, Trophy, X } from "lucide-react";
 import { OPP_STAGES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import { ScrollCarousel } from "@/components/ui/scroll-carousel";
+import { useI18n } from "@/components/i18n/provider";
+import { stageKey } from "@/lib/i18n/labels";
 
 /**
  * Pipeline-stage control — a professional horizontal path stepper:
@@ -22,6 +25,12 @@ export function OpportunityStage({
   stage: string;
 }) {
   const router = useRouter();
+  const { tx, loadNamespace } = useI18n();
+  useEffect(() => {
+    loadNamespace("opportunities");
+    loadNamespace("pipeline");
+    loadNamespace("stages");
+  }, [loadNamespace]);
   const [current, setCurrent] = useState(stage);
   const [saving, setSaving] = useState(false);
 
@@ -31,7 +40,7 @@ export function OpportunityStage({
   const isLost = current === "LOST";
   const isCancelled = current === "CANCELLED";
   const isTerminal = isWon || isLost || isCancelled;
-  const currentLabel = OPP_STAGES.find((s) => s.value === current)?.label ?? current;
+  const currentLabel = tx(stageKey(current), OPP_STAGES.find((s) => s.value === current)?.label ?? current);
 
   async function change(value: string) {
     if (value === current || saving || isCancelled) return;
@@ -46,14 +55,14 @@ export function OpportunityStage({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        throw new Error(data?.error ?? "Couldn't change stage");
+        throw new Error(data?.error ?? tx("opportunities.stageChangeError", "Couldn't change stage"));
       }
-      const label = OPP_STAGES.find((s) => s.value === value)?.label ?? value;
-      toast.success(`Moved to ${label}`);
+      const label = tx(stageKey(value), OPP_STAGES.find((s) => s.value === value)?.label ?? value);
+      toast.success(tx("pipeline.movedToStage", "Moved to {stage}", { stage: label }));
       router.refresh();
     } catch (err: any) {
       setCurrent(prev);
-      toast.error(err?.message || "Couldn't change stage");
+      toast.error(err?.message || tx("opportunities.stageChangeError", "Couldn't change stage"));
     } finally {
       setSaving(false);
     }
@@ -65,7 +74,7 @@ export function OpportunityStage({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Pipeline stage
+            {tx("opportunities.pipelineStage", "Pipeline stage")}
           </span>
           <span
             className={cn(
@@ -77,7 +86,13 @@ export function OpportunityStage({
                   : "bg-blue-500/15 text-blue-600 dark:text-blue-400"
             )}
           >
-            {isWon ? "Won" : isLost ? "Lost" : isCancelled ? "Cancelled" : currentLabel}
+            {isWon
+              ? tx(stageKey("WON"), "Won")
+              : isLost
+                ? tx(stageKey("LOST"), "Lost")
+                : isCancelled
+                  ? tx(stageKey("CANCELLED"), "Cancelled")
+                  : currentLabel}
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -93,7 +108,7 @@ export function OpportunityStage({
             )}
           >
             <Trophy className="h-3.5 w-3.5" />
-            Won
+            {tx(stageKey("WON"), "Won")}
           </button>
           <button
             type="button"
@@ -107,13 +122,13 @@ export function OpportunityStage({
             )}
           >
             <X className="h-3.5 w-3.5" />
-            Lost
+            {tx(stageKey("LOST"), "Lost")}
           </button>
         </div>
       </div>
 
       {/* Horizontal path stepper — scrolls internally, never widens the page */}
-      <div className="min-w-0 overflow-x-auto pb-1">
+      <ScrollCarousel viewportClassName="min-w-0" ariaLabel={tx("opportunities.pipelineStage", "Pipeline stage")}>
         <ol className="flex min-w-max items-start">
           {TRACK.map((s, i) => {
             const done = isWon ? true : isLost || isCancelled ? i < currentIdx : i < currentIdx;
@@ -136,7 +151,7 @@ export function OpportunityStage({
                   onClick={() => change(s.value)}
                   disabled={saving || isCancelled}
                   aria-current={active ? "step" : undefined}
-                  title={`${s.label} · ${s.probability}%`}
+                  title={`${tx(stageKey(s.value), s.label)} · ${s.probability}%`}
                   className={cn(
                     "group flex w-[76px] flex-col items-center gap-1.5 rounded-lg px-1 pb-1 pt-0.5 text-center transition-colors sm:w-[86px]",
                     !isTerminal && "hover:bg-muted/50",
@@ -173,7 +188,7 @@ export function OpportunityStage({
                         active ? "text-foreground" : done ? "text-foreground/75" : "text-muted-foreground"
                       )}
                     >
-                      {s.label}
+                      {tx(stageKey(s.value), s.label)}
                     </span>
                     <span className="block text-[10px] tabular-nums text-muted-foreground/80">
                       {s.probability}%
@@ -184,15 +199,21 @@ export function OpportunityStage({
             );
           })}
         </ol>
-      </div>
+      </ScrollCarousel>
 
       {isCancelled ? (
         <p className="mt-2 text-[11px] text-muted-foreground">
-          This opportunity is cancelled and read-only — reopen it to move stages.
+          {tx(
+            "opportunities.cancelledHint",
+            "This opportunity is cancelled and read-only — reopen it to move stages."
+          )}
         </p>
       ) : (
         <p className="mt-2 hidden text-[11px] text-muted-foreground sm:block">
-          Click a stage to move the deal — configured gates apply automatically.
+          {tx(
+            "opportunities.stepperHint",
+            "Click a stage to move the deal — configured gates apply automatically."
+          )}
         </p>
       )}
     </div>

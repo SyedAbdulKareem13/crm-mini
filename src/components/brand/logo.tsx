@@ -44,10 +44,18 @@ export function Logo({
   className,
   withUrdu = true,
   size = "md",
+  crmSuiteLabel = "CRM Suite",
 }: {
   className?: string;
   withUrdu?: boolean;
   size?: "sm" | "md" | "lg";
+  /**
+   * Localized "CRM Suite" tagline. Logo is a server-safe brand component (also
+   * used on pre-auth surfaces), so it can't call the client i18n hook itself —
+   * app chrome passes the translated string in; server callers keep the English
+   * default.
+   */
+  crmSuiteLabel?: string;
 }) {
   const mark = size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-9 w-9";
   const word = size === "lg" ? "text-xl" : size === "sm" ? "text-sm" : "text-base";
@@ -70,7 +78,7 @@ export function Logo({
           ) : null}
         </span>
         <span className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          CRM Suite
+          {crmSuiteLabel}
         </span>
       </span>
     </span>

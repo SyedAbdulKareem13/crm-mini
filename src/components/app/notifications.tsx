@@ -10,6 +10,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn, formatRelativeTime } from "@/lib/utils";
+import { useI18n } from "@/components/i18n/provider";
 
 type Notification = {
   id: string;
@@ -23,6 +24,7 @@ type Notification = {
 
 export function Notifications() {
   const router = useRouter();
+  const { tx } = useI18n();
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -108,13 +110,13 @@ export function Notifications() {
           className="relative"
           aria-label={
             unreadCount > 0
-              ? `Notifications, ${unreadCount} unread`
-              : "Notifications"
+              ? tx("chrome.notifUnreadAria", "Notifications, {count} unread", { count: unreadCount })
+              : tx("common.notifications", "Notifications")
           }
         >
           <Bell className="h-4 w-4" />
           {unreadCount > 0 ? (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
+            <span className="absolute -end-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-semibold leading-none text-primary-foreground">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           ) : null}
@@ -122,14 +124,14 @@ export function Notifications() {
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
         <div className="flex items-center justify-between border-b px-4 py-3">
-          <div className="text-sm font-semibold">Notifications</div>
+          <div className="text-sm font-semibold">{tx("common.notifications", "Notifications")}</div>
           {unreadCount > 0 ? (
             <button
               onClick={markAllRead}
               className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
               <CheckCheck className="h-3.5 w-3.5" />
-              Mark all read
+              {tx("chrome.markAllRead", "Mark all read")}
             </button>
           ) : null}
         </div>
@@ -139,7 +141,7 @@ export function Notifications() {
             <div className="flex flex-col items-center justify-center gap-2 px-4 py-10 text-center">
               <Bell className="h-6 w-6 text-muted-foreground/50" />
               <p className="text-sm text-muted-foreground">
-                {loading ? "Loading…" : "You're all caught up"}
+                {loading ? tx("common.loading", "Loading…") : tx("chrome.notifEmpty", "You're all caught up")}
               </p>
             </div>
           ) : (

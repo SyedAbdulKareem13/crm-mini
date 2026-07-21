@@ -18,6 +18,8 @@ import { ThreadTimeline, ThreadHistory } from "@/components/lifecycle/thread-ins
 import { getLifecycleThread } from "@/lib/lifecycle";
 import { getModuleConfig } from "@/lib/field-config";
 import { can } from "@/lib/permissions";
+import { getServerT } from "@/lib/i18n/server";
+import { stageKey } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ export default async function OpportunityDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+  const { t: st } = await getServerT();
   const session = await auth();
   if (!session?.user?.organizationId) redirect("/login");
   const orgId = session.user.organizationId;
@@ -84,7 +87,7 @@ export default async function OpportunityDetailPage({
   return (
     <div>
       <Link href="/app/opportunities" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-        <ArrowLeft className="h-4 w-4" /> All opportunities
+        <ArrowLeft className="h-4 w-4" /> {st("opportunities.backToList", "All opportunities")}
       </Link>
 
       {thread && (
@@ -116,7 +119,7 @@ export default async function OpportunityDetailPage({
                 <div className="flex items-center gap-3">
                   <CardTitle>{opp.name}</CardTitle>
                   <Badge variant="soft">{opp.oppNumber}</Badge>
-                  <Badge variant="info">{stageLabel}</Badge>
+                  <Badge variant="info">{st(stageKey(opp.stage), stageLabel)}</Badge>
                 </div>
                 <div className="mt-1 text-sm text-muted-foreground">{opp.customer.name}</div>
               </div>
@@ -130,14 +133,14 @@ export default async function OpportunityDetailPage({
               </div>
             </CardHeader>
             <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4 text-sm">
-              <Info label="Expected revenue" value={formatCompactCurrency(Number(opp.expectedRevenue))} />
-              <Info label="Probability" value={`${opp.probability}%`} />
-              <Info label="Close date" value={formatDate(opp.expectedCloseDate)} />
-              <Info label="Stage age" value={`${Math.max(0, Math.floor((Date.now() - opp.stageEnteredAt.getTime()) / 86400000))}d`} />
-              <Info label="Owner" value={opp.owner?.name ?? "Unassigned"} />
-              <Info label="Revenue owner" value={opp.revenueOwner?.name ?? "Unassigned"} />
-              <Info label="Created" value={formatDate(opp.createdAt)} />
-              <Info label="Updated" value={formatDate(opp.updatedAt)} />
+              <Info label={st("opportunities.metricExpectedRevenue", "Expected revenue")} value={formatCompactCurrency(Number(opp.expectedRevenue))} />
+              <Info label={st("opportunities.metricProbability", "Probability")} value={`${opp.probability}%`} />
+              <Info label={st("opportunities.metricCloseDate", "Close date")} value={formatDate(opp.expectedCloseDate)} />
+              <Info label={st("opportunities.metricStageAge", "Stage age")} value={`${Math.max(0, Math.floor((Date.now() - opp.stageEnteredAt.getTime()) / 86400000))}d`} />
+              <Info label={st("opportunities.metricOwner", "Owner")} value={opp.owner?.name ?? st("common.unassigned", "Unassigned")} />
+              <Info label={st("opportunities.metricRevenueOwner", "Revenue owner")} value={opp.revenueOwner?.name ?? st("common.unassigned", "Unassigned")} />
+              <Info label={st("opportunities.metricCreated", "Created")} value={formatDate(opp.createdAt)} />
+              <Info label={st("opportunities.metricUpdated", "Updated")} value={formatDate(opp.updatedAt)} />
               {customEntries.map((e) => (
                 <Info key={e.label} label={e.label} value={e.value} />
               ))}
@@ -148,14 +151,14 @@ export default async function OpportunityDetailPage({
 
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>RFQs</CardTitle>
+              <CardTitle>{st("rfqs.sectionTitle", "RFQs")}</CardTitle>
               <Link href={`/app/rfqs/new?opportunityId=${opp.id}`}>
-                <Button size="sm" variant="outline">New RFQ</Button>
+                <Button size="sm" variant="outline">{st("rfqs.newButton", "New RFQ")}</Button>
               </Link>
             </CardHeader>
             <CardContent>
               {opp.rfqs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No RFQs yet for this opportunity.</p>
+                <p className="text-sm text-muted-foreground">{st("opportunities.noRfqs", "No RFQs yet for this opportunity.")}</p>
               ) : (
                 <ul className="space-y-2">
                   {opp.rfqs.map((r) => (
@@ -166,7 +169,7 @@ export default async function OpportunityDetailPage({
                       >
                         <div>
                           <div className="font-medium">{r.rfqNumber}</div>
-                          <div className="text-xs text-muted-foreground">Due {formatDate(r.dueDate)}</div>
+                          <div className="text-xs text-muted-foreground">{st("common.due", "Due {date}", { date: formatDate(r.dueDate) })}</div>
                         </div>
                         <Badge variant="soft">{r.status.toLowerCase().replace("_", " ")}</Badge>
                       </Link>
@@ -179,11 +182,11 @@ export default async function OpportunityDetailPage({
 
           <Card>
             <CardHeader>
-              <CardTitle>Quotations</CardTitle>
+              <CardTitle>{st("quotations.sectionTitle", "Quotations")}</CardTitle>
             </CardHeader>
             <CardContent>
               {opp.quotations.length === 0 ? (
-                <p className="text-sm text-muted-foreground">No quotations yet.</p>
+                <p className="text-sm text-muted-foreground">{st("opportunities.noQuotations", "No quotations yet.")}</p>
               ) : (
                 <ul className="space-y-2">
                   {opp.quotations.map((q) => (
@@ -216,7 +219,7 @@ export default async function OpportunityDetailPage({
         <div className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Customer</CardTitle>
+              <CardTitle>{st("opportunities.customerPanelTitle", "Customer")}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="font-medium">{opp.customer.name}</div>
