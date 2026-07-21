@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-export function LoginCard() {
+export function LoginCard({ googleEnabled = false }: { googleEnabled?: boolean }) {
   const router = useRouter();
   const search = useSearchParams();
   const callback = search.get("from") ?? "/app";
@@ -20,10 +20,10 @@ export function LoginCard() {
 
   async function handleGoogle() {
     try {
-      const res = await signIn("google", { callbackUrl: callback, redirect: false });
-      if (res?.error) throw new Error(res.error);
+      // OAuth must actually redirect — redirect:false silently swallows it.
+      await signIn("google", { callbackUrl: callback });
     } catch {
-      toast.error("Google sign-in isn't configured yet — use email or OTP.");
+      toast.error("Google sign-in failed — use email or OTP.");
     }
   }
 
@@ -87,19 +87,19 @@ export function LoginCard() {
           Welcome back — let&apos;s pick up where you left off.
         </p>
 
-        <Button
-          variant="glass"
-          className="mt-6 w-full"
-          onClick={handleGoogle}
-        >
-          <GoogleLogo /> Continue with Google
-        </Button>
-
-        <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
-          <span className="h-px flex-1 bg-border" />
-          or
-          <span className="h-px flex-1 bg-border" />
-        </div>
+        {googleEnabled && (
+          <>
+            <Button variant="glass" className="mt-6 w-full" onClick={handleGoogle}>
+              <GoogleLogo /> Continue with Google
+            </Button>
+            <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-muted-foreground">
+              <span className="h-px flex-1 bg-border" />
+              or
+              <span className="h-px flex-1 bg-border" />
+            </div>
+          </>
+        )}
+        {!googleEnabled && <div className="mt-6" />}
 
         <Tabs defaultValue="password">
           <TabsList className="grid w-full grid-cols-2">

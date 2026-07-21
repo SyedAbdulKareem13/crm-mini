@@ -77,16 +77,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       async authorize(creds) {
         const parsed = otpSchema.safeParse(creds);
         if (!parsed.success) return null;
+        // Same normalization as the issue route: emails lowercase, all trimmed.
+        const identifier = parsed.data.identifier.includes("@")
+          ? parsed.data.identifier.trim().toLowerCase()
+          : parsed.data.identifier.trim();
+        const code = parsed.data.code.trim();
         const token = await prisma.otpToken.findFirst({
           where: {
-            identifier: parsed.data.identifier,
+            identifier,
             consumed: false,
             expires: { gt: new Date() },
           },
           orderBy: { createdAt: "desc" },
         });
         if (!token) return null;
-        const ok = await bcrypt.compare(parsed.data.code, token.code);
+        const ok = await bcrypt.compare(code, token.code);
         if (!ok) return null;
         await prisma.otpToken.update({
           where: { id: token.id },
@@ -95,13 +100,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user =
           (await prisma.user.findFirst({
             where: {
-              OR: [
-                { email: parsed.data.identifier },
-                { mobile: parsed.data.identifier },
-              ],
+              OR: [{ email: identifier }, { mobile: identifier }],
             },
           })) ?? null;
-        if (!user) return null;
+        if (!user || user.isActive === false) return null;
         return { id: user.id, email: user.email, name: user.name, image: user.image };
       },
     }),
