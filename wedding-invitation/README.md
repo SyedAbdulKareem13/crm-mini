@@ -1,6 +1,6 @@
 # Dharani & Barath — Cinematic Wedding Invitation
 
-A Tamil wedding told as a scroll-driven digital story: a brass *kuthuvilakku* lit in 3D, kolams that draw themselves, silk curtains, a golden thread that becomes a ring, a lamp and a temple, and a lotus that blooms at the end.
+A Tamil wedding told as a scroll-driven digital story: a brass *kuthuvilakku* lit in 3D, kolams that draw themselves, silk curtains, paper-cut portraits of the couple, a golden thread that winds through two days of ceremony, and a lotus that blooms at the end. Scenes stack like cards, each one sliding over the last.
 
 **Dates:** 24 – 25 October 2026 · **Engagement & Reception:** SGS Mahal, Palladam · **Muhurtham:** Konganagiri Murugan Temple, Tirupur
 
@@ -40,8 +40,9 @@ Everything guest-facing lives in **`src/data/wedding.ts`** — names (English + 
 Things you will probably want to touch:
 
 - `couple.bride.parents` / `couple.groom.parents` — e.g. `"Daughter of Mr. & Mrs. …"`. Empty hides the line.
-- `couple.*.photo` — drop portraits into `public/photos/` and set `"/photos/dharani.jpg"`. They are clipped inside the temple-arch frame automatically. Without photos the frame shows a gold monogram.
+- `couple.*.photo` — drop portraits into `public/photos/` and set `"/photos/dharani.jpg"`. They are clipped inside the temple-arch frame automatically. **Without photos** the frames show hand-drawn paper-cut profiles of the bride (kondai with jasmine, jhumka, bindi, nethi chutti, saree zari) and groom (angavastram, thilakam) facing each other, with a small monogram seal — so the invitation is complete with or without photography.
 - `events[0].venue` — the engagement venue is `null` (shows *Venue to be announced*) until you confirm it.
+- `events[*].moments` — the rituals listed on each programme card (Thamboolam exchange, Mangalya dharanam, …). Edit freely; `days` holds the two day-chapter headings.
 - `audio.src` — add `public/audio/ambient.mp3` and set `"/audio/ambient.mp3"`; a sound toggle appears, muted by default, and only plays after a tap.
 - `wishes.whatsapp` — a number like `"9198xxxxxxxx"` adds a *Send your wishes* button in the finale.
 
@@ -70,22 +71,25 @@ src/
     three/             LampScene (R3F: lathe brass lamp, additive flame sprites, gold-dust shader, camera rig)
     couple/            Two Hearts — arch portraits, peacock feathers, jasmine strand, 3D tilt
     story/             A New Chapter — pinned Tamil quote lit word by word behind silk curtains
-    timeline/          The Celebration — golden thread that draws with the scroll; unfolding cards
+    timeline/          The Celebration — two day chapters on a serpentine golden thread that draws itself with
+                       a travelling lamp-light bead; ritual moments, time-of-day accents, calendar + maps
     venues/            Reception (string lights, location card), Sacred (arch mask, parallax gopuram,
                        countdown), LocationCard (stylised map → live map)
     finale/            Together — gathering light, blooming lotus, names, blessing, share
     effects/           SmoothScroll (Lenis), Petals (canvas particles), CursorGlow, SceneNav
-    art/               Kolam, Gopuram, Lamp2D, Thoranam, Jasmine, Peacock, Lotus, Bells, ArchFrame, Motifs
+    art/               Kolam, Gopuram, Lamp2D, Thoranam, Jasmine, Peacock, Lotus, Bells, ArchFrame, Silhouette, Motifs
     ui/                Button (magnetic), Countdown (flip digits), FloatingControls, Icons, ScrollIndicator
 ```
 
 ## Animation architecture
 
-- **Scenes, not sections.** Each world is a `<section data-scene>` with its own surface (`silk-ivory`, `silk-maroon`, `temple-stone`). Pinned scenes (`Hero`, `Story`, `Finale`) use `position: sticky` inside a tall wrapper and a scrubbed GSAP timeline, so they work with Lenis and never fight the browser.
-- **Transitions are part of the scene.** Hero → Couple is a gold *light sweep* that dissolves into ivory dawn; Couple → Story is a pair of *silk curtains* opening; Story → Celebration fires a *petal burst*; Reception → Sacred opens an *arch mask* (`mask-size` scrubbed via a CSS variable); Sacred → Finale switches the particle field to *gather* mode.
+- **Scenes, not sections.** Each world is a `<section data-scene class="scene">` with its own surface (`silk-ivory`, `silk-maroon`, `temple-stone`). Pinned scenes (`Hero`, `Story`, `Finale`) use `position: sticky` inside a tall wrapper and a scrubbed GSAP timeline, so they work with Lenis and never fight the browser.
+- **The scene deck** (`effects/SceneStack.tsx`). When a scene's bottom reaches the bottom of the viewport it is pinned (no extra scroll distance) while the next scene slides over it as a rounded card with a gold hairline. The covered scene recedes — scaling to 0.965 and dimming under a `.scene-veil` — and the incoming scene's content drifts in a beat behind its card. This is what makes every boundary feel liquid instead of a hard edge.
+- **Transitions are part of the scene.** The hero's lamp keeps burning beneath the ivory Couple card as it arrives; Couple → Story is a pair of *silk curtains* opening; Story → Celebration fires a *petal burst*; Reception → Sacred opens an *arch mask* (`mask-size` scrubbed via a CSS variable); Sacred → Finale switches the particle field to *gather* mode.
 - **Everything drawable draws.** Any SVG stroke marked `data-draw` can be revealed with `drawStrokes()` (`animations/draw.ts`), which measures `getTotalLength()` and tweens `stroke-dashoffset`. Kolams, the gopuram, arch frames, motifs and flourishes all use it.
 - **The 3D hero is driven by two refs.** `lit` (0→1, the opening timeline) and `progress` (0→1, scroll through the pinned hero) are plain refs read inside `useFrame`, so React never re-renders during animation. The canvas pauses (`frameloop="never"`) when the hero leaves the viewport.
 - **Particles are one global canvas** (`effects/Petals.tsx`). Scenes talk to it through `petals({ type: "burst" | "mode" | "density" })` window events; it reacts to pointer velocity and scroll gusts.
+- **Smoothness budget.** No `backdrop-filter`, no `mix-blend-mode` on full-screen layers, no `filter: blur()` on large elements, no animated `text-shadow`. Big decorative SVGs sit on their own compositor layer (`.art-layer`), and looping SVG animations pause when their scene is off-screen (`.in-view`). Lenis runs at `lerp 0.07` and scrubbed timelines use ≈1s of smoothing.
 - **Reduced motion is honoured everywhere.** With `prefers-reduced-motion: reduce`, pins unpin, scrubs are skipped, strokes render complete, particles and the 3D scene are replaced by the illustrated lamp.
 
 ## Adaptive quality

@@ -11,6 +11,7 @@ import { IconCalendar } from "@/components/ui/Icons";
 import { Lamp2D } from "@/components/art/Lamp2D";
 import { riseIn } from "@/animations/reveal";
 import { onceInView } from "@/animations/scroll";
+import { SceneVeil } from "@/components/effects/SceneStack";
 
 /** A string of hanging lamps across the top of the evening */
 function StringLights() {
@@ -76,7 +77,7 @@ export function Reception() {
   );
 
   return (
-    <section ref={root} id="reception" data-scene aria-labelledby="reception-title" className="relative overflow-hidden bg-[linear-gradient(180deg,#120507_0%,#2a0b12_28%,#3a0a12_60%,#1a0709_100%)] pb-[16vh] pt-[18vh] text-ivory">
+    <section ref={root} id="reception" data-scene aria-labelledby="reception-title" className="scene relative bg-[linear-gradient(180deg,#120507_0%,#2a0b12_28%,#3a0a12_60%,#1a0709_100%)] pb-[16vh] pt-[18vh] text-ivory">
       <StringLights />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_100%,rgba(184,85,47,0.22),transparent_70%)]" aria-hidden />
 
@@ -117,6 +118,7 @@ export function Reception() {
         <Lamp2D className="h-44 w-auto" />
         <Lamp2D className="h-44 w-auto" />
       </div>
+      <SceneVeil />
     </section>
   );
 }

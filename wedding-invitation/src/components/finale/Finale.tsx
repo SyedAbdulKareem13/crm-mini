@@ -14,6 +14,7 @@ import { IconArrowUp, IconCheck, IconCopy, IconWhatsApp } from "@/components/ui/
 import { petals } from "@/components/effects/Petals";
 import { scrollToTarget } from "@/components/effects/SmoothScroll";
 import { showStrokes } from "@/animations/draw";
+import { SceneVeil } from "@/components/effects/SceneStack";
 
 function Chars({ text, className }: { text: string; className?: string }) {
   return (
@@ -84,10 +85,10 @@ export function Finale() {
   const shareWa = whatsappUrl(`${wedding.share.text}\n${typeof window !== "undefined" ? window.location.href : ""}`.trim());
 
   return (
-    <section ref={root} id="finale" data-scene aria-labelledby="finale-title" className={reducedMotion ? "relative" : "relative h-[210vh]"}>
+    <section ref={root} id="finale" data-scene aria-labelledby="finale-title" className={reducedMotion ? "scene relative" : "scene relative h-[210vh]"}>
       <div className="sticky top-0 h-[100svh] overflow-hidden bg-[radial-gradient(80%_70%_at_50%_60%,#4a0f1c_0%,#2a0810_45%,#120507_100%)]">
         <div className="fin-light pointer-events-none absolute inset-0 bg-[radial-gradient(45%_45%_at_50%_58%,rgba(255,180,80,0.32),rgba(122,27,46,0.1)_45%,transparent_70%)]" aria-hidden />
-        <Kolam hairline strokeWidth={1} className="fin-kolam pointer-events-none absolute left-1/2 top-1/2 w-[130vmax] -translate-x-1/2 -translate-y-1/2 text-gold/[0.12]" />
+        <Kolam hairline strokeWidth={1} className="fin-kolam art-layer pointer-events-none absolute left-1/2 top-1/2 w-[112vmax] -translate-x-1/2 -translate-y-1/2 text-gold/[0.12]" />
 
         <JasmineStrand className="fin-strand pointer-events-none absolute left-[4vw] top-0 hidden h-[70svh] w-16 md:block" count={14} />
         <JasmineStrand className="fin-strand pointer-events-none absolute right-[4vw] top-0 hidden h-[70svh] w-16 -scale-x-100 md:block" count={14} />
@@ -133,6 +134,7 @@ export function Finale() {
           </button>
         </div>
       </div>
+      <SceneVeil />
     </section>
   );
 }

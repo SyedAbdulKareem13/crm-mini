@@ -7,6 +7,7 @@
  */
 
 export type Motif = "ring" | "lamp" | "temple";
+export type Tone = "morning" | "evening" | "dawn";
 
 export interface Venue {
   name: string;
@@ -32,6 +33,12 @@ export interface WeddingEvent {
   /** null → the card shows “Venue to be announced” */
   venue: Venue | null;
   description: string;
+  /** which day of the celebration (see `days`) */
+  day: 1 | 2;
+  /** time-of-day accent used by the programme */
+  tone: Tone;
+  /** the rituals / moments guests will witness */
+  moments: readonly string[];
 }
 
 export const wedding = {
@@ -76,6 +83,11 @@ export const wedding = {
     lineTamil: "எங்கள் திருமண விழாவிற்கு உங்களை அன்புடன் அழைக்கிறோம்",
   },
 
+  days: [
+    { n: 1, label: "Day One", tamil: "முதல் நாள்", dateLabel: "Saturday, 24 October 2026" },
+    { n: 2, label: "Day Two", tamil: "இரண்டாம் நாள்", dateLabel: "Sunday, 25 October 2026" },
+  ],
+
   events: [
     {
       id: "engagement",
@@ -91,6 +103,9 @@ export const wedding = {
       // venue: { name: "SGS Mahal", tamil: "எஸ்.ஜி.எஸ். மஹால்", city: "Palladam", cityTamil: "பல்லடம்", mapsQuery: "SGS Mahal, Palladam" },
       venue: null,
       description: "Rings exchanged, promises made — the morning our two families become one.",
+      day: 1,
+      tone: "morning",
+      moments: ["Thamboolam exchange", "Ring ceremony", "Blessings of the elders"],
     },
     {
       id: "reception",
@@ -110,6 +125,9 @@ export const wedding = {
         mapsQuery: "SGS Mahal, Palladam, Tamil Nadu",
       },
       description: "An evening of lamps, music and laughter — come dine and dance with us.",
+      day: 1,
+      tone: "evening",
+      moments: ["Couple’s entry", "Dinner", "Music & celebrations"],
     },
     {
       id: "wedding",
@@ -130,6 +148,9 @@ export const wedding = {
         mapsQuery: "Konganagiri Murugan Temple, Tirupur, Tamil Nadu",
       },
       description: "The sacred thread is tied at the auspicious hour, before Lord Murugan and our elders.",
+      day: 2,
+      tone: "dawn",
+      moments: ["Kanyadanam", "Mangalya dharanam — tying of the thali", "Aarti & blessings"],
     },
   ] as WeddingEvent[],
 

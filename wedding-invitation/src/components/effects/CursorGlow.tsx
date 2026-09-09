@@ -51,8 +51,7 @@ export function CursorGlow() {
         aria-hidden
         className="pointer-events-none fixed left-0 top-0 z-[45] h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0"
         style={{
-          background: "radial-gradient(circle, rgba(232,207,138,0.22) 0%, rgba(201,162,74,0.10) 30%, rgba(201,162,74,0) 70%)",
-          mixBlendMode: "screen",
+          background: "radial-gradient(circle, rgba(232,207,138,0.16) 0%, rgba(201,162,74,0.07) 32%, rgba(201,162,74,0) 70%)",
           willChange: "transform",
         }}
       />

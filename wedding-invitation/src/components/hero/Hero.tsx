@@ -13,6 +13,7 @@ import { Flourish } from "@/components/art/Motifs";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { drawStrokes, showStrokes } from "@/animations/draw";
 import { riseIn, unfoldChars } from "@/animations/reveal";
+import { SceneVeil } from "@/components/effects/SceneStack";
 
 const LampScene = dynamic(() => import("@/components/three/LampScene"), { ssr: false });
 
@@ -62,7 +63,7 @@ export function Hero() {
   useEffect(() => {
     const el = section.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setActive(e.isIntersecting), { rootMargin: "20% 0px" });
+    const io = new IntersectionObserver(([e]) => { if (!e.isIntersecting) setActive(false); }, { rootMargin: "20% 0px" });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -72,7 +73,6 @@ export function Hero() {
     () => {
       const q = gsap.utils.selector(sticky);
       gsap.set(q("[data-reveal]"), { autoAlpha: 0 });
-      gsap.set(q(".hero-dawn"), { autoAlpha: 0 });
     },
     { scope: sticky },
   );
@@ -139,14 +139,23 @@ export function Hero() {
         scrollTrigger: { trigger: section.current, start: "top top", end: "bottom bottom", scrub: 0.7 },
         defaults: { ease: "none" },
       });
-      tl.to(q(".hero-copy"), { yPercent: -28, scale: 1.06, autoAlpha: 0, duration: 0.45 }, 0)
+      tl.to(q(".hero-copy"), { yPercent: -26, scale: 1.05, autoAlpha: 0, duration: 0.5 }, 0)
         .to(q(".hero-scroll"), { autoAlpha: 0, duration: 0.12 }, 0)
-        .to(q(".hero-kolam"), { scale: 1.5, rotate: 18, autoAlpha: 0, duration: 0.6 }, 0.05)
-        .to(q(".hero-gopuram"), { yPercent: 14, scale: 1.12, autoAlpha: 0.25, duration: 0.8 }, 0)
-        .fromTo(q(".hero-sweep"), { xPercent: -130, autoAlpha: 0 }, { xPercent: 130, autoAlpha: 1, duration: 0.38 }, 0.52)
-        .to(q(".hero-canvas, .hero-fallback"), { autoAlpha: 0, duration: 0.22 }, 0.74)
-        .to(q(".hero-dawn"), { autoAlpha: 1, duration: 0.24 }, 0.72)
-        .fromTo(q(".dawn-kolam"), { scale: 0.7, rotate: -16 }, { scale: 1.04, rotate: 0, duration: 0.28 }, 0.72);
+        .to(q(".hero-kolam"), { scale: 1.45, rotate: 16, autoAlpha: 0, duration: 0.7 }, 0.05)
+        .to(q(".hero-gopuram"), { yPercent: 16, scale: 1.1, autoAlpha: 0.2, duration: 1 }, 0)
+        .fromTo(q(".hero-sweep"), { xPercent: -130, autoAlpha: 0 }, { xPercent: 130, autoAlpha: 0.55, duration: 0.45 }, 0.5);
+
+      // the lamp keeps burning beneath the next card until it is fully covered, then rests
+      // (resolved on document — selector strings inside this hook are scoped to the hero)
+      const nextScene = document.getElementById("couple");
+      if (nextScene) {
+        ScrollTrigger.create({
+          trigger: nextScene,
+          start: "top 12%",
+          onEnter: () => setActive(false),
+          onLeaveBack: () => setActive(true),
+        });
+      }
     },
     { dependencies: [reducedMotion], scope: section },
   );
@@ -155,7 +164,7 @@ export function Hero() {
   const groom = wedding.couple.groom;
 
   return (
-    <section ref={section} id="opening" data-scene aria-labelledby="hero-title" className={reducedMotion ? "relative h-[100svh]" : "relative h-[175svh] md:h-[200vh]"}>
+    <section ref={section} id="opening" data-scene aria-labelledby="hero-title" className={reducedMotion ? "scene relative h-[100svh]" : "scene relative h-[175svh] md:h-[200vh]"}>
       <div ref={sticky} className="sticky top-0 h-[100svh] overflow-hidden bg-night">
         {/* atmosphere */}
         <div className="hero-glow absolute inset-0 opacity-0" aria-hidden>
@@ -164,13 +173,13 @@ export function Hero() {
         </div>
 
         {/* distant temple */}
-        <div className="hero-gopuram absolute inset-x-0 bottom-[8%] flex justify-center opacity-0" aria-hidden>
+        <div className="hero-gopuram art-layer absolute inset-x-0 bottom-[8%] flex justify-center opacity-0" aria-hidden>
           <Gopuram variant="silhouette" className="w-[min(140vw,1100px)] max-w-none opacity-80" />
           <div className="absolute inset-x-0 bottom-0 h-1/2 bg-[linear-gradient(180deg,transparent,rgba(18,5,7,0.9))]" />
         </div>
 
         {/* kolam behind the lamp */}
-        <div className="hero-kolam absolute left-1/2 top-[62%] w-[min(120vw,880px)] -translate-x-1/2 -translate-y-1/2 text-gold/45 opacity-0" aria-hidden>
+        <div className="hero-kolam art-layer absolute left-1/2 top-[62%] w-[min(120vw,880px)] -translate-x-1/2 -translate-y-1/2 text-gold/45 opacity-0" aria-hidden>
           <Kolam hairline strokeWidth={1.2} className="w-full" />
         </div>
 
@@ -226,11 +235,9 @@ export function Hero() {
         </div>
 
         {/* transition layers */}
-        <div className="hero-sweep pointer-events-none absolute inset-y-0 left-0 w-[70vw] opacity-0 bg-[linear-gradient(100deg,transparent,rgba(243,228,189,0.55)_45%,rgba(232,207,138,0.9)_50%,rgba(243,228,189,0.55)_55%,transparent)] blur-[2px]" aria-hidden />
-        <div className="hero-dawn pointer-events-none absolute inset-0 silk-ivory opacity-0" aria-hidden>
-          <Kolam hairline strokeWidth={1} className="dawn-kolam absolute left-1/2 top-1/2 w-[min(110vw,820px)] -translate-x-1/2 -translate-y-1/2 text-gold/30" />
-        </div>
+        <div className="hero-sweep pointer-events-none absolute inset-y-0 left-0 w-[70vw] opacity-0 bg-[linear-gradient(100deg,transparent,rgba(243,228,189,0.22)_42%,rgba(232,207,138,0.5)_50%,rgba(243,228,189,0.22)_58%,transparent)]" aria-hidden />
       </div>
+      <SceneVeil />
     </section>
   );
 }

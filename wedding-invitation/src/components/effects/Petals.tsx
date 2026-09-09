@@ -27,7 +27,7 @@ export function petals(ev: PetalsEvent) {
   window.dispatchEvent(new CustomEvent<PetalsEvent>("petals", { detail: ev }));
 }
 
-const COUNT: Record<string, number> = { high: 64, medium: 36, low: 0 };
+const COUNT: Record<string, number> = { high: 44, medium: 24, low: 0 };
 
 /**
  * Global particle language — jasmine petals, gold dust, the occasional rose petal.
@@ -72,7 +72,7 @@ export function Petals() {
         x: x ?? rand(-40, w + 40),
         y: y ?? (burst ? rand(0, h) : rand(-h * 0.2, -10)),
         vx: burst ? rand(-2.4, 2.4) : rand(-0.15, 0.15),
-        vy: burst ? rand(-2.6, 0.6) : gold ? rand(0.08, 0.22) : rand(0.28, 0.62),
+        vy: burst ? rand(-2.4, 0.5) : gold ? rand(0.05, 0.14) : rand(0.16, 0.4),
         rot: rand(0, Math.PI * 2),
         vrot: rand(-0.012, 0.012),
         size: gold ? rand(1.2, 2.6) : kind === "rose" ? rand(7, 11) : rand(5, 9.5),
@@ -183,10 +183,10 @@ export function Petals() {
 
         p.vx = (p.vx + ax * dt) * 0.985;
         p.vy = (p.vy + ay * dt) * (mode === "gather" ? 0.96 : 0.995);
-        if (p.life >= 1 && mode !== "gather") p.vy = Math.max(p.vy, gold ? 0.06 : 0.22);
+        if (p.life >= 1 && mode !== "gather") p.vy = Math.max(p.vy, gold ? 0.04 : 0.14);
 
-        p.x += p.vx * dt * 1.4;
-        p.y += p.vy * dt * 1.4;
+        p.x += p.vx * dt * 1.15;
+        p.y += p.vy * dt * 1.15;
         p.rot += p.vrot * dt + p.vx * 0.004;
 
         if (p.life < 1) {

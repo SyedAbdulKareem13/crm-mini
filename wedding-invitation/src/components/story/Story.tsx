@@ -8,6 +8,7 @@ import { words } from "@/lib/utils";
 import { Kolam } from "@/components/art/Kolam";
 import { Lamp2D } from "@/components/art/Lamp2D";
 import { petals } from "@/components/effects/Petals";
+import { SceneVeil } from "@/components/effects/SceneStack";
 
 /**
  * Pinned quote scene: silk curtains part, the Tamil line is lit word by word
@@ -40,11 +41,7 @@ export function Story() {
         .fromTo(q(".story-kolam"), { scale: 1.25, rotate: -12, autoAlpha: 0 }, { scale: 1, rotate: 24, autoAlpha: 1, duration: 0.9 }, 0.02)
         .to(q(".story-eyebrow"), { autoAlpha: 1, y: 0, duration: 0.08 }, 0.14)
         .to(q(".story-lamp"), { autoAlpha: 1, y: 0, duration: 0.1 }, 0.16)
-        .to(
-          q(".story-word"),
-          { color: "rgba(246,231,185,1)", textShadow: "0 0 26px rgba(232,207,138,0.5)", duration: 0.07, stagger: 0.055, ease: "power1.inOut" },
-          0.2,
-        )
+        .to(q(".story-word"), { color: "rgba(246,231,185,1)", duration: 0.07, stagger: 0.055, ease: "power1.inOut" }, 0.2)
         .to(q(".story-en"), { autoAlpha: 1, y: 0, duration: 0.1 }, 0.66)
         .to(q(".story-stage"), { autoAlpha: 0.15, scale: 0.98, duration: 0.14 }, 0.86);
     },
@@ -54,10 +51,10 @@ export function Story() {
   const line = words(wedding.quotes.story.ta);
 
   return (
-    <section ref={root} id="story" data-scene aria-labelledby="story-title" className={reducedMotion ? "relative" : "relative h-[280vh]"}>
+    <section ref={root} id="story" data-scene aria-labelledby="story-title" className={reducedMotion ? "scene relative" : "scene relative h-[280vh]"}>
       <div className="sticky top-0 h-[100svh] overflow-hidden silk-maroon">
         <div className="story-stage absolute inset-0">
-          <Kolam hairline strokeWidth={1} className="story-kolam absolute left-1/2 top-1/2 w-[150vmax] -translate-x-1/2 -translate-y-1/2 text-gold/[0.14]" />
+          <Kolam hairline strokeWidth={1} className="story-kolam art-layer absolute left-1/2 top-1/2 w-[118vmax] -translate-x-1/2 -translate-y-1/2 text-gold/[0.14]" />
           <div className="absolute inset-0 vignette" />
 
           <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
@@ -67,7 +64,7 @@ export function Story() {
             <h2 id="story-title" className="sr-only">
               {wedding.quotes.story.en}
             </h2>
-            <p className="tamil mt-8 max-w-5xl text-[clamp(1.55rem,4.4vw,3.5rem)] leading-[1.7] text-champagne" aria-hidden>
+            <p className="tamil mt-8 max-w-5xl text-[clamp(1.55rem,4.4vw,3.5rem)] leading-[1.7] text-champagne [text-shadow:0_0_28px_rgba(232,207,138,0.22)]" aria-hidden>
               {line.map((w, i) => (
                 <span key={i} className="story-word mx-[0.16em] inline-block">
                   {w}
@@ -88,6 +85,7 @@ export function Story() {
           <div className="absolute inset-y-0 left-0 w-[3px] bg-linear-to-b from-gold-deep via-gold-light to-gold-deep" />
         </div>
       </div>
+      <SceneVeil />
     </section>
   );
 }

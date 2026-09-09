@@ -6,8 +6,8 @@ import { gsap } from "@/lib/gsap";
 export function riseIn(targets: gsap.TweenTarget, vars: gsap.TweenVars = {}) {
   return gsap.fromTo(
     targets,
-    { autoAlpha: 0, y: 40, filter: "blur(10px)" },
-    { autoAlpha: 1, y: 0, filter: "blur(0px)", duration: 1.4, ease: "cine", stagger: 0.08, ...vars },
+    { autoAlpha: 0, y: 36 },
+    { autoAlpha: 1, y: 0, duration: 1.6, ease: "expo.out", stagger: 0.09, ...vars },
   );
 }
 
@@ -24,8 +24,8 @@ export function unfoldChars(targets: gsap.TweenTarget, vars: gsap.TweenVars = {}
 export function illuminateWords(targets: gsap.TweenTarget, vars: gsap.TweenVars = {}) {
   return gsap.fromTo(
     targets,
-    { color: "rgba(232,207,138,0.18)", textShadow: "0 0 0 rgba(232,207,138,0)" },
-    { color: "rgba(246,231,185,1)", textShadow: "0 0 24px rgba(232,207,138,0.45)", duration: 0.6, ease: "none", stagger: 0.12, ...vars },
+    { color: "rgba(232,207,138,0.18)" },
+    { color: "rgba(246,231,185,1)", duration: 0.6, ease: "none", stagger: 0.12, ...vars },
   );
 }
 

@@ -17,6 +17,7 @@ import { drawStrokes, prepareDraw, showStrokes } from "@/animations/draw";
 import { onceInView } from "@/animations/scroll";
 import { riseIn } from "@/animations/reveal";
 import { petals } from "@/components/effects/Petals";
+import { SceneVeil } from "@/components/effects/SceneStack";
 
 /**
  * The Sacred Moment — an arch opens onto a temple drawn in gold light.
@@ -83,7 +84,7 @@ export function Sacred() {
   );
 
   return (
-    <section ref={root} id="sacred" data-scene aria-labelledby="sacred-title" className="temple-stone relative overflow-hidden text-ivory">
+    <section ref={root} id="sacred" data-scene aria-labelledby="sacred-title" className="scene temple-stone relative text-ivory">
       {/* Arch reveal — a doorway opening into the temple */}
       <div
         className="arch-mask relative"
@@ -107,7 +108,7 @@ export function Sacred() {
           <div className="layer-glow pointer-events-none absolute inset-0 bg-[radial-gradient(45%_40%_at_50%_62%,rgba(255,170,70,0.28),transparent_70%)]" aria-hidden />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_100%,rgba(139,90,43,0.35),transparent_70%)]" aria-hidden />
 
-          <div className="layer-gopuram pointer-events-none absolute inset-x-0 bottom-[-6vh] flex justify-center md:bottom-[-10vh]" aria-hidden>
+          <div className="layer-gopuram art-layer pointer-events-none absolute inset-x-0 bottom-[-6vh] flex justify-center md:bottom-[-10vh]" aria-hidden>
             <Gopuram variant="line" strokeWidth={1.4} className="gopuram w-[min(110vw,780px)] max-w-none text-gold/60 drop-shadow-[0_0_18px_rgba(232,207,138,0.3)]" />
           </div>
 
@@ -168,6 +169,7 @@ export function Sacred() {
       <p className="sr-only">
         {wedding.couple.display} wedding on {ev.dateLabel}, {ev.timeLabel}, at {ev.venue!.name}, {ev.venue!.city}.
       </p>
+      <SceneVeil />
     </section>
   );
 }

@@ -15,6 +15,7 @@ import { Divider } from "@/components/art/Motifs";
 import { drawStrokes, prepareDraw, showStrokes } from "@/animations/draw";
 import { riseIn, unfoldChars } from "@/animations/reveal";
 import { onceInView } from "@/animations/scroll";
+import { SceneVeil } from "@/components/effects/SceneStack";
 
 interface Person {
   name: string;
@@ -51,7 +52,7 @@ function Panel({ person, side, label, ta }: { person: Person; side: "left" | "ri
         <PeacockFeather
           className={`feather pointer-events-none absolute -top-10 h-64 w-auto opacity-0 ${side === "left" ? "-left-14 -rotate-[22deg]" : "-right-14 rotate-[22deg] -scale-x-100"}`}
         />
-        <ArchFrame monogram={person.initial} photo={person.photo || undefined} alt={person.name} className="arch relative w-full drop-shadow-[0_36px_50px_rgba(42,26,20,0.28)]" />
+        <ArchFrame monogram={person.initial} photo={person.photo || undefined} figure={side === "left" ? "bride" : "groom"} alt={person.name} className="arch relative w-full drop-shadow-[0_36px_50px_rgba(42,26,20,0.28)]" />
       </motion.div>
 
       <div className="mt-8 text-center">
@@ -93,11 +94,12 @@ export function Couple() {
 
       onceInView(q(".couple-grid")[0], () => {
         const tl = gsap.timeline({ defaults: { ease: "cine" } });
-        tl.fromTo(q(".panel-left .arch"), { autoAlpha: 0, x: -90, rotateY: 28, filter: "blur(14px)" }, { autoAlpha: 1, x: 0, rotateY: 0, filter: "blur(0px)", duration: 1.7 }, 0)
-          .fromTo(q(".panel-right .arch"), { autoAlpha: 0, x: 90, rotateY: -28, filter: "blur(14px)" }, { autoAlpha: 1, x: 0, rotateY: 0, filter: "blur(0px)", duration: 1.7 }, 0.15)
+        tl.fromTo(q(".panel-left .arch"), { autoAlpha: 0, x: -90, rotateY: 28 }, { autoAlpha: 1, x: 0, rotateY: 0, duration: 1.9, ease: "expo.out" }, 0)
+          .fromTo(q(".panel-right .arch"), { autoAlpha: 0, x: 90, rotateY: -28 }, { autoAlpha: 1, x: 0, rotateY: 0, duration: 1.9, ease: "expo.out" }, 0.15)
           .add(drawStrokes(q(".panel-left .arch")[0], { duration: 2.2, stagger: 0.05 }), 0.5)
           .add(drawStrokes(q(".panel-right .arch")[0], { duration: 2.2, stagger: 0.05 }), 0.65)
-          .fromTo(q("[data-monogram]"), { scale: 0.6, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 1.4, ease: "back.out(1.4)", stagger: 0.15 }, 1.1)
+          .fromTo(q("[data-figure]"), { autoAlpha: 0, y: 26, transformOrigin: "50% 100%" }, { autoAlpha: 1, y: 0, duration: 1.8, ease: "expo.out", stagger: 0.15 }, 0.7)
+          .fromTo(q("[data-monogram]"), { scale: 0.6, autoAlpha: 0, transformOrigin: "50% 50%" }, { scale: 1, autoAlpha: 1, duration: 1.4, ease: "back.out(1.4)", stagger: 0.15 }, 1.3)
           .to(q(".feather"), { autoAlpha: 0.8, duration: 1.6, stagger: 0.2 }, 1.2)
           .to(q(".strand"), { clipPath: "inset(0 0 0% 0)", duration: 2.2, ease: "power2.inOut" }, 0.6)
           .to(q(".panel-copy"), { autoAlpha: 1, y: 0, duration: 1.1, stagger: 0.08 }, 1.4);
@@ -121,9 +123,9 @@ export function Couple() {
   const headline = words("We joyfully invite you to celebrate the union of");
 
   return (
-    <section ref={root} id="couple" data-scene aria-labelledby="couple-title" className="silk-ivory relative overflow-hidden pb-[16vh] pt-[22vh] text-ink md:pt-[26vh]">
+    <section ref={root} id="couple" data-scene aria-labelledby="couple-title" className="scene silk-ivory relative pb-[16vh] pt-[22vh] text-ink md:pt-[26vh]">
       <Thoranam className="couple-thoranam pointer-events-none absolute -top-1 left-0 h-[120px] w-full md:h-[170px]" />
-      <Kolam hairline strokeWidth={1} className="bg-kolam pointer-events-none absolute -bottom-[38vw] left-1/2 w-[120vw] -translate-x-1/2 text-gold/25 md:-bottom-[22vw] md:w-[60vw]" />
+      <Kolam hairline strokeWidth={1} className="bg-kolam art-layer pointer-events-none absolute -bottom-[38vw] left-1/2 w-[120vw] -translate-x-1/2 text-gold/25 md:-bottom-[22vw] md:w-[60vw]" />
 
       <div className="relative mx-auto max-w-7xl px-6">
         <header className="couple-head text-center">
@@ -154,6 +156,7 @@ export function Couple() {
           <p className="closing tamil mt-4 text-base text-maroon/70 md:text-lg">{wedding.quotes.union.ta}</p>
         </div>
       </div>
+      <SceneVeil />
     </section>
   );
 }

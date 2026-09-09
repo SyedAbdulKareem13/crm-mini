@@ -28,8 +28,8 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (reducedMotion) return;
     const lenis = new Lenis({
-      lerp: 0.085,
-      wheelMultiplier: 0.9,
+      lerp: 0.07,
+      wheelMultiplier: 0.85,
       smoothWheel: true,
       syncTouch: false,
       anchors: true,

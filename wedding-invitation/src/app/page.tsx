@@ -10,6 +10,7 @@ import { SmoothScroll } from "@/components/effects/SmoothScroll";
 import { Petals } from "@/components/effects/Petals";
 import { CursorGlow } from "@/components/effects/CursorGlow";
 import { SceneNav } from "@/components/effects/SceneNav";
+import { SceneStack } from "@/components/effects/SceneStack";
 import { FloatingControls } from "@/components/ui/FloatingControls";
 import { wedding } from "@/data/wedding";
 
@@ -49,6 +50,7 @@ export default function Page() {
         <Sacred />
         <Finale />
       </main>
+      <SceneStack />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     </SmoothScroll>
   );

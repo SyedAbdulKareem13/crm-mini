@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useId } from "react";
+import { SilhouetteGroup } from "./Silhouette";
 
 export interface ArchFrameProps {
   className?: string;
@@ -10,6 +11,8 @@ export interface ArchFrameProps {
   /** Optional portrait URL, clipped to the inner arch */
   photo?: string;
   alt?: string;
+  /** Without a photo: a paper-cut profile of the bride or groom (falls back to the monogram) */
+  figure?: "bride" | "groom";
 }
 
 const INNER = "M44 400 V196 C44 122 76 62 150 34 C224 62 256 122 256 196 V400 Z";
@@ -20,7 +23,7 @@ const PAISLEY = "M0 0 c-13 -9 -17 -30 -6 -43 c8 -9 20 -8 24 2 c5 12 -4 26 -18 41
  * Temple-arch portrait frame. Strokes carry data-draw for reveal choreography.
  * Content inside the arch is SVG (image or monogram) so it clips responsively.
  */
-export const ArchFrame = memo(function ArchFrame({ className, style, monogram, photo, alt = "" }: ArchFrameProps) {
+export const ArchFrame = memo(function ArchFrame({ className, style, monogram, photo, alt = "", figure }: ArchFrameProps) {
   const id = useId().replace(/:/g, "");
   const clip = `arch-clip-${id}`, grad = `arch-grad-${id}`, mono = `arch-mono-${id}`;
 
@@ -52,6 +55,17 @@ export const ArchFrame = memo(function ArchFrame({ className, style, monogram, p
         )}
         {photo ? (
           <image href={photo} x="44" y="34" width="212" height="366" preserveAspectRatio="xMidYMid slice" />
+        ) : figure ? (
+          <>
+            <g transform="translate(150 400) scale(1.06) translate(-150 -400)">
+              <SilhouetteGroup variant={figure} />
+            </g>
+            {/* small monogram seal */}
+            <circle cx={figure === "bride" ? 232 : 68} cy="78" r="17" fill="#f6eedf" stroke="#c9a24a" strokeWidth="1" data-draw />
+            <text x={figure === "bride" ? 232 : 68} y="85" textAnchor="middle" fontFamily="var(--font-display)" fontWeight="600" fontSize="20" fill="#8e6a1f" data-monogram>
+              {monogram}
+            </text>
+          </>
         ) : (
           <>
             <circle cx="150" cy="226" r="92" fill="none" stroke="#c9a24a" strokeOpacity="0.35" strokeWidth="1" data-draw />
