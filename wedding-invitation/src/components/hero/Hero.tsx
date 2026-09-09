@@ -195,39 +195,41 @@ export function Hero() {
         )}
 
         {/* copy */}
-        <div className="hero-copy absolute inset-x-0 top-0 flex flex-col items-center px-6 pt-[8svh] text-center md:pt-[9vh]">
+        {/* date + towns live in the top corners (one quiet line on phones) so nothing ever sits on the lamp */}
+        <p className="hero-meta eyebrow absolute left-8 top-[clamp(1.75rem,6vh,3.5rem)] hidden text-[0.62rem] text-gold-light/70 md:block lg:left-12" data-reveal>
+          {wedding.dates.range}
+        </p>
+        <p className="hero-meta eyebrow absolute right-8 top-[clamp(1.75rem,6vh,3.5rem)] hidden text-[0.62rem] text-gold-light/70 md:block lg:right-12" data-reveal>
+          Palladam · Tirupur
+        </p>
+
+        <div className="hero-copy absolute inset-x-0 top-0 flex flex-col items-center px-6 pt-[clamp(2.25rem,7svh,4.5rem)] text-center">
           <h1 id="hero-title" className="sr-only">
             {wedding.couple.display} — Wedding Invitation, {wedding.dates.range}
           </h1>
-          <p className="hero-eyebrow eyebrow text-gold-light/75" data-reveal>
+          <p className="hero-meta eyebrow text-[0.6rem] text-gold-light/65 md:hidden" data-reveal>
+            {wedding.dates.range}
+          </p>
+          <p className="hero-eyebrow eyebrow mt-3 text-gold-light/75 md:mt-0" data-reveal>
             {wedding.invitation.eyebrow}
           </p>
 
-          <div className="mt-4 flex flex-col items-center gap-0 md:mt-7 md:flex-row md:items-baseline md:gap-6">
+          <div className="mt-[clamp(0.75rem,2.2svh,1.75rem)] flex flex-col items-center gap-0 md:flex-row md:items-baseline md:gap-6">
             <Flourish className="flourish hidden w-32 text-gold/70 md:block lg:w-44" />
-            <Name text={bride.name} className="name-a display-xl" />
-            <span className="amp font-display text-[clamp(1.9rem,6vw,5.5rem)] italic leading-none text-gold-light/90" aria-hidden data-reveal>
+            <Name text={bride.name} className="name-a display-xl !text-[clamp(2.75rem,min(11vw,16svh),9.5rem)]" />
+            <span className="amp font-display text-[clamp(1.7rem,min(6vw,8svh),5.5rem)] italic leading-none text-gold-light/90" aria-hidden data-reveal>
               &amp;
             </span>
-            <Name text={groom.name} className="name-b display-xl" />
+            <Name text={groom.name} className="name-b display-xl !text-[clamp(2.75rem,min(11vw,16svh),9.5rem)]" />
             <Flourish className="flourish hidden w-32 -scale-x-100 text-gold/70 md:block lg:w-44" />
           </div>
 
-          <p className="hero-tagline mt-4 font-display text-[clamp(1.2rem,2.6vw,2rem)] italic text-champagne/90 md:mt-8" data-reveal>
+          <p className="hero-tagline mt-[clamp(0.75rem,2.4svh,2rem)] font-display text-[clamp(1.05rem,min(2.6vw,2.7svh),2rem)] italic text-champagne/90" data-reveal>
             {wedding.tagline.en}
           </p>
-          <p className="hero-tamil tamil mt-2 max-w-[20rem] text-[clamp(0.9rem,1.6vw,1.2rem)] text-gold-light/75 sm:max-w-2xl md:mt-3" data-reveal>
+          <p className="hero-tamil tamil mt-[clamp(0.4rem,1svh,0.75rem)] max-w-[20rem] text-[clamp(0.85rem,min(1.6vw,1.9svh),1.2rem)] text-gold-light/75 sm:max-w-2xl" data-reveal>
             {wedding.tagline.ta}
           </p>
-
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3 md:mt-8">
-            <span className="hero-meta rounded-full border border-gold/40 bg-night/40 px-5 py-2 font-display text-base tracking-wide text-gold-light backdrop-blur-sm md:text-lg" data-reveal>
-              {wedding.dates.range}
-            </span>
-            <span className="hero-meta eyebrow hidden text-[0.62rem] text-ivory/60 sm:inline" data-reveal>
-              Palladam · Tirupur
-            </span>
-          </div>
         </div>
 
         <div className="hero-scroll absolute bottom-[calc(1.25rem+env(safe-area-inset-bottom))] left-5 flex md:left-10" data-reveal>
