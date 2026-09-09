@@ -5,7 +5,7 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // three.js ships ESM that benefits from being transpiled/tree-shaken by Next
   transpilePackages: ["three"],
-  // this app lives in a sub-folder of a larger repo; keep file tracing scoped to it
+  // keep file tracing scoped to this app even when it sits inside a larger repository
   outputFileTracingRoot: process.cwd(),
   headers: async () => [
     {
