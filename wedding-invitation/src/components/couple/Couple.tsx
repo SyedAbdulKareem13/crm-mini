@@ -50,18 +50,18 @@ function Panel({ person, side, label, ta }: { person: Person; side: "left" | "ri
         }}
       >
         <PeacockFeather
-          className={`feather pointer-events-none absolute -top-10 h-64 w-auto opacity-0 ${side === "left" ? "-left-14 -rotate-[22deg]" : "-right-14 rotate-[22deg] -scale-x-100"}`}
+          className={`feather pointer-events-none absolute -top-6 h-32 w-auto opacity-0 md:-top-10 md:h-64 ${side === "left" ? "-left-7 -rotate-[22deg] md:-left-14" : "-right-7 rotate-[22deg] -scale-x-100 md:-right-14"}`}
         />
         <ArchFrame monogram={person.initial} photo={person.photo || undefined} figure={side === "left" ? "bride" : "groom"} alt={person.name} className="arch relative w-full" />
       </motion.div>
 
-      <div className="mt-8 text-center">
-        <p className="panel-copy eyebrow text-gold-deep">
-          {label} <span className="mx-2 text-gold">·</span> <span className="tamil normal-case tracking-normal">{ta}</span>
+      <div className="mt-4 text-center md:mt-8">
+        <p className="panel-copy eyebrow text-[0.5rem] tracking-[0.2em] text-gold-deep sm:text-[0.6rem] md:text-[0.7rem] md:tracking-[0.34em]">
+          {label} <span className="mx-1 text-gold md:mx-2">·</span> <span className="tamil normal-case tracking-normal">{ta}</span>
         </p>
-        <h3 className="panel-copy display-md mt-3 text-maroon">{person.name}</h3>
-        <p className="panel-copy tamil mt-1 text-xl text-maroon/75">{person.tamil}</p>
-        {person.parents && <p className="panel-copy mt-3 text-sm text-ink-soft">{person.parents}</p>}
+        <h3 className="panel-copy display-md mt-2 text-maroon md:mt-3">{person.name}</h3>
+        <p className="panel-copy tamil mt-0.5 text-base text-maroon/75 md:mt-1 md:text-xl">{person.tamil}</p>
+        {person.parents && <p className="panel-copy mt-2 text-xs text-ink-soft md:mt-3 md:text-sm">{person.parents}</p>}
       </div>
     </article>
   );
@@ -144,8 +144,12 @@ export function Couple() {
           <Divider className="head-divider mx-auto mt-9 w-64 text-gold" />
         </header>
 
-        <div className="couple-grid mt-16 grid items-start gap-14 md:mt-24 md:grid-cols-[1fr_auto_1fr] md:gap-10 lg:gap-16">
+        <div className="couple-grid relative mt-12 grid grid-cols-2 items-start gap-3 sm:gap-8 md:mt-24 md:grid-cols-[1fr_auto_1fr] md:gap-10 lg:gap-16">
           <Panel person={wedding.couple.bride} side="left" label="The Bride" ta="மணமகள்" />
+          {/* phones: the two profiles face each other across a small gold ampersand */}
+          <span aria-hidden className="pointer-events-none absolute left-1/2 top-[30%] z-10 -translate-x-1/2 font-display text-2xl italic text-gold md:hidden">
+            &amp;
+          </span>
           <div className="hidden flex-col items-center justify-start pt-6 md:flex" aria-hidden>
             <JasmineStrand className="strand h-[440px] w-14" count={11} />
             <span className="mt-4 font-display text-4xl italic text-gold">&amp;</span>

@@ -30,6 +30,7 @@
 }
 
 /* ───────────────────────── Base ───────────────────────── */
+@layer base {
 html {
   scroll-behavior: auto;
   -webkit-text-size-adjust: 100%;
@@ -101,7 +102,10 @@ body {
   font-feature-settings: "kern" 1;
 }
 
+}
+
 /* ───────────────────────── Typography helpers ───────────────────────── */
+@layer components {
 .eyebrow {
   font-family: var(--font-sans);
   font-size: 0.7rem;
@@ -569,4 +573,6 @@ main > .scene:nth-child(8) { z-index: 8; }
 }
 .bulb {
   animation: bulb-glow 2.8s ease-in-out infinite;
+}
+
 }
