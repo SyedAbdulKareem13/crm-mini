@@ -30,12 +30,13 @@ function Name({ text, className }: { text: string; className: string }) {
 }
 
 export function Hero() {
-  const { ready, setReady, setIntroDone, quality, reducedMotion, pointer, finePointer } = useExperience();
+  const { setReady, opened, setIntroDone, quality, reducedMotion, pointer, finePointer } = useExperience();
   const section = useRef<HTMLElement>(null);
   const sticky = useRef<HTMLDivElement>(null);
   const lit = useRef(0);
   const progress = useRef(0);
   const [active, setActive] = useState(true);
+  const covered = useRef(false); // true once the next card has slid over the lamp
   const [use3D, setUse3D] = useState(false);
   const readyFired = useRef(false);
 
@@ -59,14 +60,9 @@ export function Hero() {
     return () => window.clearTimeout(t);
   }, [markReady]);
 
-  // pause the canvas when the hero is off-screen
-  useEffect(() => {
-    const el = section.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => { if (!e.isIntersecting) setActive(false); }, { rootMargin: "20% 0px" });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  // The canvas sleeps once the next card has covered the lamp (see the ScrollTrigger below).
+  // No IntersectionObserver here: the scene deck re-parents the section into a pin-spacer,
+  // which makes an observer report a zero-size "not intersecting" entry it never revokes.
 
   // initial hidden states (JS-only so the page is readable without JS)
   useGSAP(
@@ -77,10 +73,10 @@ export function Hero() {
     { scope: sticky },
   );
 
-  // ─── Opening title sequence ───
+  // ─── Opening title sequence (begins while the curtain is still parting) ───
   useGSAP(
     () => {
-      if (!ready) return;
+      if (!opened) return;
       const q = gsap.utils.selector(sticky);
 
       if (reducedMotion) {
@@ -91,7 +87,7 @@ export function Hero() {
         return;
       }
 
-      const tl = gsap.timeline({ delay: 1.1, onComplete: setIntroDone });
+      const tl = gsap.timeline({ delay: 0.25, onComplete: setIntroDone });
       tl.fromTo(q(".hero-glow"), { autoAlpha: 0 }, { autoAlpha: 1, duration: 3.2, ease: "power2.inOut" }, 0)
         .fromTo(q(".hero-gopuram"), { autoAlpha: 0, y: 60, scale: 0.96 }, { autoAlpha: 1, y: 0, scale: 1, duration: 3.4, ease: "power2.out" }, 0.2)
         .to(lit, { current: 1, duration: 2.4, ease: "power2.inOut" }, 0.7)
@@ -119,7 +115,7 @@ export function Hero() {
         window.removeEventListener("touchmove", hurry);
       };
     },
-    { dependencies: [ready, reducedMotion, finePointer], scope: sticky },
+    { dependencies: [opened, reducedMotion, finePointer], scope: sticky },
   );
 
   // ─── Scroll choreography: dolly in, names lift away, dawn light sweeps into the next scene ───
@@ -152,8 +148,14 @@ export function Hero() {
         ScrollTrigger.create({
           trigger: nextScene,
           start: "top 52%",
-          onEnter: () => setActive(false),
-          onLeaveBack: () => setActive(true),
+          onEnter: () => {
+            covered.current = true;
+            setActive(false);
+          },
+          onLeaveBack: () => {
+            covered.current = false;
+            setActive(true);
+          },
         });
       }
     },
@@ -185,7 +187,7 @@ export function Hero() {
 
         {/* 3D lamp — or the illustrated fallback on low tiers */}
         {use3D ? (
-          <div className="hero-canvas absolute inset-0" aria-hidden>
+          <div className="hero-canvas absolute inset-0" aria-hidden data-active={active ? "1" : "0"}>
             <LampScene lit={lit} progress={progress} pointer={pointer} quality={quality} active={active} onReady={markReady} />
           </div>
         ) : (

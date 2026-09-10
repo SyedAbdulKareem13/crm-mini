@@ -194,6 +194,8 @@ export const wedding = {
   audio: {
     src: "",
     label: "Ambient music",
+    /** start playing when the guest opens the curtain (their tap is the gesture) */
+    playOnOpen: true,
   },
 
   /**

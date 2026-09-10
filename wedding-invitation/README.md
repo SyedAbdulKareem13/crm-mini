@@ -68,7 +68,7 @@ src/
                        (Google Calendar, .ics, Maps URLs), og.tsx (share card)
   animations/          draw.ts (SVG stroke drawing), reveal.ts (rise/unfold/illuminate), scroll.ts
   components/
-    hero/              Loader, Hero (opening title sequence + scroll choreography)
+    hero/              Loader (velvet curtain gate: tap to open), Hero (opening title sequence + scroll choreography)
     three/             LampScene (R3F: lathe brass lamp, additive flame sprites, gold-dust shader, camera rig)
     couple/            Two Hearts — arch portraits, peacock feathers, jasmine strand, 3D tilt
     story/             A New Chapter — pinned Tamil quote lit word by word behind silk curtains

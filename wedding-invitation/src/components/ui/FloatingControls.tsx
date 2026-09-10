@@ -43,6 +43,16 @@ export function FloatingControls() {
     }
   }, [hasAudio, playing]);
 
+  // the curtain tap is a user gesture, so ambient music may begin then
+  useEffect(() => {
+    if (!hasAudio || !wedding.audio.playOnOpen) return;
+    const onOpen = () => {
+      if (!playing) toggleSound();
+    };
+    window.addEventListener("invite:open", onOpen, { once: true });
+    return () => window.removeEventListener("invite:open", onOpen);
+  }, [hasAudio, playing, toggleSound]);
+
   const share = useCallback(async () => {
     const url = window.location.href;
     const data = { title: wedding.share.title, text: wedding.share.text, url };

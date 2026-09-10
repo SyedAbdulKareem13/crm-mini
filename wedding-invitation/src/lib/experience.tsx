@@ -7,6 +7,9 @@ interface ExperienceState {
   /** Assets + first frame ready → loader can exit */
   ready: boolean;
   setReady: () => void;
+  /** Guest tapped the curtain — the stage is open and the title sequence may begin */
+  opened: boolean;
+  setOpened: () => void;
   /** Opening title sequence has finished (or been skipped) */
   introDone: boolean;
   setIntroDone: () => void;
@@ -23,6 +26,7 @@ const Ctx = createContext<ExperienceState | null>(null);
 
 export function ExperienceProvider({ children }: { children: ReactNode }) {
   const [ready, _setReady] = useState(false);
+  const [opened, _setOpened] = useState(false);
   const [introDone, _setIntroDone] = useState(false);
   const [quality, setQuality] = useState<Quality>("medium");
   const [reducedMotion, setReduced] = useState(false);
@@ -63,11 +67,12 @@ export function ExperienceProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const setReady = useCallback(() => _setReady(true), []);
+  const setOpened = useCallback(() => _setOpened(true), []);
   const setIntroDone = useCallback(() => _setIntroDone(true), []);
 
   const value = useMemo<ExperienceState>(
-    () => ({ ready, setReady, introDone, setIntroDone, quality, reducedMotion, finePointer, pointer, scroll }),
-    [ready, setReady, introDone, setIntroDone, quality, reducedMotion, finePointer],
+    () => ({ ready, setReady, opened, setOpened, introDone, setIntroDone, quality, reducedMotion, finePointer, pointer, scroll }),
+    [ready, setReady, opened, setOpened, introDone, setIntroDone, quality, reducedMotion, finePointer],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
