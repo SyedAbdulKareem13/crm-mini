@@ -27,8 +27,23 @@ interface DrawOpts {
   delay?: number;
 }
 
-/** Tween strokes from hidden to drawn. Call prepareDraw first (or let this do it). */
+const coarsePointer = () => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
+/**
+ * Tween strokes from hidden to drawn. Call prepareDraw first (or let this do it).
+ * On touch devices a drawing with many paths is revealed with a single radial wipe
+ * instead of per-path dash tweens — the same gesture at a fraction of the cost.
+ */
 export function drawStrokes(root: Element | null, opts: DrawOpts = {}) {
+  if (!root) return gsap.timeline();
+  if (coarsePointer() && root.querySelectorAll("[data-draw]").length > 40) {
+    showStrokes(root);
+    return gsap.fromTo(
+      root,
+      { clipPath: "circle(0% at 50% 50%)" },
+      { clipPath: "circle(75% at 50% 50%)", duration: opts.duration ?? 1.6, ease: opts.ease ?? "power2.inOut", delay: opts.delay ?? 0, clearProps: "clipPath" },
+    );
+  }
   const els = prepareDraw(root);
   if (!els.length) return gsap.timeline();
   return gsap.to(els, {

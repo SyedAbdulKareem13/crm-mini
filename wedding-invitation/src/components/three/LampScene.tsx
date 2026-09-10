@@ -64,11 +64,11 @@ function Env() {
 
 /* ───────────── lamp ───────────── */
 
-function Lamp({ lit }: { lit: MutableRefObject<number> }) {
+function Lamp({ lit, physical }: { lit: MutableRefObject<number>; physical: boolean }) {
   const group = useRef<THREE.Group>(null);
   const light = useRef<THREE.PointLight>(null);
   const flames = useRef<THREE.Group[]>([]);
-  const matRef = useRef<THREE.MeshPhysicalMaterial>(null);
+  const matRef = useRef<THREE.MeshStandardMaterial>(null);
 
   const geometry = useMemo(() => {
     const pts = PROFILE.map(([x, y]) => new THREE.Vector2(x, y));
@@ -153,30 +153,34 @@ function Lamp({ lit }: { lit: MutableRefObject<number> }) {
     <group ref={group}>
       {/* brass body */}
       <mesh geometry={geometry} castShadow={false} receiveShadow={false}>
-        <meshPhysicalMaterial
-          ref={matRef}
-          color="#c49a3c"
-          metalness={1}
-          roughness={0.3}
-          clearcoat={0.35}
-          clearcoatRoughness={0.25}
-          emissive="#3a2205"
-          emissiveIntensity={0.12}
-          envMapIntensity={1.2}
-        />
+        {physical ? (
+          <meshPhysicalMaterial
+            ref={matRef}
+            color="#c49a3c"
+            metalness={1}
+            roughness={0.3}
+            clearcoat={0.35}
+            clearcoatRoughness={0.25}
+            emissive="#3a2205"
+            emissiveIntensity={0.12}
+            envMapIntensity={1.2}
+          />
+        ) : (
+          <meshStandardMaterial ref={matRef} color="#c49a3c" metalness={1} roughness={0.32} emissive="#3a2205" emissiveIntensity={0.12} envMapIntensity={1.25} />
+        )}
       </mesh>
 
       {/* oil surface */}
       <mesh position={[0, 1.91, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[0.98, 64]} />
-        <meshPhysicalMaterial color="#5a3a0c" metalness={0.4} roughness={0.08} clearcoat={1} transparent opacity={0.9} />
+        <meshStandardMaterial color="#5a3a0c" metalness={0.5} roughness={0.1} transparent opacity={0.9} />
       </mesh>
 
       {/* spouts */}
       {spouts.map((s, i) => (
         <mesh key={i} position={[Math.cos(s.a) * (RIM_R + 0.08), RIM_Y - 0.02, Math.sin(s.a) * (RIM_R + 0.08)]} rotation={[0, -s.a, 0]} scale={[0.34, 0.07, 0.2]}>
-          <sphereGeometry args={[1, 24, 12]} />
-          <meshPhysicalMaterial color="#c49a3c" metalness={1} roughness={0.3} clearcoat={0.35} />
+          <sphereGeometry args={[1, 20, 10]} />
+          <meshStandardMaterial color="#c49a3c" metalness={1} roughness={0.3} />
         </mesh>
       ))}
 
@@ -332,22 +336,23 @@ function Rig({ progress, pointer, lit }: Pick<LampSceneProps, "progress" | "poin
   return null;
 }
 
-function LampGroup({ lit, y }: { lit: MutableRefObject<number>; y: number }) {
+function LampGroup({ lit, y, physical }: { lit: MutableRefObject<number>; y: number; physical: boolean }) {
   const { size } = useThree();
   const s = isPortrait(size.width, size.height) ? FRAMING.portrait.scale : FRAMING.landscape.scale;
   return (
     <group position={[0, y, 0]} scale={s}>
-      <Lamp lit={lit} />
+      <Lamp lit={lit} physical={physical} />
     </group>
   );
 }
 
 /* ───────────── scene ───────────── */
 
-const DUST: Record<Quality, number> = { high: 700, medium: 320, low: 0 };
+const DUST: Record<Quality, number> = { high: 700, medium: 160, low: 0 };
 
 export default function LampScene({ lit, progress, pointer, quality, active, onReady }: LampSceneProps) {
-  const dpr: [number, number] = quality === "high" ? [1, 2] : [1, 1.5];
+  // phones render at 1× — the scene is dark and glowing, so the softer edge is invisible and the fill cost halves
+  const dpr: number | [number, number] = quality === "high" ? [1, 2] : 1;
   const lampY = -2.15;
 
   return (
@@ -370,7 +375,7 @@ export default function LampScene({ lit, progress, pointer, quality, active, onR
       <ambientLight color="#4a2a20" intensity={0.35} />
       <directionalLight position={[3, 6, 4]} color="#ffd9a0" intensity={0.55} />
       <directionalLight position={[-4, 3, -2]} color="#5a2a3a" intensity={0.5} />
-      <LampGroup lit={lit} y={lampY} />
+      <LampGroup lit={lit} y={lampY} physical={quality === "high"} />
       <group position={[0, lampY, 0]}>
         {DUST[quality] > 0 && <GoldDust count={DUST[quality]} lit={lit} />}
       </group>

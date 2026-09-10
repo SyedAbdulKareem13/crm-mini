@@ -89,7 +89,8 @@ src/
 - **Everything drawable draws.** Any SVG stroke marked `data-draw` can be revealed with `drawStrokes()` (`animations/draw.ts`), which measures `getTotalLength()` and tweens `stroke-dashoffset`. Kolams, the gopuram, arch frames, motifs and flourishes all use it.
 - **The 3D hero is driven by two refs.** `lit` (0→1, the opening timeline) and `progress` (0→1, scroll through the pinned hero) are plain refs read inside `useFrame`, so React never re-renders during animation. The canvas pauses (`frameloop="never"`) when the hero leaves the viewport.
 - **Particles are one global canvas** (`effects/Petals.tsx`). Scenes talk to it through `petals({ type: "burst" | "mode" | "density" })` window events; it reacts to pointer velocity and scroll gusts.
-- **Smoothness budget.** No `backdrop-filter`, no `mix-blend-mode` on full-screen layers, no `filter: blur()` on large elements, no animated `text-shadow`. Big decorative SVGs sit on their own compositor layer (`.art-layer`), and looping SVG animations pause when their scene is off-screen (`.in-view`). Lenis runs at `lerp 0.07` and scrubbed timelines use ≈1s of smoothing.
+- **Smoothness budget.** No `backdrop-filter`, no `mix-blend-mode` on full-screen layers, no `filter: blur()`/`drop-shadow()` on large elements, no animated `text-shadow`. Big decorative SVGs sit on their own compositor layer (`.art-layer`), and looping SVG animations pause when their scene is off-screen (`.in-view`). Lenis runs at `lerp 0.07` and scrubbed timelines use ≈1s of smoothing.
+- **Phones get a separate motion budget** (`@media (pointer: coarse)` in `globals.css` plus `finePointer` checks in scenes). Lenis `syncTouch` drives the scroll position every frame so scrubs and pins stay in lock-step with the finger; petals become 14 GPU-composited CSS sprites instead of a canvas; flames step between poses instead of repainting 60×/s; kolams, thoranam and bells hold still; text shimmer is static; big stroke drawings become a single radial wipe; the WebGL lamp renders at 1× with a standard material and 160 dust points; scene veils are viewport-sized and entry drift is skipped. Budget Android phones (≤ 3 GB reported) get the illustrated lamp instead of WebGL. Append `?quality=low|medium|high` to the URL to force a tier while testing on a device.
 - **Reduced motion is honoured everywhere.** With `prefers-reduced-motion: reduce`, pins unpin, scrubs are skipped, strokes render complete, particles and the 3D scene are replaced by the illustrated lamp.
 
 ## Adaptive quality
@@ -98,15 +99,15 @@ src/
 
 | Tier | Trigger | What changes |
 |---|---|---|
-| `high` | fine pointer, ≥ 6 cores, > 4 GB, WebGL | 700 gold-dust points, DPR up to 2, 64 canvas petals, cursor glow |
-| `medium` | touch or small screens / modest hardware | 320 points, DPR ≤ 1.5, 36 petals |
-| `low` | reduced motion, Save-Data, or no WebGL | 2D lamp instead of WebGL, no particles, everything visible immediately |
+| `high` | fine pointer, ≥ 6 cores, > 4 GB, WebGL | 700 gold-dust points, DPR up to 2, 44 canvas petals, cursor glow, scene depth |
+| `medium` | touch or small screens / modest hardware | 160 points, DPR 1, standard material, 14 CSS petals |
+| `low` | reduced motion, Save-Data, no WebGL, or a phone reporting ≤ 3 GB | 2D lamp instead of WebGL, no particles, everything visible immediately |
 
 The visual story is identical across tiers; only the implementation differs.
 
 ## Assets
 
-- **Fonts:** Cormorant Garamond (display), Manrope (metadata), Noto Serif Tamil & Noto Sans Tamil (Tamil). Loaded through `next/font/google` and self-hosted at build. The three `.ttf` files in `src/app/fonts/` exist only for the Open Graph renderer (Satori needs TTF).
+- **Fonts:** Cormorant Garamond (display), Manrope (metadata), Noto Serif Tamil & Noto Sans Tamil (Tamil). Loaded through `next/font/google` and self-hosted at build — variable files where Google offers them, so the page ships 7 font files instead of 19. The three `.ttf` files in `src/app/fonts/` exist only for the Open Graph renderer (Satori needs TTF).
 - **Photos:** `public/photos/*.jpg` (portrait, ≥ 900 × 1200). Referenced from `wedding.ts`.
 - **Audio:** `public/audio/ambient.mp3` (optional, keep under ~2 MB, 128 kbps is plenty).
 - **Icons & art:** all inline SVG components under `components/art` and `components/ui/Icons.tsx` — no icon fonts, no emoji.

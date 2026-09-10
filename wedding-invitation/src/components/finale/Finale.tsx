@@ -34,7 +34,7 @@ function Chars({ text, className }: { text: string; className?: string }) {
  */
 export function Finale() {
   const root = useRef<HTMLElement>(null);
-  const { reducedMotion } = useExperience();
+  const { reducedMotion, finePointer } = useExperience();
   const [copied, setCopied] = useState(false);
 
   const copy = useCallback(async () => {
@@ -72,28 +72,28 @@ export function Finale() {
       });
 
       tl.fromTo(q(".fin-light"), { autoAlpha: 0.35, scale: 0.7 }, { autoAlpha: 1, scale: 1, duration: 0.5 }, 0)
-        .fromTo(q(".fin-kolam"), { scale: 1.3, rotate: -20, autoAlpha: 0.4 }, { scale: 1, rotate: 10, autoAlpha: 1, duration: 0.9 }, 0)
+        .fromTo(q(".fin-kolam"), finePointer ? { scale: 1.3, rotate: -20, autoAlpha: 0.4 } : { autoAlpha: 0.4 }, finePointer ? { scale: 1, rotate: 10, autoAlpha: 1, duration: 0.9 } : { autoAlpha: 1, duration: 0.6 }, 0)
         .to(q("[data-petal]"), { scale: 1, duration: 0.4, stagger: { each: 0.022, from: "center" }, ease: "back.out(1.4)" }, 0.04)
         .to(q(".fin-strand"), { clipPath: "inset(0 0 0% 0)", duration: 0.4 }, 0.06)
         .to(q(".fin-ch"), { autoAlpha: 1, yPercent: 0, rotateX: 0, duration: 0.26, stagger: 0.012, ease: "power3.out" }, 0.2)
         .to(q(".fin-rise"), { autoAlpha: 1, y: 0, duration: 0.14, stagger: 0.05 }, 0.42);
     },
-    { dependencies: [reducedMotion], scope: root },
+    { dependencies: [reducedMotion, finePointer], scope: root },
   );
 
   const wishes = wedding.wishes.whatsapp ? whatsappUrl(wedding.wishes.message, wedding.wishes.whatsapp) : null;
   const shareWa = whatsappUrl(`${wedding.share.text}\n${typeof window !== "undefined" ? window.location.href : ""}`.trim());
 
   return (
-    <section ref={root} id="finale" data-scene aria-labelledby="finale-title" className={reducedMotion ? "scene relative" : "scene relative h-[210vh]"}>
+    <section ref={root} id="finale" data-scene aria-labelledby="finale-title" className={reducedMotion ? "scene relative" : "scene relative h-[210svh]"}>
       <div className="sticky top-0 h-[100svh] overflow-hidden bg-[radial-gradient(80%_70%_at_50%_60%,#4a0f1c_0%,#2a0810_45%,#120507_100%)]">
         <div className="fin-light pointer-events-none absolute inset-0 bg-[radial-gradient(45%_45%_at_50%_58%,rgba(255,180,80,0.32),rgba(122,27,46,0.1)_45%,transparent_70%)]" aria-hidden />
-        <Kolam hairline strokeWidth={1} className="fin-kolam art-layer pointer-events-none absolute left-1/2 top-1/2 w-[112vmax] -translate-x-1/2 -translate-y-1/2 text-gold/[0.12]" />
+        <Kolam hairline strokeWidth={1} className="fin-kolam art-layer pointer-events-none absolute left-1/2 top-1/2 w-[130vw] -translate-x-1/2 -translate-y-1/2 text-gold/[0.12] md:w-[112vmax]" />
 
         <JasmineStrand className="fin-strand pointer-events-none absolute left-[4vw] top-0 hidden h-[70svh] w-16 md:block" count={14} />
         <JasmineStrand className="fin-strand pointer-events-none absolute right-[4vw] top-0 hidden h-[70svh] w-16 -scale-x-100 md:block" count={14} />
 
-        <Lotus className="pointer-events-none absolute bottom-[-3vh] left-1/2 w-[min(74vw,440px)] -translate-x-1/2 drop-shadow-[0_-10px_50px_rgba(232,207,138,0.25)]" />
+        <Lotus className="pointer-events-none absolute bottom-[-3vh] left-1/2 w-[min(74vw,440px)] -translate-x-1/2" />
 
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 pb-[20svh] text-center md:pb-[26vh]">
           <p className="fin-rise eyebrow text-gold/75">

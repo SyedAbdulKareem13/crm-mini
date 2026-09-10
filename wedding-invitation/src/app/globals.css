@@ -411,9 +411,11 @@ main > .scene:nth-child(6) { z-index: 6; }
 main > .scene:nth-child(7) { z-index: 7; }
 main > .scene:nth-child(8) { z-index: 8; }
 
+/* only the pinned scene's visible viewport needs veiling, so the layer stays screen-sized */
 .scene-veil {
   position: absolute;
-  inset: 0;
+  inset: auto 0 0 0;
+  height: 100svh;
   z-index: 45;
   pointer-events: none;
   opacity: 0;
@@ -439,6 +441,69 @@ main > .scene:nth-child(8) { z-index: 8; }
   will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
+}
+
+/* ───────────────────────── Touch-device budget ─────────────────────────
+   Phones repaint SVG for every CSS keyframe tick, so looping decoration is
+   frozen at a pleasing pose and only the flames keep moving. */
+@media (pointer: coarse) {
+  .gold-text {
+    animation: none;
+    background-position: 35% 0;
+  }
+  .sway,
+  .bulb,
+  .spin-slow,
+  .spin-slower,
+  .glow-breathe,
+  .float-y {
+    animation: none !important;
+  }
+  .lights .flame {
+    animation: none;
+  }
+  /* flames step between poses (~4 repaints/s instead of 60) — reads as candle flicker */
+  .flame,
+  .flame-slow {
+    animation-duration: 1.4s;
+    animation-timing-function: steps(5, jump-none);
+  }
+  .grain {
+    display: none;
+  }
+  .story-lit {
+    text-shadow: none;
+  }
+  main > .scene {
+    box-shadow: 0 -14px 36px -14px rgba(0, 0, 0, 0.5);
+  }
+}
+
+/* ───────────────────────── Petals (CSS variant for phones) ───────────────────────── */
+@keyframes petal-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0) rotate(var(--rot));
+  }
+  50% {
+    transform: translate3d(var(--sway), 46vh, 0) rotate(calc(var(--rot) + 150deg));
+  }
+  100% {
+    transform: translate3d(calc(var(--sway) * -0.7), 112vh, 0) rotate(calc(var(--rot) + 320deg));
+  }
+}
+.petal-css {
+  position: absolute;
+  top: 0;
+  display: block;
+  background-repeat: no-repeat;
+  background-size: contain;
+  animation: petal-fall linear infinite;
+  will-change: transform;
+}
+
+/* words in the story light up through a composited opacity layer, never a repaint */
+.story-lit {
+  text-shadow: 0 0 28px rgba(232, 207, 138, 0.28);
 }
 
 /* ───────────────────────── Film grain ───────────────────────── */

@@ -27,11 +27,17 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (reducedMotion) return;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
     const lenis = new Lenis({
       lerp: 0.07,
       wheelMultiplier: 0.85,
       smoothWheel: true,
-      syncTouch: false,
+      // on touch devices Lenis drives the scroll position every frame, so ScrollTrigger
+      // scrubs and pins stay in lock-step with the finger instead of trailing momentum
+      syncTouch: coarse,
+      syncTouchLerp: 0.09,
+      touchInertiaExponent: 1.7,
+      touchMultiplier: 1.3,
       anchors: true,
     });
     instance = lenis;

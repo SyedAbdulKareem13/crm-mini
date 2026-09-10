@@ -56,7 +56,7 @@ export function LocationCard({ venue, sacred = false, className }: { venue: Venu
               <span className="pulse-ring absolute left-1/2 top-full h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/70" />
               <span className="pulse-ring absolute left-1/2 top-full h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-gold/70" style={{ animationDelay: "0.8s" }} />
               <span className="absolute left-1/2 top-full h-2 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/50 blur-[3px]" />
-              <IconPin className="relative text-5xl text-gold-light drop-shadow-[0_8px_16px_rgba(0,0,0,0.6)]" />
+              <IconPin className="relative text-5xl text-gold-light" />
             </div>
 
             <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">

@@ -17,7 +17,7 @@ import { useExperience } from "@/lib/experience";
  * the scene can actually be seen (see globals.css).
  */
 export function SceneStack() {
-  const { reducedMotion, quality, ready } = useExperience();
+  const { reducedMotion, quality, ready, finePointer } = useExperience();
 
   // pause looping SVG animations for scenes that are off-screen
   useEffect(() => {
@@ -60,16 +60,18 @@ export function SceneStack() {
         if (veil) cover.fromTo(veil, { opacity: 0 }, { opacity: 0.62 }, 0);
         if (depth) cover.fromTo(section, { scale: 1 }, { scale: 0.965, transformOrigin: "50% 85%" }, 0);
 
-        // the arriving scene's content drifts in a beat behind its card
-        const inner = Array.from(next.children).filter((c) => !c.classList.contains("scene-veil"));
-        if (inner.length) {
-          gsap.fromTo(inner, { y: 64 }, { y: 0, ease: "none", scrollTrigger: { trigger: next, start: "top bottom", end: "top top", scrub: 1.1 } });
+        // the arriving scene's content drifts in a beat behind its card (desktop; phones keep layers lean)
+        if (finePointer) {
+          const inner = Array.from(next.children).filter((c) => !c.classList.contains("scene-veil"));
+          if (inner.length) {
+            gsap.fromTo(inner, { y: 64 }, { y: 0, ease: "none", scrollTrigger: { trigger: next, start: "top bottom", end: "top top", scrub: 1.1 } });
+          }
         }
       });
 
       ScrollTrigger.refresh();
     },
-    { dependencies: [reducedMotion, ready, quality] },
+    { dependencies: [reducedMotion, ready, quality, finePointer] },
   );
 
   return null;

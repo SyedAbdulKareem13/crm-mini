@@ -6,7 +6,7 @@ import { ExperienceProvider } from "@/lib/experience";
 
 const cormorant = Cormorant_Garamond({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["500", "600"],
   style: ["normal", "italic"],
   variable: "--font-cormorant",
   display: "swap",
@@ -14,21 +14,21 @@ const cormorant = Cormorant_Garamond({
 
 const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: "variable",
   variable: "--font-manrope",
   display: "swap",
 });
 
 const notoSerifTamil = Noto_Serif_Tamil({
   subsets: ["tamil", "latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: "variable",
   variable: "--font-noto-serif-tamil",
   display: "swap",
 });
 
 const notoSansTamil = Noto_Sans_Tamil({
   subsets: ["tamil", "latin"],
-  weight: ["400", "500"],
+  weight: "variable",
   variable: "--font-noto-sans-tamil",
   display: "swap",
 });

@@ -52,7 +52,7 @@ function Panel({ person, side, label, ta }: { person: Person; side: "left" | "ri
         <PeacockFeather
           className={`feather pointer-events-none absolute -top-10 h-64 w-auto opacity-0 ${side === "left" ? "-left-14 -rotate-[22deg]" : "-right-14 rotate-[22deg] -scale-x-100"}`}
         />
-        <ArchFrame monogram={person.initial} photo={person.photo || undefined} figure={side === "left" ? "bride" : "groom"} alt={person.name} className="arch relative w-full drop-shadow-[0_36px_50px_rgba(42,26,20,0.28)]" />
+        <ArchFrame monogram={person.initial} photo={person.photo || undefined} figure={side === "left" ? "bride" : "groom"} alt={person.name} className="arch relative w-full" />
       </motion.div>
 
       <div className="mt-8 text-center">
@@ -69,7 +69,7 @@ function Panel({ person, side, label, ta }: { person: Person; side: "left" | "ri
 
 export function Couple() {
   const root = useRef<HTMLElement>(null);
-  const { reducedMotion } = useExperience();
+  const { reducedMotion, finePointer } = useExperience();
 
   useGSAP(
     () => {
@@ -109,15 +109,17 @@ export function Couple() {
         gsap.to(q(".closing"), { autoAlpha: 1, y: 0, duration: 1.3, stagger: 0.15 });
       });
 
-      // background kolam slowly turns with the scroll
-      gsap.to(q(".bg-kolam"), {
-        rotate: 40,
-        ease: "none",
-        scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1.2 },
-      });
-      gsap.fromTo(q(".couple-thoranam"), { yPercent: -18 }, { yPercent: 6, ease: "none", scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 } });
+      // background kolam slowly turns with the scroll (desktop only — phones keep it still)
+      if (finePointer) {
+        gsap.to(q(".bg-kolam"), {
+          rotate: 40,
+          ease: "none",
+          scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1.2 },
+        });
+        gsap.fromTo(q(".couple-thoranam"), { yPercent: -18 }, { yPercent: 6, ease: "none", scrollTrigger: { trigger: root.current, start: "top bottom", end: "bottom top", scrub: 1 } });
+      }
     },
-    { dependencies: [reducedMotion], scope: root },
+    { dependencies: [reducedMotion, finePointer], scope: root },
   );
 
   const headline = words("We joyfully invite you to celebrate the union of");

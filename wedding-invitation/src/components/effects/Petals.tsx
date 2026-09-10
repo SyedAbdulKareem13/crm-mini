@@ -1,8 +1,58 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useExperience } from "@/lib/experience";
-import { clamp, rand } from "@/lib/utils";
+import { clamp, rand, seeded } from "@/lib/utils";
+
+const PETAL_URI =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 64'><defs><linearGradient id='g' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='%23fffcf4'/><stop offset='1' stop-color='%23f3e4bd'/></linearGradient></defs><path d='M20 2 C 36 14 36 50 20 62 C 4 50 4 14 20 2 Z' fill='url(%23g)' stroke='%23c9a24a' stroke-opacity='.4' stroke-width='1'/><path d='M20 12 V 52' stroke='white' stroke-opacity='.35' stroke-width='1'/></svg>\")";
+const GOLD_URI =
+  "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><defs><radialGradient id='r'><stop offset='0' stop-color='%23fff0c8'/><stop offset='.3' stop-color='%23e8cf8a' stop-opacity='.8'/><stop offset='1' stop-color='%23c9a24a' stop-opacity='0'/></radialGradient></defs><circle cx='32' cy='32' r='32' fill='url(%23r)'/></svg>\")";
+
+/** Phones: a handful of petals on GPU-composited CSS keyframes — no canvas uploads, no JS per frame. */
+function CssPetals({ count }: { count: number }) {
+  const items = useMemo(() => {
+    const r = seeded(97);
+    return Array.from({ length: count }, (_, i) => {
+      const gold = i % 3 === 0;
+      const size = gold ? 10 + r() * 10 : 9 + r() * 8;
+      return {
+        gold,
+        left: r() * 100,
+        w: gold ? size : size * 0.62,
+        h: size,
+        dur: 16 + r() * 14,
+        delay: -r() * 30,
+        sway: (r() - 0.5) * 120,
+        rot: r() * 360,
+        alpha: gold ? 0.35 + r() * 0.4 : 0.55 + r() * 0.35,
+      };
+    });
+  }, [count]);
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 z-40 overflow-hidden">
+      {items.map((p, i) => (
+        <span
+          key={i}
+          className="petal-css"
+          style={
+            {
+              left: `${p.left}%`,
+              width: p.w,
+              height: p.h,
+              opacity: p.alpha,
+              animationDuration: `${p.dur}s`,
+              animationDelay: `${p.delay}s`,
+              backgroundImage: p.gold ? GOLD_URI : PETAL_URI,
+              "--sway": `${p.sway}px`,
+              "--rot": `${p.rot}deg`,
+            } as React.CSSProperties
+          }
+        />
+      ))}
+    </div>
+  );
+}
 
 type Kind = "jasmine" | "gold" | "rose";
 interface P {
@@ -27,7 +77,50 @@ export function petals(ev: PetalsEvent) {
   window.dispatchEvent(new CustomEvent<PetalsEvent>("petals", { detail: ev }));
 }
 
-const COUNT: Record<string, number> = { high: 44, medium: 24, low: 0 };
+const COUNT: Record<string, number> = { high: 44, medium: 18, low: 0 };
+
+/** Draw a petal / glow once into an offscreen canvas; frames then just blit it. */
+function makeSprite(kind: Kind): HTMLCanvasElement {
+  const c = document.createElement("canvas");
+  const S = 64;
+  c.width = c.height = S;
+  const ctx = c.getContext("2d")!;
+  if (kind === "gold") {
+    const g = ctx.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    g.addColorStop(0, "rgba(255,240,200,1)");
+    g.addColorStop(0.3, "rgba(232,207,138,0.8)");
+    g.addColorStop(1, "rgba(201,162,74,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S, S);
+    return c;
+  }
+  const s = S * 0.46;
+  ctx.translate(S / 2, S / 2);
+  ctx.beginPath();
+  ctx.moveTo(0, -s);
+  ctx.bezierCurveTo(s * 0.74, -s * 0.5, s * 0.74, s * 0.5, 0, s);
+  ctx.bezierCurveTo(-s * 0.74, s * 0.5, -s * 0.74, -s * 0.5, 0, -s);
+  const g = ctx.createLinearGradient(0, -s, 0, s);
+  if (kind === "rose") {
+    g.addColorStop(0, "rgba(181,74,96,0.95)");
+    g.addColorStop(1, "rgba(122,27,46,0.85)");
+  } else {
+    g.addColorStop(0, "rgba(255,252,244,0.98)");
+    g.addColorStop(1, "rgba(243,228,189,0.9)");
+  }
+  ctx.fillStyle = g;
+  ctx.fill();
+  ctx.strokeStyle = kind === "rose" ? "rgba(90,16,32,0.35)" : "rgba(201,162,74,0.35)";
+  ctx.lineWidth = 1.2;
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, -s * 0.7);
+  ctx.lineTo(0, s * 0.7);
+  ctx.strokeStyle = "rgba(255,255,255,0.35)";
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  return c;
+}
 
 /**
  * Global particle language — jasmine petals, gold dust, the occasional rose petal.
@@ -36,10 +129,15 @@ const COUNT: Record<string, number> = { high: 44, medium: 24, low: 0 };
 export function Petals() {
   const ref = useRef<HTMLCanvasElement>(null);
   const { quality, reducedMotion, pointer, scroll, ready } = useExperience();
+  const [coarseDevice, setCoarseDevice] = useState(false);
+
+  useEffect(() => {
+    setCoarseDevice(window.matchMedia("(pointer: coarse)").matches);
+  }, []);
 
   useEffect(() => {
     const canvas = ref.current;
-    if (!canvas || reducedMotion || !ready) return;
+    if (!canvas || reducedMotion || !ready || coarseDevice) return;
     const target = COUNT[quality] ?? 0;
     if (target === 0) return;
 
@@ -53,6 +151,9 @@ export function Petals() {
     let raf = 0;
     let last = performance.now();
     let running = true;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    let frame = 0;
+    const sprites: Record<Kind, HTMLCanvasElement> = { jasmine: makeSprite("jasmine"), gold: makeSprite("gold"), rose: makeSprite("rose") };
 
     const resize = () => {
       dpr = clamp(window.devicePixelRatio || 1, 1, 1.5);
@@ -94,56 +195,30 @@ export function Petals() {
     };
 
     const drawJasmine = (p: P) => {
-      const s = p.size;
+      const d = p.size * 2.2;
       ctx.save();
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
       ctx.globalAlpha = p.alpha * p.life;
-      // petal: pointed ellipse
-      ctx.beginPath();
-      ctx.moveTo(0, -s);
-      ctx.bezierCurveTo(s * 0.74, -s * 0.5, s * 0.74, s * 0.5, 0, s);
-      ctx.bezierCurveTo(-s * 0.74, s * 0.5, -s * 0.74, -s * 0.5, 0, -s);
-      const g = ctx.createLinearGradient(0, -s, 0, s);
-      if (p.kind === "rose") {
-        g.addColorStop(0, "rgba(181,74,96,0.95)");
-        g.addColorStop(1, "rgba(122,27,46,0.85)");
-      } else {
-        g.addColorStop(0, "rgba(255,252,244,0.98)");
-        g.addColorStop(1, "rgba(243,228,189,0.9)");
-      }
-      ctx.fillStyle = g;
-      ctx.fill();
-      ctx.strokeStyle = p.kind === "rose" ? "rgba(90,16,32,0.35)" : "rgba(201,162,74,0.35)";
-      ctx.lineWidth = 0.6;
-      ctx.stroke();
-      // midrib highlight
-      ctx.beginPath();
-      ctx.moveTo(0, -s * 0.7);
-      ctx.lineTo(0, s * 0.7);
-      ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.stroke();
+      ctx.drawImage(sprites[p.kind], -d / 2, -d / 2, d, d);
       ctx.restore();
     };
 
     const drawGold = (p: P, t: number) => {
       const tw = 0.6 + 0.4 * Math.sin(t * 0.003 + p.phase * 4);
-      const r = p.size * 3;
-      ctx.save();
+      const d = p.size * 6;
       ctx.globalAlpha = p.alpha * p.life * tw;
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, r);
-      g.addColorStop(0, "rgba(255,240,200,1)");
-      g.addColorStop(0.3, "rgba(232,207,138,0.8)");
-      g.addColorStop(1, "rgba(201,162,74,0)");
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
+      ctx.drawImage(sprites.gold, p.x - d / 2, p.y - d / 2, d, d);
+      ctx.globalAlpha = 1;
     };
 
     const step = (now: number) => {
       if (!running) return;
+      // phones: simulate at half rate — petals drift slowly enough that 30 updates/s read as continuous
+      if (coarse && frame++ % 2) {
+        raf = requestAnimationFrame(step);
+        return;
+      }
       const dt = clamp((now - last) / 16.67, 0.2, 2.5);
       last = now;
       ctx.clearRect(0, 0, w, h);
@@ -248,7 +323,9 @@ export function Petals() {
       window.removeEventListener("petals", onEvent);
       document.removeEventListener("visibilitychange", onVis);
     };
-  }, [quality, reducedMotion, ready, pointer, scroll]);
+  }, [quality, reducedMotion, ready, pointer, scroll, coarseDevice]);
 
-  return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-40" style={{ mixBlendMode: "normal" }} />;
+  if (reducedMotion || quality === "low") return null;
+  if (coarseDevice) return ready ? <CssPetals count={14} /> : null;
+  return <canvas ref={ref} aria-hidden className="pointer-events-none fixed inset-0 z-40" />;
 }

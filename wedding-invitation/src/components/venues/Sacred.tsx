@@ -25,7 +25,7 @@ import { SceneVeil } from "@/components/effects/SceneStack";
  */
 export function Sacred() {
   const root = useRef<HTMLElement>(null);
-  const { reducedMotion } = useExperience();
+  const { reducedMotion, finePointer } = useExperience();
   const ev = muhurtham;
 
   useGSAP(
@@ -43,12 +43,14 @@ export function Sacred() {
       gsap.set(q(".pin"), { y: -60, autoAlpha: 0 });
       gsap.set(q(".countdown"), { autoAlpha: 0, y: 40 });
 
-      // arch opens with the scroll
-      gsap.fromTo(
-        q(".arch-mask"),
-        { "--arch": "26%" },
-        { "--arch": "170%", ease: "power2.inOut", scrollTrigger: { trigger: root.current, start: "top 85%", end: "top 5%", scrub: 0.8 } },
-      );
+      // arch opens with the scroll (desktop; re-masking a full scene per frame is too costly on phones)
+      if (finePointer) {
+        gsap.fromTo(
+          q(".arch-mask"),
+          { "--arch": "26%" },
+          { "--arch": "170%", ease: "power2.inOut", scrollTrigger: { trigger: root.current, start: "top 85%", end: "top 5%", scrub: 0.8 } },
+        );
+      }
 
       // depth: sky glow, gopuram, bells, content
       const par = gsap.timeline({
@@ -80,7 +82,7 @@ export function Sacred() {
           .to(q(".pin"), { y: 0, autoAlpha: 1, duration: 0.9, ease: "bounce.out" }, 1.1);
       });
     },
-    { dependencies: [reducedMotion], scope: root },
+    { dependencies: [reducedMotion, finePointer], scope: root },
   );
 
   return (
@@ -109,7 +111,7 @@ export function Sacred() {
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_100%,rgba(139,90,43,0.35),transparent_70%)]" aria-hidden />
 
           <div className="layer-gopuram art-layer pointer-events-none absolute inset-x-0 bottom-[-6vh] flex justify-center md:bottom-[-10vh]" aria-hidden>
-            <Gopuram variant="line" strokeWidth={1.4} className="gopuram w-[min(110vw,780px)] max-w-none text-gold/60 drop-shadow-[0_0_18px_rgba(232,207,138,0.3)]" />
+            <Gopuram variant="line" strokeWidth={1.4} className="gopuram w-[min(110vw,780px)] max-w-none text-gold/60" />
           </div>
 
           <div className="layer-bells pointer-events-none absolute inset-x-0 top-0 hidden justify-between px-[6vw] md:flex" aria-hidden>

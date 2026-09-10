@@ -211,10 +211,18 @@ export function Timeline() {
       };
       paint();
 
+      let lastH = trackEl.offsetHeight, roTimer = 0;
       const ro = new ResizeObserver(() => {
-        len = buildPath() ?? len;
-        paint();
-        ScrollTrigger.refresh();
+        window.clearTimeout(roTimer);
+        roTimer = window.setTimeout(() => {
+          len = buildPath() ?? len;
+          paint();
+          const h = trackEl.offsetHeight;
+          if (Math.abs(h - lastH) > 2) {
+            lastH = h;
+            ScrollTrigger.refresh();
+          }
+        }, 160);
       });
       ro.observe(trackEl);
 
@@ -262,7 +270,10 @@ export function Timeline() {
         );
       });
 
-      return () => ro.disconnect();
+      return () => {
+        window.clearTimeout(roTimer);
+        ro.disconnect();
+      };
     },
     { dependencies: [reducedMotion, finePointer], scope: root },
   );
@@ -287,7 +298,7 @@ export function Timeline() {
 
         <div ref={track} className="track relative mt-20 md:mt-28">
           {/* golden thread */}
-          <svg className="pointer-events-none absolute inset-0 h-full w-full overflow-visible" preserveAspectRatio="none" aria-hidden>
+          <svg className="art-layer pointer-events-none absolute inset-0 h-full w-full overflow-visible" preserveAspectRatio="none" aria-hidden>
             <defs>
               <linearGradient id="thread-grad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="0" stopColor="#8e6a1f" />

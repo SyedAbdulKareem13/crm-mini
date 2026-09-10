@@ -11,6 +11,10 @@ export function detectQuality(): Quality {
   if (typeof window === "undefined") return "medium";
   if (cached) return cached;
 
+  // manual override for testing on real devices, e.g. ?quality=low
+  const forced = new URLSearchParams(window.location.search).get("quality");
+  if (forced === "low" || forced === "medium" || forced === "high") return (cached = forced);
+
   const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   if (reduced) return (cached = "low");
 
@@ -28,10 +32,12 @@ export function detectQuality(): Quality {
 
   const coarse = window.matchMedia("(pointer: coarse)").matches;
   const cores = nav.hardwareConcurrency ?? 4;
-  const mem = nav.deviceMemory ?? 4;
+  const mem = nav.deviceMemory; // Chromium only; Safari leaves it undefined
   const small = Math.min(window.innerWidth, window.innerHeight) < 700;
 
-  if (coarse || small || cores <= 4 || mem <= 4) return (cached = "medium");
+  // budget phones: keep the story, skip WebGL
+  if (coarse && mem !== undefined && mem <= 3) return (cached = "low");
+  if (coarse || small || cores <= 4 || (mem !== undefined && mem <= 4)) return (cached = "medium");
   return (cached = "high");
 }
 

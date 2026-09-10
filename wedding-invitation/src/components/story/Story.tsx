@@ -16,13 +16,13 @@ import { SceneVeil } from "@/components/effects/SceneStack";
  */
 export function Story() {
   const root = useRef<HTMLElement>(null);
-  const { reducedMotion } = useExperience();
+  const { reducedMotion, finePointer } = useExperience();
 
   useGSAP(
     () => {
       if (reducedMotion) return;
       const q = gsap.utils.selector(root);
-      gsap.set(q(".story-word"), { color: "rgba(232,207,138,0.16)" });
+      gsap.set(q(".story-lit"), { opacity: 0 });
       gsap.set(q(".story-en, .story-eyebrow, .story-lamp"), { autoAlpha: 0, y: 24 });
 
       const tl = gsap.timeline({
@@ -38,23 +38,23 @@ export function Story() {
 
       tl.to(q(".curtain-l"), { xPercent: -102, duration: 0.16, ease: "power2.inOut" }, 0.02)
         .to(q(".curtain-r"), { xPercent: 102, duration: 0.16, ease: "power2.inOut" }, 0.02)
-        .fromTo(q(".story-kolam"), { scale: 1.25, rotate: -12, autoAlpha: 0 }, { scale: 1, rotate: 24, autoAlpha: 1, duration: 0.9 }, 0.02)
+        .fromTo(q(".story-kolam"), finePointer ? { scale: 1.25, rotate: -12, autoAlpha: 0 } : { autoAlpha: 0 }, finePointer ? { scale: 1, rotate: 24, autoAlpha: 1, duration: 0.9 } : { autoAlpha: 1, duration: 0.5 }, 0.02)
         .to(q(".story-eyebrow"), { autoAlpha: 1, y: 0, duration: 0.08 }, 0.14)
         .to(q(".story-lamp"), { autoAlpha: 1, y: 0, duration: 0.1 }, 0.16)
-        .to(q(".story-word"), { color: "rgba(246,231,185,1)", duration: 0.07, stagger: 0.055, ease: "power1.inOut" }, 0.2)
+        .to(q(".story-lit"), { opacity: 1, duration: 0.07, stagger: 0.055, ease: "power1.inOut" }, 0.2)
         .to(q(".story-en"), { autoAlpha: 1, y: 0, duration: 0.1 }, 0.66)
         .to(q(".story-stage"), { autoAlpha: 0.15, scale: 0.98, duration: 0.14 }, 0.86);
     },
-    { dependencies: [reducedMotion], scope: root },
+    { dependencies: [reducedMotion, finePointer], scope: root },
   );
 
   const line = words(wedding.quotes.story.ta);
 
   return (
-    <section ref={root} id="story" data-scene aria-labelledby="story-title" className={reducedMotion ? "scene relative" : "scene relative h-[280vh]"}>
+    <section ref={root} id="story" data-scene aria-labelledby="story-title" className={reducedMotion ? "scene relative" : "scene relative h-[280svh]"}>
       <div className="sticky top-0 h-[100svh] overflow-hidden silk-maroon">
         <div className="story-stage absolute inset-0">
-          <Kolam hairline strokeWidth={1} className="story-kolam art-layer absolute left-1/2 top-1/2 w-[118vmax] -translate-x-1/2 -translate-y-1/2 text-gold/[0.14]" />
+          <Kolam hairline strokeWidth={1} className="story-kolam art-layer absolute left-1/2 top-1/2 w-[130vw] -translate-x-1/2 -translate-y-1/2 text-gold/[0.14] md:w-[118vmax]" />
           <div className="absolute inset-0 vignette" />
 
           <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center">
@@ -64,17 +64,18 @@ export function Story() {
             <h2 id="story-title" className="sr-only">
               {wedding.quotes.story.en}
             </h2>
-            <p className="tamil mt-8 max-w-5xl text-[clamp(1.55rem,4.4vw,3.5rem)] leading-[1.7] text-champagne [text-shadow:0_0_28px_rgba(232,207,138,0.22)]" aria-hidden>
+            <p className="story-line tamil mt-8 max-w-5xl text-[clamp(1.55rem,4.4vw,3.5rem)] leading-[1.7]" aria-hidden>
               {line.map((w, i) => (
-                <span key={i} className="story-word mx-[0.16em] inline-block">
-                  {w}
+                <span key={i} className="story-word relative mx-[0.16em] inline-block">
+                  <span className="text-gold-light/20">{w}</span>
+                  <span className="story-lit absolute inset-0 text-champagne will-change-[opacity]">{w}</span>
                 </span>
               ))}
             </p>
             <p className="story-en mt-10 font-display text-xl italic text-gold-light/85 md:text-3xl">{wedding.quotes.story.en}</p>
           </div>
 
-          <Lamp2D className="story-lamp pointer-events-none absolute bottom-[4svh] left-1/2 h-[20svh] w-auto -translate-x-1/2 drop-shadow-[0_0_30px_rgba(255,170,70,0.35)]" />
+          <Lamp2D className="story-lamp pointer-events-none absolute bottom-[4svh] left-1/2 h-[20svh] w-auto -translate-x-1/2" />
         </div>
 
         {/* silk curtains */}
