@@ -68,7 +68,8 @@ export function Hero() {
   useGSAP(
     () => {
       const q = gsap.utils.selector(sticky);
-      gsap.set(q("[data-reveal]"), { autoAlpha: 0 });
+      // the names and flourishes have their own reveals, so they start hidden too
+      gsap.set(q("[data-reveal], .name-a .ch, .name-b .ch, .flourish"), { autoAlpha: 0 });
     },
     { scope: sticky },
   );
@@ -81,7 +82,7 @@ export function Hero() {
 
       if (reducedMotion) {
         lit.current = 1;
-        gsap.set(q("[data-reveal]"), { autoAlpha: 1 });
+        gsap.set(q("[data-reveal], .name-a .ch, .name-b .ch, .flourish"), { autoAlpha: 1 });
         showStrokes(sticky.current);
         setIntroDone();
         return;
@@ -91,7 +92,6 @@ export function Hero() {
       tl.fromTo(q(".hero-glow"), { autoAlpha: 0 }, { autoAlpha: 1, duration: 3.2, ease: "power2.inOut" }, 0)
         .fromTo(q(".hero-gopuram"), { autoAlpha: 0, y: 60, scale: 0.96 }, { autoAlpha: 1, y: 0, scale: 1, duration: 3.4, ease: "power2.out" }, 0.2)
         .to(lit, { current: 1, duration: 2.4, ease: "power2.inOut" }, 0.7)
-        .fromTo(q(".hero-fallback .flame, .hero-fallback .flame-slow"), { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.6, stagger: 0.15 }, 0.9)
         .fromTo(q(".hero-kolam"), finePointer ? { autoAlpha: 0, scale: 0.82, rotate: -10 } : { autoAlpha: 0 }, finePointer ? { autoAlpha: 1, scale: 1, rotate: 0, duration: 3.6, ease: "power2.out" } : { autoAlpha: 1, duration: 2.4 }, 1.3)
         .add(drawStrokes(q(".hero-kolam")[0], { duration: 3.2, stagger: 0.004 }), 1.3)
         .add(unfoldChars(q(".name-a .ch"), { stagger: 0.065 }), 2.5)
@@ -105,6 +105,9 @@ export function Hero() {
         .add(riseIn(q(".hero-tamil")), 5.6)
         .add(riseIn(q(".hero-meta"), { stagger: 0.14 }), 6.2)
         .add(riseIn(q(".hero-scroll")), 6.7);
+      // the illustrated lamp (low tier) lights its flames in step with the 3D one
+      const flames = q(".hero-fallback .flame, .hero-fallback .flame-slow");
+      if (flames.length) tl.fromTo(flames, { autoAlpha: 0 }, { autoAlpha: 1, duration: 1.6, stagger: 0.15 }, 0.9);
 
       // If the guest scrolls early, hurry the sequence along rather than blocking them
       const hurry = () => tl.timeScale(3.2);

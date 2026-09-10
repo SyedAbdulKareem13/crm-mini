@@ -1,25 +1,75 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { useExperience } from "@/lib/experience";
 import { wedding } from "@/data/wedding";
 import { getLenis } from "@/components/effects/SmoothScroll";
 import { petals } from "@/components/effects/Petals";
+import type { CurtainDrive } from "@/components/three/CurtainScene";
+
+const CurtainScene = dynamic(() => import("@/components/three/CurtainScene"), { ssr: false });
 
 const FALLBACK = 8000;
+const SCENE_FALLBACK = 7000;
+
+/** `?gate=css` forces the CSS curtain, `?gate=3d` keeps waiting for WebGL instead of falling back — for testing on devices */
+function gateOverride(): "css" | "3d" | null {
+  const g = new URLSearchParams(window.location.search).get("gate");
+  return g === "css" || g === "3d" ? g : null;
+}
+
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(c.getContext("webgl2") || c.getContext("webgl"));
+  } catch {
+    return false;
+  }
+}
 
 /**
  * The curtain gate. The stage is closed behind velvet drapes while assets load; when the first
- * frame is ready a monogrammed "Tap to open" appears. On tap the curtains are tugged, gathered
- * to both wings with cloth-like lag and an elastic settle, light spills from the centre, the
- * valance lifts — and the hero's lamp-lighting sequence starts underneath while they part.
+ * frame is ready a monogrammed "Tap to open" appears. On tap the cords are pulled: the rod end of
+ * each drape draws to its wing while the hem lags and swings under its own weight, the pleats
+ * deepen as the fabric gathers, light spills from the stage, the valance lifts, the wings slide
+ * off — and the hero's lamp-lighting sequence is already running underneath as they part.
+ *
+ * The drapes are real cloth in WebGL (CurtainScene). Without WebGL, or under reduced motion,
+ * a CSS curtain stands in.
  */
 export function Loader() {
-  const { ready, setReady, opened, setOpened, reducedMotion } = useExperience();
+  const { ready, setReady, setOpened, reducedMotion, quality } = useExperience();
   const root = useRef<HTMLDivElement>(null);
   const [gone, setGone] = useState(false);
   const opening = useRef(false);
+
+  // null = undecided (SSR / first paint), then true for the WebGL stage, false for the CSS fallback
+  const [use3D, setUse3D] = useState<boolean | null>(null);
+  const [sceneCreated, setSceneCreated] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
+  const drive = useRef<CurtainDrive>({ open: 0, sag: 0, glow: 0, lift: 0, exit: 0 });
+
+  useEffect(() => {
+    const forced = gateOverride();
+    setUse3D(forced ? forced === "3d" : !reducedMotion && hasWebGL());
+  }, [reducedMotion]);
+
+  // if the canvas exists but never produces a frame, stand the CSS curtain in instead of holding the guest
+  useEffect(() => {
+    if (use3D !== true || !sceneCreated || sceneReady || gateOverride() === "3d") return;
+    const t = window.setTimeout(() => setUse3D(false), SCENE_FALLBACK);
+    return () => window.clearTimeout(t);
+  }, [use3D, sceneCreated, sceneReady]);
+
+  const onSceneCreated = useCallback(() => setSceneCreated(true), []);
+  const onSceneReady = useCallback(() => setSceneReady(true), []);
+  const onSceneLost = useCallback(() => {
+    if (!opening.current) setUse3D(false);
+  }, []);
+
+  const stageReady = ready && (use3D === false || sceneReady);
 
   // lock the page while the stage is closed
   useEffect(() => {
@@ -32,15 +82,25 @@ export function Loader() {
     };
   }, [setReady]);
 
+  // the veil lifts once the cloth is on screen
+  useGSAP(
+    () => {
+      if (!sceneReady) return;
+      const q = gsap.utils.selector(root);
+      gsap.to(q(".gate-veil"), { autoAlpha: 0, duration: 0.9, ease: "power2.inOut" });
+    },
+    { dependencies: [sceneReady], scope: root },
+  );
+
   // loading dots → tap to open
   useGSAP(
     () => {
-      if (!ready) return;
+      if (!stageReady) return;
       const q = gsap.utils.selector(root);
       gsap.to(q(".gate-dots"), { autoAlpha: 0, y: -10, duration: 0.45, ease: "power2.in" });
       gsap.fromTo(q(".gate-cta"), { autoAlpha: 0, y: 16, scale: 0.94 }, { autoAlpha: 1, y: 0, scale: 1, duration: 1, ease: "expo.out", delay: 0.35 });
     },
-    { dependencies: [ready], scope: root },
+    { dependencies: [stageReady], scope: root },
   );
 
   const finish = useCallback(() => {
@@ -51,12 +111,10 @@ export function Loader() {
   }, []);
 
   const open = useCallback(() => {
-    if (!ready || opening.current || !root.current) return;
+    if (!stageReady || opening.current || !root.current) return;
     opening.current = true;
     window.dispatchEvent(new Event("invite:open"));
     const q = gsap.utils.selector(root);
-    const L = q(".curtain-left")[0];
-    const R = q(".curtain-right")[0];
 
     if (reducedMotion) {
       setOpened();
@@ -64,31 +122,53 @@ export function Loader() {
       return;
     }
 
+    if (use3D) {
+      const d = drive.current;
+      const tl = gsap.timeline({ onComplete: finish });
+      tl.to(q(".gate-center"), { autoAlpha: 0, scale: 0.92, duration: 0.45, ease: "power2.in" }, 0)
+        // the cords are pulled: the fabric tenses and the hems bunch before anything moves
+        .to(d, { sag: 1, duration: 0.42, ease: "power2.out" }, 0)
+        .to(d, { sag: 0, duration: 1.5, ease: "power2.inOut" }, 0.42)
+        // the draw: the rod end of each drape travels to its wing; the hem follows on a spring
+        .to(d, { open: 1, duration: 2.45, ease: "power2.inOut" }, 0.22)
+        // light spills from the stage through the widening gap
+        .to(d, { glow: 1, duration: 1.2, ease: "power2.out" }, 0.6)
+        .to(d, { glow: 0, duration: 1.1, ease: "power2.in" }, 2.3)
+        .fromTo(q(".gate-light"), { scale: 0.2, autoAlpha: 0 }, { scale: 1.7, autoAlpha: 0.55, duration: 1.3, ease: "power2.out" }, 0.35)
+        .to(q(".gate-light"), { autoAlpha: 0, duration: 0.9, ease: "power2.in" }, 2.0)
+        .to(q(".gate-vignette"), { autoAlpha: 0, duration: 1.4, ease: "power2.inOut" }, 1.3)
+        // the valance lifts away
+        .to(d, { lift: 1, duration: 1.05, ease: "power3.in" }, 2.2)
+        // the gathered wings slide off stage
+        .to(d, { exit: 1, duration: 0.9, ease: "power2.in" }, 2.5)
+        .to(root.current, { autoAlpha: 0, duration: 0.35, ease: "power1.out" }, 3.15)
+        // the story begins while the drapes are still parting, so the lamp is glowing as they clear
+        .add(() => setOpened(), 0.35)
+        .add(() => petals({ type: "burst", count: 26, y: 0.45 }), 1.25);
+      return;
+    }
+
+    // CSS fallback
+    const L = q(".curtain-left")[0];
+    const R = q(".curtain-right")[0];
     const tl = gsap.timeline({ defaults: { ease: "power3.inOut" }, onComplete: finish });
     tl.to(q(".gate-center"), { autoAlpha: 0, scale: 0.92, duration: 0.45, ease: "power2.in" }, 0)
-      // the tug: fabric lifts and leans as the cords are pulled
       .to([L, R], { scaleY: 0.985, duration: 0.32, ease: "power2.out" }, 0.05)
       .to(L, { skewX: 5.5, duration: 0.36, ease: "power2.out" }, 0.05)
       .to(R, { skewX: -5.5, duration: 0.36, ease: "power2.out" }, 0.05)
-      // the draw: pleats gather toward each wing
       .to([L, R], { scaleX: 0.1, duration: 1.75 }, 0.3)
       .to([L, R], { scaleY: 1, duration: 1.2, ease: "power2.out" }, 0.6)
-      // gravity: the hems swing back and settle like cloth
       .to(L, { skewX: 0, duration: 1.7, ease: "elastic.out(1, 0.42)" }, 1.05)
       .to(R, { skewX: 0, duration: 1.7, ease: "elastic.out(1, 0.42)" }, 1.05)
-      // light spills through the opening
       .fromTo(q(".gate-light"), { scale: 0.3, autoAlpha: 0 }, { scale: 1.9, autoAlpha: 0.7, duration: 1.1, ease: "power2.out" }, 0.45)
       .to(q(".gate-light"), { autoAlpha: 0, duration: 0.9, ease: "power2.in" }, 1.7)
-      // the valance lifts away
       .to(q(".curtain-valance"), { yPercent: -115, duration: 0.95, ease: "power3.in" }, 1.25)
-      // gathered wings slide off stage
       .to(L, { xPercent: -115, duration: 0.7, ease: "power2.in" }, 1.95)
       .to(R, { xPercent: 115, duration: 0.7, ease: "power2.in" }, 1.95)
       .to(root.current, { autoAlpha: 0, duration: 0.3, ease: "power1.out" }, 2.55)
-      // the story begins the moment the cords are pulled, so the lamp is glowing as the drapes clear
       .add(() => setOpened(), 0.12)
       .add(() => petals({ type: "burst", count: 26, y: 0.45 }), 0.9);
-  }, [ready, reducedMotion, setOpened, finish]);
+  }, [stageReady, use3D, reducedMotion, setOpened, finish]);
 
   if (gone) return null;
 
@@ -101,26 +181,20 @@ export function Loader() {
       aria-label="Invitation"
       onClick={open}
     >
+      {/* the stage */}
+      {use3D === true && (
+        <div className="absolute inset-0" aria-hidden>
+          <CurtainScene drive={drive} quality={quality} onCreated={onSceneCreated} onReady={onSceneReady} onLost={onSceneLost} />
+        </div>
+      )}
+      {use3D === false && <CssCurtains />}
+
+      {/* deep crimson until the cloth has drawn */}
+      <div className={`gate-veil pointer-events-none absolute inset-0 ${use3D === false ? "hidden" : ""}`} aria-hidden />
+
       {/* light behind the curtain, revealed as it parts */}
       <div className="gate-light pointer-events-none absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 bg-[radial-gradient(circle,rgba(255,214,140,0.55)_0%,rgba(255,170,70,0.22)_30%,rgba(122,27,46,0)_58%)]" aria-hidden />
-
-      {/* curtains */}
-      <div className="curtain-left absolute -top-[4%] -bottom-[4%] left-[-8%] w-[58.6%]" style={{ transformOrigin: "left top" }} aria-hidden>
-        <div className="curtain-idle absolute inset-0">
-          <div className="curtain-fabric" />
-          <Tassel side="left" />
-        </div>
-      </div>
-      <div className="curtain-right absolute -top-[4%] -bottom-[4%] right-[-8%] w-[58.6%]" style={{ transformOrigin: "right top" }} aria-hidden>
-        <div className="curtain-idle absolute inset-0" style={{ animationDelay: "-3.5s" }}>
-          <div className="curtain-fabric" style={{ transform: "scaleX(-1)" }} />
-          <div className="curtain-hem left-0" />
-          <Tassel side="right" />
-        </div>
-      </div>
-      <div className="curtain-valance" aria-hidden>
-        <div className="curtain-fringe" />
-      </div>
+      {use3D === true && <div className="gate-vignette pointer-events-none absolute inset-0" aria-hidden />}
 
       {/* centre: monogram, tap to open */}
       <div className="gate-center absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
@@ -165,7 +239,31 @@ export function Loader() {
   );
 }
 
-/** Gold cord and tassel holding the inner hem of each panel */
+/** CSS stand-in for the cloth when WebGL is unavailable or motion is reduced */
+function CssCurtains() {
+  return (
+    <>
+      <div className="curtain-left absolute -top-[4%] -bottom-[4%] left-[-8%] w-[58.6%]" style={{ transformOrigin: "left top" }} aria-hidden>
+        <div className="curtain-idle absolute inset-0">
+          <div className="curtain-fabric" />
+          <Tassel side="left" />
+        </div>
+      </div>
+      <div className="curtain-right absolute -top-[4%] -bottom-[4%] right-[-8%] w-[58.6%]" style={{ transformOrigin: "right top" }} aria-hidden>
+        <div className="curtain-idle absolute inset-0" style={{ animationDelay: "-3.5s" }}>
+          <div className="curtain-fabric" style={{ transform: "scaleX(-1)" }} />
+          <div className="curtain-hem left-0" />
+          <Tassel side="right" />
+        </div>
+      </div>
+      <div className="curtain-valance" aria-hidden>
+        <div className="curtain-fringe" />
+      </div>
+    </>
+  );
+}
+
+/** Gold cord and tassel holding the inner hem of each CSS panel */
 function Tassel({ side }: { side: "left" | "right" }) {
   return (
     <svg

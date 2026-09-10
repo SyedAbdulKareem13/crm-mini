@@ -484,6 +484,14 @@ main > .scene:nth-child(8) { z-index: 8; }
 }
 
 /* ───────────────────────── Curtain gate ───────────────────────── */
+.gate-veil {
+  background:
+    radial-gradient(ellipse at 50% 42%, rgba(122, 20, 40, 0.95) 0%, rgba(58, 10, 18, 0.98) 55%, #200409 100%);
+}
+.gate-vignette {
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0) 40%, rgba(20, 0, 6, 0.3) 80%, rgba(12, 0, 4, 0.55) 100%);
+}
 .curtain-fabric {
   position: absolute;
   inset: 0;
