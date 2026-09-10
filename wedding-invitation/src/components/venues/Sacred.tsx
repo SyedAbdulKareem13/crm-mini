@@ -121,9 +121,9 @@ export function Sacred() {
             <Bell className="h-40 w-auto" delay={3.4} />
           </div>
 
-          <div className="temple-lamps pointer-events-none absolute inset-x-0 bottom-[6vh] flex justify-center gap-[34vw] md:gap-[46vw]" aria-hidden>
-            <Lamp2D className="h-[16svh] w-auto md:h-[22vh]" />
-            <Lamp2D className="h-[16svh] w-auto md:h-[22vh]" />
+          <div className="temple-lamps pointer-events-none absolute inset-x-0 bottom-[5vh] flex justify-center gap-[30vw] md:gap-[44vw]" aria-hidden>
+            <Lamp2D glow className="h-[20svh] w-auto md:h-[28vh]" />
+            <Lamp2D glow className="h-[20svh] w-auto md:h-[28vh]" />
           </div>
 
           <div className="layer-copy relative z-10 mx-auto max-w-4xl px-6 py-10 text-center [background:radial-gradient(closest-side,rgba(18,5,7,0.82),rgba(18,5,7,0.55)_60%,transparent)]">

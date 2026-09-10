@@ -75,7 +75,10 @@ export function Story() {
             <p className="story-en mt-10 font-display text-xl italic text-gold-light/85 md:text-3xl">{wedding.quotes.story.en}</p>
           </div>
 
-          <Lamp2D className="story-lamp pointer-events-none absolute bottom-[4svh] left-1/2 h-[20svh] w-auto -translate-x-1/2" />
+          <div className="story-lamp pointer-events-none absolute bottom-[2svh] left-1/2 flex h-[26svh] -translate-x-1/2 items-end justify-center md:h-[36vh]" aria-hidden>
+            <div className="absolute bottom-[-6%] left-1/2 h-[80%] w-[220%] -translate-x-1/2 rounded-[100%] bg-[radial-gradient(closest-side,rgba(255,170,70,0.28),rgba(255,140,40,0.08)_55%,transparent)]" />
+            <Lamp2D glow className="relative h-full w-auto" />
+          </div>
         </div>
 
         {/* silk curtains */}

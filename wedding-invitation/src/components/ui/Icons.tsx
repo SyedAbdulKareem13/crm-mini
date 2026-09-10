@@ -74,6 +74,12 @@ export const IconClose = (p: P) => (
     <path d="M6 6l12 12M18 6 6 18" />
   </svg>
 );
+export const IconDownload = (p: P) => (
+  <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...base} {...p}>
+    <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5" />
+    <path d="M4.5 16.5v2a1.5 1.5 0 0 0 1.5 1.5h12a1.5 1.5 0 0 0 1.5-1.5v-2" />
+  </svg>
+);
 export const IconExternal = (p: P) => (
   <svg viewBox="0 0 24 24" width="1em" height="1em" aria-hidden {...base} {...p}>
     <path d="M14 4h6v6M20 4l-9 9" />

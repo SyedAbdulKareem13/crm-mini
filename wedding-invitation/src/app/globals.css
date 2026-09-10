@@ -483,6 +483,31 @@ main > .scene:nth-child(8) { z-index: 8; }
   }
 }
 
+/* ───────────────────────── Lotus: breathing bloom ───────────────────────── */
+@keyframes breathe {
+  0%, 100% { transform: translateX(-50%) scale(1) rotate(0deg); }
+  50% { transform: translateX(-50%) scale(1.035) rotate(0.6deg); }
+}
+.breathe {
+  transform-origin: 50% 100%;
+  animation: breathe 7s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes petal-sway {
+  0%, 100% { transform: rotate(-1.4deg) scaleY(1); }
+  50% { transform: rotate(1.4deg) scaleY(1.02); }
+}
+.petal-breathe {
+  transform-box: view-box;
+  transform-origin: 160px 200px;
+  animation: petal-sway 5.5s ease-in-out infinite;
+}
+@media (pointer: coarse) {
+  .petal-breathe {
+    animation: none;
+  }
+}
+
 /* ───────────────────────── Petals (CSS variant for phones) ───────────────────────── */
 @keyframes petal-fall {
   0% {

@@ -16,7 +16,7 @@ export interface ThoranamProps {
 }
 
 /** Mango-leaf thoranam strung across the top of a scene, with marigold clusters. */
-export const Thoranam = memo(function Thoranam({ className, style, leaves = 26 }: ThoranamProps) {
+export function ThoranamSvg({ className, style, leaves = 26 }: ThoranamProps) {
   const p0 = [0, 6], p1 = [600, 118], p2 = [1200, 6];
   const rnd = seeded(7);
   const items = Array.from({ length: leaves }, (_, i) => {
@@ -74,4 +74,6 @@ export const Thoranam = memo(function Thoranam({ className, style, leaves = 26 }
       ))}
     </svg>
   );
-});
+}
+
+export const Thoranam = memo(ThoranamSvg);

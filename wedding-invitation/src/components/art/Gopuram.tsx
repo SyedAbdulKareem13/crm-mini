@@ -51,7 +51,7 @@ function Kuta({ x, y, w = 18, id }: { x: number; y: number; w?: number; id: stri
  * kalasams; a pillared base with a double door, guardian niches, a staircase and lamp posts.
  * Line variant is drawable (data-draw).
  */
-export const Gopuram = memo(function Gopuram({ className, style, variant = "line", strokeWidth = 1.5 }: GopuramProps) {
+export function GopuramSvg({ className, style, variant = "line", strokeWidth = 1.5 }: GopuramProps) {
   const cx = 300;
   const T = tiers();
   const top = T[T.length - 1];
@@ -169,9 +169,9 @@ export const Gopuram = memo(function Gopuram({ className, style, variant = "line
               );
             })}
             {/* corner kutas + central panjara on the cornice */}
-            <Kuta id={`kl${i}`} x={cx - t.wTop / 2 + 4} y={t.yTop} w={kutaW} />
-            <Kuta id={`kr${i}`} x={cx + t.wTop / 2 - 4} y={t.yTop} w={kutaW} />
-            <Kuta id={`kc${i}`} x={cx} y={t.yTop} w={kutaW + 8} />
+            {Kuta({ id: `kl${i}`, x: cx - t.wTop / 2 + 4, y: t.yTop, w: kutaW })}
+            {Kuta({ id: `kr${i}`, x: cx + t.wTop / 2 - 4, y: t.yTop, w: kutaW })}
+            {Kuta({ id: `kc${i}`, x: cx, y: t.yTop, w: kutaW + 8 })}
           </g>
         );
       })}
@@ -218,4 +218,6 @@ export const Gopuram = memo(function Gopuram({ className, style, variant = "line
       ))}
     </svg>
   );
-});
+}
+
+export const Gopuram = memo(GopuramSvg);

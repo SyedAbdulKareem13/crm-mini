@@ -45,6 +45,7 @@ Things you will probably want to touch:
 - `events[*].moments` — the rituals listed on each programme card (Thamboolam exchange, Mangalya dharanam, …). Edit freely; `days` holds the two day-chapter headings.
 - `audio.src` — add `public/audio/ambient.mp3` and set `"/audio/ambient.mp3"`; a sound toggle appears, muted by default, and only plays after a tap.
 - `wishes.whatsapp` — a number like `"9198xxxxxxxx"` adds a *Send your wishes* button in the finale.
+- `invite.image` — the finale offers a downloadable royal invitation card. By default the site renders its own at `/invite.png` (1080 × 1560, built from the same art and fonts). To ship a designed image instead, put it in `public/invite/` and set `"/invite/royal-invitation.jpg"`.
 
 Scene labels for the side navigation are in `src/data/scenes.ts`.
 
@@ -60,7 +61,7 @@ Scene labels for the side navigation are in `src/data/scenes.ts`.
 ```
 src/
   app/                 layout (fonts, metadata), page (scene order), globals.css (tokens),
-                       opengraph-image / twitter-image, icon.svg, manifest
+                       opengraph-image / twitter-image, invite.png (downloadable card), icon.svg, manifest
   data/                wedding.ts (all content), scenes.ts (navigation)
   lib/                 gsap.ts (plugin registration, custom eases), experience.tsx (shared state:
                        ready/intro/quality/pointer/scroll), device.ts (quality tiers), calendar.ts

@@ -10,7 +10,7 @@ import { Kolam } from "@/components/art/Kolam";
 import { Lotus } from "@/components/art/Lotus";
 import { JasmineStrand } from "@/components/art/Jasmine";
 import { Button, ButtonLink } from "@/components/ui/Button";
-import { IconArrowUp, IconCheck, IconCopy, IconWhatsApp } from "@/components/ui/Icons";
+import { IconArrowUp, IconCheck, IconCopy, IconDownload, IconWhatsApp } from "@/components/ui/Icons";
 import { petals } from "@/components/effects/Petals";
 import { scrollToTarget } from "@/components/effects/SmoothScroll";
 import { showStrokes } from "@/animations/draw";
@@ -82,6 +82,7 @@ export function Finale() {
   );
 
   const wishes = wedding.wishes.whatsapp ? whatsappUrl(wedding.wishes.message, wedding.wishes.whatsapp) : null;
+  const inviteHref = wedding.invite.image || "/invite.png";
   const shareWa = whatsappUrl(`${wedding.share.text}\n${typeof window !== "undefined" ? window.location.href : ""}`.trim());
 
   return (
@@ -93,7 +94,9 @@ export function Finale() {
         <JasmineStrand className="fin-strand pointer-events-none absolute left-[4vw] top-0 hidden h-[70svh] w-16 md:block" count={14} />
         <JasmineStrand className="fin-strand pointer-events-none absolute right-[4vw] top-0 hidden h-[70svh] w-16 -scale-x-100 md:block" count={14} />
 
-        <Lotus className="pointer-events-none absolute bottom-[-3vh] left-1/2 w-[min(74vw,440px)] -translate-x-1/2" />
+        <div className="breathe pointer-events-none absolute bottom-[-3vh] left-1/2 w-[min(74vw,440px)]" aria-hidden>
+          <Lotus className="w-full" />
+        </div>
 
         <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 pb-[20svh] text-center md:pb-[26vh]">
           <p className="fin-rise eyebrow text-gold/75">
@@ -108,7 +111,35 @@ export function Finale() {
           <p className="fin-rise mt-2 max-w-xl font-display text-base italic text-ivory/60 md:text-lg">{wedding.quotes.blessing.en}</p>
           <p className="fin-rise tamil mt-6 text-xl text-gold md:text-2xl">{wedding.quotes.finale.ta}</p>
 
-          <div className="fin-rise mt-10 flex flex-wrap items-center justify-center gap-3">
+          {/* the royal invitation card — a keepsake to save or forward */}
+          <a
+            href={inviteHref}
+            download={wedding.invite.filename}
+            className="fin-rise group mt-9 hidden items-center gap-5 rounded-2xl border border-gold/30 bg-night/30 p-3 pr-6 transition-colors hover:border-gold/70 md:flex"
+          >
+            <img
+              src={inviteHref}
+              alt={`${wedding.couple.display} invitation card`}
+              width={84}
+              height={121}
+              loading="lazy"
+              className="h-[7.5rem] w-auto rounded-md border border-gold/40 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.8)] transition-transform duration-700 group-hover:-translate-y-1 group-hover:-rotate-1"
+            />
+            <span className="flex flex-col items-start text-left">
+              <span className="eyebrow text-[0.6rem] text-gold/80">
+                The invitation <span className="mx-1">·</span> <span className="tamil normal-case tracking-normal">அழைப்பிதழ்</span>
+              </span>
+              <span className="mt-1 font-display text-2xl text-champagne">Save the royal card</span>
+              <span className="mt-1 inline-flex items-center gap-2 text-[0.72rem] uppercase tracking-[0.18em] text-gold-light">
+                <IconDownload /> Download PNG
+              </span>
+            </span>
+          </a>
+
+          <div className="fin-rise mt-6 flex flex-wrap items-center justify-center gap-3 md:mt-7">
+            <ButtonLink href={inviteHref} download={wedding.invite.filename} variant="gold" icon={<IconDownload />} className="md:hidden">
+              Download invitation
+            </ButtonLink>
             <ButtonLink href={shareWa} target="_blank" rel="noopener noreferrer" variant="gold" icon={<IconWhatsApp />}>
               Share on WhatsApp
             </ButtonLink>

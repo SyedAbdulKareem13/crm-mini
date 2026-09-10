@@ -5,6 +5,20 @@ import { wedding } from "@/data/wedding";
 
 const font = (file: string) => readFile(join(process.cwd(), "src/app/fonts", file));
 
+/** The three bundled TTFs used by every server-rendered image (Satori needs TTF/OTF). */
+export async function loadFonts() {
+  const [serif, italic, tamil] = await Promise.all([
+    font("CormorantGaramond-SemiBold.ttf"),
+    font("CormorantGaramond-MediumItalic.ttf"),
+    font("NotoSerifTamil-Medium.ttf"),
+  ]);
+  return [
+    { name: "Cormorant", data: serif, weight: 600 as const, style: "normal" as const },
+    { name: "Cormorant", data: italic, weight: 500 as const, style: "italic" as const },
+    { name: "NotoSerifTamil", data: tamil, weight: 500 as const, style: "normal" as const },
+  ];
+}
+
 export const OG_SIZE = { width: 1200, height: 630 };
 
 /** Shared Open Graph / Twitter card — maroon silk, antique gold, the names, the dates. */

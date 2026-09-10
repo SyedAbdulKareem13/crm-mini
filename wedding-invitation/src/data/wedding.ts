@@ -174,6 +174,22 @@ export const wedding = {
     },
   },
 
+  /**
+   * Downloadable invitation card. The site renders its own card at /invite.png from the same art
+   * and fonts. To use a designed image instead, drop it in /public/invite/ and set
+   * image: "/invite/royal-invitation.jpg".
+   */
+  invite: {
+    image: "",
+    filename: "Dharani-Barath-Wedding-Invitation.png",
+    /**
+     * Tamil line printed on the generated card. The card renderer (Satori) cannot reorder
+     * prefixed vowel signs (ெ ே ை ொ ோ), so keep this line to letters with pulli or
+     * post-base vowels only — this one shapes correctly: “two hearts as one · live a hundred years”.
+     */
+    tamilLine: "இரு இதயங்கள் ஒன்றாய் · நூறாண்டு வாழ்க",
+  },
+
   /** Optional ambient audio. Drop a file in /public/audio and set src: "/audio/ambient.mp3" */
   audio: {
     src: "",

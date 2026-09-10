@@ -47,7 +47,7 @@ export interface KolamProps {
  * Procedural pulli-kolam in rotational symmetry.
  * Every stroke carries data-draw so GSAP can “draw” it on reveal.
  */
-export const Kolam = memo(function Kolam({
+export function KolamSvg({
   className,
   style,
   variant = "full",
@@ -101,7 +101,7 @@ export const Kolam = memo(function Kolam({
       <path d={weave(cx, cy, 46, 13, 8, -1)} data-draw vectorEffect={ve} />
 
       {variant === "full" && (
-        <>
+        <g>
           {/* paisley ring */}
           {repeat(16, 82, PAISLEY, 0.9, 0, 12)}
           {dots(74, 16, Math.PI / 16, 2)}
@@ -114,8 +114,10 @@ export const Kolam = memo(function Kolam({
           {/* fringe */}
           {repeat(48, 186, DROP, 0.6, Math.PI / 48)}
           <circle cx={cx} cy={cy} r={194} data-draw vectorEffect={ve} strokeDasharray="1 5" />
-        </>
+        </g>
       )}
     </svg>
   );
-});
+}
+
+export const Kolam = memo(KolamSvg);

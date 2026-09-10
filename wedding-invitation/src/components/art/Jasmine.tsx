@@ -33,7 +33,7 @@ export interface JasmineStrandProps {
 }
 
 /** A vertical malligai (jasmine) strand — alternating blooms and buds on a thread. */
-export const JasmineStrand = memo(function JasmineStrand({ className, style, count = 14, length = 600 }: JasmineStrandProps) {
+export function JasmineStrandSvg({ className, style, count = 14, length = 600 }: JasmineStrandProps) {
   const rnd = seeded(21);
   const step = length / count;
   return (
@@ -46,15 +46,15 @@ export const JasmineStrand = memo(function JasmineStrand({ className, style, cou
         return (
           <g key={i}>
             <path d={`M30 ${f(y)} q ${side * 6} -4 ${side * 9} -2`} stroke="#7aa06b" strokeWidth="0.8" fill="none" />
-            {i % 3 === 2 ? (
-              <JasmineBud x={30 + side * 9} y={y - 4} rot={side * 30 + jitter} />
-            ) : (
-              <JasmineFlower x={30 + side * 10} y={y - 3} r={0.95 + rnd() * 0.2} rot={jitter * 4} />
-            )}
-            {i % 2 === 0 && <JasmineBud x={30 - side * 6} y={y + 8} rot={-side * 25} r={0.75} />}
+            {i % 3 === 2
+              ? JasmineBud({ x: 30 + side * 9, y: y - 4, rot: side * 30 + jitter })
+              : JasmineFlower({ x: 30 + side * 10, y: y - 3, r: 0.95 + rnd() * 0.2, rot: jitter * 4 })}
+            {i % 2 === 0 && JasmineBud({ x: 30 - side * 6, y: y + 8, rot: -side * 25, r: 0.75 })}
           </g>
         );
       })}
     </svg>
   );
-});
+}
+
+export const JasmineStrand = memo(JasmineStrandSvg);

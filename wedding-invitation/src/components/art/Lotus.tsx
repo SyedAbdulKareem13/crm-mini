@@ -25,17 +25,18 @@ export const Lotus = memo(function Lotus({ className, style, tone = "gold" }: Lo
 
   const row = (angles: number[], scale: number, fill: string, k: string) =>
     angles.map((a, i) => (
-      <path
-        key={`${k}${i}`}
-        d={PETAL}
-        data-petal
-        fill={fill}
-        stroke="#8e6a1f"
-        strokeOpacity="0.35"
-        strokeWidth="0.8"
-        style={{ transformOrigin: "160px 200px", transformBox: "view-box" } as React.CSSProperties}
-        transform={`translate(160 200) rotate(${a}) scale(${scale})`}
-      />
+      <g key={`${k}${i}`} className="petal-breathe" style={{ animationDelay: `${-(i * 0.9 + (k === "a" ? 0 : k === "b" ? 0.4 : 0.8))}s` } as React.CSSProperties}>
+        <path
+          d={PETAL}
+          data-petal
+          fill={fill}
+          stroke="#8e6a1f"
+          strokeOpacity="0.35"
+          strokeWidth="0.8"
+          style={{ transformOrigin: "160px 200px", transformBox: "view-box" } as React.CSSProperties}
+          transform={`translate(160 200) rotate(${a}) scale(${scale})`}
+        />
+      </g>
     ));
 
   return (
