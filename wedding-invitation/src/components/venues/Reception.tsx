@@ -86,8 +86,9 @@ export function Reception() {
           <p className="rise eyebrow text-gold/80">
             The Evening <span className="mx-2">·</span> <span className="tamil normal-case tracking-normal">{ev.tamil}</span>
           </p>
-          <h2 id="reception-title" className="rise display-lg mt-5 gold-text">
-            An evening of lamps &amp; laughter
+          <h2 id="reception-title" className="rise gold-text mt-5 font-display text-[clamp(1.5rem,3vw,2.25rem)] font-medium leading-[1.2]">
+            Let the lights glow, the music play, and the celebrations begin.
+            <span className="mt-2 block">Come make our evening a little more special.</span>
           </h2>
           <p className="rise mt-5 max-w-lg font-display text-xl italic text-champagne/85 md:text-2xl">{ev.description}</p>
 

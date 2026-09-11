@@ -45,7 +45,7 @@ export const wedding = {
   couple: {
     bride: {
       name: "Dharani",
-      tamil: "தரணி",
+      tamil: "தாரணி",
       initial: "D",
       /** e.g. "Daughter of Mr. & Mrs. …" — leave empty to hide */
       parents: "",
@@ -99,13 +99,17 @@ export const wedding = {
       timeLabel: "10:00 AM – 12:00 PM",
       start: "2026-10-24T10:00:00+05:30",
       end: "2026-10-24T12:00:00+05:30",
-      // TODO: add the engagement venue when confirmed, e.g.
-      // venue: { name: "SGS Mahal", tamil: "எஸ்.ஜி.எஸ். மஹால்", city: "Palladam", cityTamil: "பல்லடம்", mapsQuery: "SGS Mahal, Palladam" },
-      venue: null,
-      description: "Rings exchanged, promises made — the morning our two families become one.",
+      venue: {
+        name: "SGS Mahal",
+        tamil: "எஸ்.ஜி.எஸ். மஹால்",
+        city: "Palladam",
+        cityTamil: "பல்லடம்",
+        mapsQuery: "SGS Mahal, Palladam, Tamil Nadu",
+      },
+      description: "Two families, one beautiful beginning — surrounded by love and cherished traditions.",
       day: 1,
       tone: "morning",
-      moments: ["Thamboolam exchange", "Ring ceremony", "Blessings of the elders"],
+      moments: ["Thamboolam exchange", "Ring ceremony", "Elders’ blessings"],
     },
     {
       id: "reception",
@@ -124,7 +128,7 @@ export const wedding = {
         cityTamil: "பல்லடம்",
         mapsQuery: "SGS Mahal, Palladam, Tamil Nadu",
       },
-      description: "An evening of lamps, music and laughter — come dine and dance with us.",
+      description: "Our forever deserves a little celebration — come laugh, dine, dance and make memories with us!",
       day: 1,
       tone: "evening",
       moments: ["Couple’s entry", "Dinner", "Music & celebrations"],
@@ -147,7 +151,7 @@ export const wedding = {
         cityTamil: "திருப்பூர்",
         mapsQuery: "Konganagiri Murugan Temple, Tirupur, Tamil Nadu",
       },
-      description: "The sacred thread is tied at the auspicious hour, before Lord Murugan and our elders.",
+      description: "With Lord Murugan’s blessings above us and our loved ones beside us, two hearts unite as one.",
       day: 2,
       tone: "dawn",
       moments: ["Kanyadanam", "Mangalya dharanam — tying of the thali", "Aarti & blessings"],

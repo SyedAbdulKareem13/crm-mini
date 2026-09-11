@@ -41,7 +41,7 @@ Things you will probably want to touch:
 
 - `couple.bride.parents` / `couple.groom.parents` — e.g. `"Daughter of Mr. & Mrs. …"`. Empty hides the line.
 - `couple.*.photo` — drop portraits into `public/photos/` and set `"/photos/dharani.jpg"`. They are clipped inside the temple-arch frame automatically. **Without photos** the frames show hand-drawn paper-cut profiles of the bride (kondai with jasmine, jhumka, bindi, nethi chutti, saree zari) and groom (angavastram, thilakam) facing each other, with a small monogram seal — so the invitation is complete with or without photography.
-- `events[0].venue` — the engagement venue is `null` (shows *Venue to be announced*) until you confirm it.
+- `events[*].venue` — set a venue to `null` to show *Venue to be announced* on that card until it is confirmed.
 - `events[*].moments` — the rituals listed on each programme card (Thamboolam exchange, Mangalya dharanam, …). Edit freely; `days` holds the two day-chapter headings.
 - `audio.src` — add `public/audio/ambient.mp3` and set `"/audio/ambient.mp3"`; a sound toggle appears, muted by default, and only plays after a tap.
 - `wishes.whatsapp` — a number like `"9198xxxxxxxx"` adds a *Send your wishes* button in the finale.

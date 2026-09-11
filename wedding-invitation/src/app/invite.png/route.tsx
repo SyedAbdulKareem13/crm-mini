@@ -87,7 +87,7 @@ export async function GET() {
         <div style={{ position: "absolute", left: W - 118, top: 270, width: 52, height: 520, display: "flex", transform: "scaleX(-1)" }}>{art(JasmineStrandSvg({ count: 12, length: 600 }), 52, 520)}</div>
 
         {/* text */}
-        <div style={{ position: "absolute", left: 0, top: 280, width: W, display: "flex", flexDirection: "column", alignItems: "center" }}>
+        <div style={{ position: "absolute", left: 0, top: 262, width: W, display: "flex", flexDirection: "column", alignItems: "center" }}>
           <Eyebrow>{wedding.invitation.eyebrow}</Eyebrow>
           <div style={{ display: "flex", alignItems: "baseline", gap: 24, marginTop: 26 }}>
             <div style={{ display: "flex", fontSize: 108, fontWeight: 600, color: CHAMPAGNE, letterSpacing: 2 }}>{bride.name}</div>
@@ -97,10 +97,10 @@ export async function GET() {
           <div style={{ display: "flex", fontFamily: "NotoSerifTamil", fontSize: 38, color: GOLD_LIGHT, marginTop: 4 }}>
             {bride.tamil} &amp; {groom.tamil}
           </div>
-          <div style={{ display: "flex", fontSize: 34, fontStyle: "italic", fontWeight: 500, color: CHAMPAGNE, marginTop: 22 }}>{wedding.tagline.en}</div>
+          <div style={{ display: "flex", fontSize: 34, fontStyle: "italic", fontWeight: 500, color: CHAMPAGNE, marginTop: 18 }}>{wedding.tagline.en}</div>
           <div style={{ display: "flex", fontFamily: "NotoSerifTamil", fontSize: 25, color: GOLD_LIGHT, marginTop: 8 }}>{wedding.invite.tamilLine}</div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 26 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 20 }}>
             <div style={{ width: 90, height: 1, background: `linear-gradient(90deg, transparent, ${GOLD})`, display: "flex" }} />
             <svg width="34" height="30" viewBox="0 0 34 30" fill={GOLD}>
               <path d="M17 2 C 21 8 21 16 17 22 C 13 16 13 8 17 2 Z" />
@@ -112,8 +112,8 @@ export async function GET() {
           </div>
 
           {wedding.events.map((ev, i) => (
-            <div key={ev.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: i === 0 ? 22 : 0 }}>
-              {i > 0 && <div style={{ display: "flex", marginTop: 12, marginBottom: 12 }}><Diamond /></div>}
+            <div key={ev.id} style={{ display: "flex", flexDirection: "column", alignItems: "center", marginTop: i === 0 ? 16 : 0 }}>
+              {i > 0 && <div style={{ display: "flex", marginTop: 8, marginBottom: 8 }}><Diamond /></div>}
               <Eyebrow size={25} color={GOLD_LIGHT}>{(ev.subtitle ?? ev.title)}</Eyebrow>
               <div style={{ display: "flex", fontSize: 28, color: IVORY, marginTop: 6 }}>{ev.weekday} {ev.dateLabel}</div>
               <div style={{ display: "flex", fontSize: 28, color: IVORY, marginTop: 0 }}>{ev.timeLabel}</div>
