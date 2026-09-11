@@ -492,6 +492,201 @@ main > .scene:nth-child(8) { z-index: 8; }
   background:
     radial-gradient(ellipse at 50% 45%, rgba(0, 0, 0, 0) 40%, rgba(20, 0, 6, 0.3) 80%, rgba(12, 0, 4, 0.55) 100%);
 }
+
+/* The copy is lifted off the velvet by shaped light, not by a plate laid on it:
+   a warm beam high on the drape, a broad oxblood pool behind the type, and a tall
+   narrow damper riding the centre braid so it stops competing with the letters. */
+.gate-field {
+  background:
+    radial-gradient(ellipse 82% 42% at 50% 6%, rgba(255, 214, 164, 0.16), rgba(255, 176, 116, 0) 70%),
+    radial-gradient(ellipse 92% 62% at 50% 48%, rgba(255, 186, 126, 0.08), rgba(255, 186, 126, 0) 72%),
+    radial-gradient(
+      ellipse min(22vw, 6rem) min(30vh, 17rem) at 50% 42%,
+      rgba(10, 1, 5, 0.6) 0%,
+      rgba(10, 1, 5, 0.44) 46%,
+      rgba(10, 1, 5, 0) 100%
+    ),
+    radial-gradient(
+      ellipse min(88vw, 44rem) min(54vh, 33rem) at 50% 44%,
+      rgba(13, 2, 7, 0.74) 0%,
+      rgba(13, 2, 7, 0.68) 32%,
+      rgba(14, 3, 8, 0.46) 58%,
+      rgba(15, 3, 8, 0.18) 80%,
+      rgba(15, 3, 8, 0) 100%
+    );
+}
+
+/* hairlines flanking the invitation line */
+.gate-hair {
+  display: block;
+  height: 1px;
+  width: clamp(1.5rem, 7vw, 3rem);
+  background: linear-gradient(90deg, rgba(201, 162, 74, 0), rgba(232, 207, 138, 0.8));
+}
+.gate-hair-r {
+  transform: scaleX(-1);
+}
+
+/* the crest initials, struck in antique gold */
+.gate-monogram {
+  background-image: linear-gradient(150deg, #8e6a1f 0%, #c9a24a 22%, #f6e7b9 46%, #d8b25e 64%, #8e6a1f 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.gate-amp {
+  position: relative;
+  display: inline-block;
+  padding-inline: 0.3em;
+}
+.gate-amp::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 1.9em;
+  height: 1.6em;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(closest-side, rgba(11, 1, 6, 0.85) 0%, rgba(11, 1, 6, 0.7) 52%, rgba(11, 1, 6, 0) 100%);
+}
+.gate-amp > span {
+  position: relative;
+}
+
+.gate-divider {
+  position: relative;
+  display: block;
+  width: clamp(6rem, 30vw, 9rem);
+  height: 7px;
+  background: linear-gradient(90deg, rgba(201, 162, 74, 0), rgba(232, 207, 138, 0.7) 28%, rgba(232, 207, 138, 0.7) 72%, rgba(201, 162, 74, 0)) center / 100% 1px
+    no-repeat;
+}
+.gate-divider::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  background: #e8cf8a;
+  transform: rotate(45deg);
+}
+
+/* ── the seal: the only piece of metal on the screen ── */
+.gate-slot {
+  --seal: clamp(6.5rem, 23vw, 8.75rem);
+  min-height: calc(var(--seal) + 3.6rem);
+}
+.gate-dots {
+  height: var(--seal);
+}
+.gate-seal {
+  position: relative;
+  display: block;
+  width: var(--seal);
+  height: var(--seal);
+  border-radius: 50%;
+  transform: translateZ(0);
+  transition: transform 0.5s var(--ease-out-expo);
+}
+.gate-cta:hover .gate-seal {
+  transform: scale(1.04);
+}
+.gate-cta:active .gate-seal {
+  transform: scale(0.975);
+}
+.gate-cta:focus-visible {
+  outline: none;
+}
+/* two-tone, so one half always clears the ground it lands on — velvet or braid */
+.gate-cta:focus-visible .gate-seal {
+  box-shadow: 0 0 0 3px #16040a, 0 0 0 6px #f6eedf;
+}
+.seal-halo {
+  position: absolute;
+  inset: -32%;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 206, 142, 0.3), rgba(255, 178, 104, 0.13) 38%, rgba(255, 178, 104, 0) 70%);
+  animation: seal-breathe 5.4s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes seal-breathe {
+  0%, 100% { opacity: 0.6; transform: scale(0.97); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+/* turned-metal bezel */
+.seal-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 208deg,
+    #8e6a1f 0%,
+    #f6e7b9 12%,
+    #c9a24a 26%,
+    #6b4d16 42%,
+    #e8cf8a 58%,
+    #a8822e 72%,
+    #fff6dd 86%,
+    #8e6a1f 100%
+  );
+  box-shadow:
+    0 14px 30px -14px rgba(8, 1, 4, 0.9),
+    0 30px 60px -30px rgba(8, 1, 4, 0.85),
+    inset 0 0 0 1px rgba(255, 244, 206, 0.45);
+}
+/* struck face, lit from the upper left like the stage spotlight */
+.seal-face {
+  position: absolute;
+  inset: 7%;
+  overflow: hidden;
+  border-radius: 50%;
+  background: radial-gradient(circle at 36% 26%, #fff8e2 0%, #f4e0a8 16%, #dcb765 40%, #bd9740 64%, #967122 86%, #6b4d16 100%);
+  box-shadow:
+    inset 0 0 0 1px rgba(58, 10, 18, 0.5),
+    inset 3px 4px 10px -5px rgba(255, 252, 235, 0.9),
+    inset -5px -7px 14px -7px rgba(52, 30, 6, 0.85);
+}
+/* one slow travelling highlight — the only loop on the metal */
+.seal-glint {
+  position: absolute;
+  inset: -30% -60%;
+  background: linear-gradient(100deg, rgba(255, 246, 214, 0) 38%, rgba(255, 246, 214, 0.5) 50%, rgba(255, 246, 214, 0) 62%);
+  animation: seal-glint 6.5s ease-in-out infinite;
+  will-change: transform;
+}
+@keyframes seal-glint {
+  0%, 58% { transform: translateX(-58%); }
+  86%, 100% { transform: translateX(58%); }
+}
+/* the mark is incised: a lit lip sits a hair below the dark groove */
+.seal-mark {
+  position: absolute;
+  inset: 15%;
+  color: #3a0a12;
+}
+.seal-mark-lip {
+  color: rgba(255, 246, 214, 0.6);
+  transform: translateY(1.5px);
+}
+.seal-mark .flame,
+.seal-mark .flame-slow {
+  animation: none;
+}
+
+@media (pointer: coarse) {
+  .seal-halo {
+    animation: none;
+    opacity: 0.85;
+    transform: none;
+  }
+  .seal-glint {
+    animation: none;
+    transform: translateX(-20%);
+  }
+}
 .curtain-fabric {
   position: absolute;
   inset: 0;
@@ -558,13 +753,6 @@ main > .scene:nth-child(8) { z-index: 8; }
   transform-origin: 50% 0%;
   animation: curtain-idle 7s ease-in-out infinite;
   will-change: transform;
-}
-@keyframes tap-ring {
-  0% { transform: scale(0.85); opacity: 0.85; }
-  100% { transform: scale(1.7); opacity: 0; }
-}
-.tap-ring {
-  animation: tap-ring 2.6s cubic-bezier(0.2, 0.6, 0.3, 1) infinite;
 }
 @media (pointer: coarse) {
   .curtain-idle {
@@ -656,7 +844,8 @@ main > .scene:nth-child(8) { z-index: 8; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flame, .flame-slow, .sway, .float-y, .spin-slow, .spin-slower, .pulse-ring, .glow-breathe, .gold-text {
+  .flame, .flame-slow, .sway, .float-y, .spin-slow, .spin-slower, .pulse-ring, .glow-breathe, .gold-text,
+  .seal-halo, .seal-glint {
     animation: none !important;
   }
 }

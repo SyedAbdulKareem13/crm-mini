@@ -7,6 +7,7 @@ import { useExperience } from "@/lib/experience";
 import { wedding } from "@/data/wedding";
 import { getLenis } from "@/components/effects/SmoothScroll";
 import { petals } from "@/components/effects/Petals";
+import { LampMotif } from "@/components/art/Motifs";
 import type { CurtainDrive } from "@/components/three/CurtainScene";
 
 const CurtainScene = dynamic(() => import("@/components/three/CurtainScene"), { ssr: false });
@@ -196,44 +197,64 @@ export function Loader() {
       <div className="gate-light pointer-events-none absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 bg-[radial-gradient(circle,rgba(255,214,140,0.55)_0%,rgba(255,170,70,0.22)_30%,rgba(122,27,46,0)_58%)]" aria-hidden />
       {use3D === true && <div className="gate-vignette pointer-events-none absolute inset-0" aria-hidden />}
 
-      {/* centre: monogram, tap to open */}
+      {/* centre: the invitation, read out of a pool of stage shadow */}
       <div className="gate-center absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-        <p className="eyebrow text-gold-light/75">You are warmly invited</p>
-        <p className="tamil mt-2 text-sm text-gold-light/60">அன்புடன் அழைக்கிறோம்</p>
-        <p className="mt-5 font-display text-[clamp(3.4rem,10vw,6.5rem)] leading-none">
-          <span className="gold-text-static">{wedding.couple.bride.initial}</span>
-          <span className="mx-3 italic text-gold/80">&amp;</span>
-          <span className="gold-text-static">{wedding.couple.groom.initial}</span>
-        </p>
-        <p className="mt-4 font-display text-xl italic text-champagne/90 md:text-2xl">{wedding.couple.display}</p>
-        <p className="eyebrow mt-2 text-[0.6rem] text-ivory/60">{wedding.dates.range}</p>
+        {/* no plate on the cloth — the light is shaped instead, and the centre braid is damped where the type crosses it */}
+        <div className="gate-field pointer-events-none absolute inset-0" aria-hidden />
 
-        {/* while loading */}
-        <div className="gate-dots mt-10 flex items-center gap-2.5" aria-hidden>
-          {[0, 1, 2, 3, 4].map((i) => (
-            <span key={i} className="pulli-dot block h-1.5 w-1.5 rounded-full bg-gold" style={{ animationDelay: `${i * 0.16}s` }} />
-          ))}
+        <div className="relative flex w-full max-w-[min(24rem,88vw)] flex-col items-center">
+          <p className="flex items-center gap-3">
+            <span className="gate-hair" aria-hidden />
+            <span className="eyebrow text-[0.66rem] text-ivory md:text-[0.7rem]">You are warmly invited</span>
+            <span className="gate-hair gate-hair-r" aria-hidden />
+          </p>
+          <p className="tamil mt-1.5 text-[clamp(0.95rem,3.6vw,1.1rem)] text-champagne">அன்புடன் அழைக்கிறோம்</p>
+
+          <p className="mt-4 font-display text-[clamp(2.7rem,8vw,4.4rem)] leading-none">
+            <span className="gate-monogram">{wedding.couple.bride.initial}</span>
+            <span className="gate-amp mx-1"><span className="italic text-gold-light">&amp;</span></span>
+            <span className="gate-monogram">{wedding.couple.groom.initial}</span>
+          </p>
+
+          <span className="gate-divider mt-4" aria-hidden />
+
+          <p className="mt-3.5 font-display text-[clamp(1.45rem,5.4vw,2.3rem)] italic leading-tight text-ivory">{wedding.couple.display}</p>
+          <p className="eyebrow mt-2 text-[0.64rem] text-ivory/85">{wedding.dates.range}</p>
+
+          {/* one slot: the loading dots give way to the seal without the layout moving */}
+          <div className="gate-slot relative mt-7 w-full">
+            <div className="gate-dots absolute inset-x-0 top-0 flex items-center justify-center gap-2.5" aria-hidden>
+              {[0, 1, 2, 3, 4].map((i) => (
+                <span key={i} className="pulli-dot block h-1.5 w-1.5 rounded-full bg-champagne" style={{ animationDelay: `${i * 0.16}s` }} />
+              ))}
+            </div>
+
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                open();
+              }}
+              className="gate-cta absolute inset-x-0 top-0 flex flex-col items-center opacity-0"
+              aria-label="Tap to open the invitation"
+            >
+              {/* a struck gold seal: the one piece of metal on the screen */}
+              <span className="gate-seal" aria-hidden>
+                <span className="seal-halo" />
+                <span className="seal-rim" />
+                <span className="seal-face">
+                  <span className="seal-glint" />
+                  <LampMotif className="seal-mark seal-mark-lip" />
+                  <LampMotif className="seal-mark" />
+                </span>
+              </span>
+              <span className="mt-3.5 flex flex-col items-center">
+                <span className="eyebrow text-[0.62rem] text-ivory">Tap to open</span>
+                <span className="tamil mt-0.5 text-[0.8rem] text-champagne/90">திறக்க</span>
+              </span>
+            </button>
+          </div>
         </div>
-
-        {/* once ready */}
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            open();
-          }}
-          className="gate-cta relative mt-10 flex h-[7.5rem] w-[7.5rem] items-center justify-center rounded-full opacity-0 md:h-36 md:w-36"
-          aria-label="Tap to open the invitation"
-        >
-          <span className="tap-ring absolute inset-0 rounded-full border border-gold/70" />
-          <span className="tap-ring absolute inset-0 rounded-full border border-gold/60" style={{ animationDelay: "1.3s" }} />
-          <span className="absolute inset-[6px] rounded-full border border-gold/60 bg-[radial-gradient(circle_at_50%_35%,rgba(122,27,46,0.9),rgba(58,10,18,0.95))] shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9),inset_0_1px_0_rgba(232,207,138,0.35)]" />
-          <span className="relative flex flex-col items-center leading-tight">
-            <span className="font-display text-[0.72rem] uppercase tracking-[0.3em] text-gold-light md:text-xs">Tap to</span>
-            <span className="font-display text-2xl italic text-champagne md:text-3xl">open</span>
-            <span className="tamil mt-1 text-[0.66rem] text-gold/80">திறக்க</span>
-          </span>
-        </button>
       </div>
     </div>
   );
