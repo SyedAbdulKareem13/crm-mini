@@ -11,12 +11,16 @@ export function riseIn(targets: gsap.TweenTarget, vars: gsap.TweenVars = {}) {
   );
 }
 
-/** Characters unfold like turning pages. */
+/**
+ * Characters unfold like turning pages. The blur is dropped on touch devices: it is a filter on
+ * gradient-clipped text, which WebKit renders unreliably, and it costs a repaint per frame.
+ */
 export function unfoldChars(targets: gsap.TweenTarget, vars: gsap.TweenVars = {}) {
+  const soft = typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches;
   return gsap.fromTo(
     targets,
-    { autoAlpha: 0, yPercent: 60, rotateX: -70, transformOrigin: "50% 100% -20px", filter: "blur(6px)" },
-    { autoAlpha: 1, yPercent: 0, rotateX: 0, filter: "blur(0px)", duration: 1.1, ease: "power4.out", stagger: 0.05, ...vars },
+    { autoAlpha: 0, yPercent: 60, rotateX: -70, transformOrigin: "50% 100% -20px", ...(soft ? { filter: "blur(6px)" } : {}) },
+    { autoAlpha: 1, yPercent: 0, rotateX: 0, ...(soft ? { filter: "blur(0px)" } : {}), duration: 1.1, ease: "power4.out", stagger: 0.05, ...vars },
   );
 }
 

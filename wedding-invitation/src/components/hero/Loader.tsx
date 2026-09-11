@@ -176,7 +176,7 @@ export function Loader() {
   return (
     <div
       ref={root}
-      className="fixed inset-0 z-[100] overflow-hidden bg-transparent"
+      className="fixed inset-0 z-[100] cursor-pointer overflow-hidden bg-transparent"
       role="dialog"
       aria-modal="true"
       aria-label="Invitation"
@@ -205,24 +205,24 @@ export function Loader() {
         <div className="relative flex w-full max-w-[min(24rem,88vw)] flex-col items-center">
           <p className="flex items-center gap-3">
             <span className="gate-hair" aria-hidden />
-            <span className="eyebrow text-[0.66rem] text-ivory md:text-[0.7rem]">You are warmly invited</span>
+            <span className="eyebrow text-[min(0.66rem,2.6svh)] text-ivory md:text-[0.7rem]">You are warmly invited</span>
             <span className="gate-hair gate-hair-r" aria-hidden />
           </p>
-          <p className="tamil mt-1.5 text-[clamp(0.95rem,3.6vw,1.1rem)] text-champagne">அன்புடன் அழைக்கிறோம்</p>
+          <p className="tamil mt-1.5 text-[clamp(0.8rem,min(3.6vw,3.4svh),1.1rem)] text-champagne">அன்புடன் அழைக்கிறோம்</p>
 
-          <p className="mt-4 font-display text-[clamp(2.7rem,8vw,4.4rem)] leading-none">
+          <p className="mt-[min(1rem,2svh)] font-display text-[clamp(2rem,min(8vw,11svh),4.4rem)] leading-none">
             <span className="gate-monogram">{wedding.couple.bride.initial}</span>
             <span className="gate-amp mx-1"><span className="italic text-gold-light">&amp;</span></span>
             <span className="gate-monogram">{wedding.couple.groom.initial}</span>
           </p>
 
-          <span className="gate-divider mt-4" aria-hidden />
+          <span className="gate-divider mt-[min(1rem,2svh)]" aria-hidden />
 
-          <p className="mt-3.5 font-display text-[clamp(1.45rem,5.4vw,2.3rem)] italic leading-tight text-ivory">{wedding.couple.display}</p>
-          <p className="eyebrow mt-2 text-[0.64rem] text-ivory/85">{wedding.dates.range}</p>
+          <p className="mt-[min(0.875rem,1.8svh)] font-display text-[clamp(1.1rem,min(5.4vw,5.6svh),2.3rem)] italic leading-tight text-ivory">{wedding.couple.display}</p>
+          <p className="eyebrow mt-2 text-[min(0.64rem,2.4svh)] text-ivory/85">{wedding.dates.range}</p>
 
           {/* one slot: the loading dots give way to the seal without the layout moving */}
-          <div className="gate-slot relative mt-7 w-full">
+          <div className="gate-slot relative mt-[min(1.75rem,3svh)] w-full">
             <div className="gate-dots absolute inset-x-0 top-0 flex items-center justify-center gap-2.5" aria-hidden>
               {[0, 1, 2, 3, 4].map((i) => (
                 <span key={i} className="pulli-dot block h-1.5 w-1.5 rounded-full bg-champagne" style={{ animationDelay: `${i * 0.16}s` }} />
@@ -248,9 +248,9 @@ export function Loader() {
                   <LampMotif className="seal-mark" />
                 </span>
               </span>
-              <span className="mt-3.5 flex flex-col items-center">
-                <span className="eyebrow text-[0.62rem] text-ivory">Tap to open</span>
-                <span className="tamil mt-0.5 text-[0.8rem] text-champagne/90">திறக்க</span>
+              <span className="mt-[min(0.875rem,1.6svh)] flex flex-col items-center">
+                <span className="eyebrow text-[min(0.62rem,2.2svh)] text-ivory">Tap to open</span>
+                <span className="tamil mt-0.5 text-[min(0.8rem,2.6svh)] text-champagne/90">திறக்க</span>
               </span>
             </button>
           </div>

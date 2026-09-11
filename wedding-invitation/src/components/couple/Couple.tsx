@@ -56,8 +56,10 @@ function Panel({ person, side, label, ta }: { person: Person; side: "left" | "ri
       </motion.div>
 
       <div className="mt-4 text-center md:mt-8">
-        <p className="panel-copy eyebrow text-[0.5rem] tracking-[0.2em] text-gold-deep sm:text-[0.6rem] md:text-[0.7rem] md:tracking-[0.34em]">
-          {label} <span className="mx-1 text-gold md:mx-2">·</span> <span className="tamil normal-case tracking-normal">{ta}</span>
+        <p className="panel-copy eyebrow text-[0.7rem] tracking-[0.12em] text-gold-deep md:tracking-[0.34em]">
+          {label}
+          <span className="mx-2 hidden text-gold md:inline">·</span>
+          <span className="tamil mt-1 block text-[0.82rem] normal-case tracking-normal md:mt-0 md:inline md:text-[0.72em]">{ta}</span>
         </p>
         <h3 className="panel-copy display-md mt-2 text-maroon md:mt-3">{person.name}</h3>
         <p className="panel-copy tamil mt-0.5 text-base text-maroon/75 md:mt-1 md:text-xl">{person.tamil}</p>

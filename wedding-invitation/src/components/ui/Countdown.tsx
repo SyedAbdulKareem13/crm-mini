@@ -41,7 +41,7 @@ function Digit({ value }: { value: string }) {
 function Unit({ value, label, ta }: { value: number; label: string; ta: string }) {
   const str = String(value).padStart(2, "0");
   return (
-    <div className="glass-dark flex min-w-[4.6rem] flex-1 flex-col items-center rounded-2xl px-3 py-4 md:min-w-[6rem] md:py-6">
+    <div className="glass-dark flex min-w-[4.2rem] flex-1 flex-col items-center rounded-2xl px-2 py-4 md:min-w-[6rem] md:px-3 md:py-6">
       <div className="font-display text-[clamp(2.2rem,6vw,4.2rem)] leading-none text-gold-light tabular-nums" aria-hidden>
         {str.split("").map((ch, i) => (
           <Digit key={i} value={ch} />
@@ -50,8 +50,8 @@ function Unit({ value, label, ta }: { value: number; label: string; ta: string }
       <span className="sr-only">
         {value} {label}
       </span>
-      <p className="eyebrow mt-3 text-[0.58rem] text-ivory/60">{label}</p>
-      <p className="tamil text-[0.7rem] text-gold/70">{ta}</p>
+      <p className="eyebrow mt-3 text-[0.7rem] tracking-[0.1em] text-ivory/75 md:tracking-[0.34em]">{label}</p>
+      <p className="tamil text-[0.72rem] text-gold-light/85">{ta}</p>
     </div>
   );
 }
@@ -78,7 +78,7 @@ export function Countdown({ target, className }: { target: string; className?: s
 
   return (
     <div className={className} role="timer" aria-live="off" aria-label="Countdown to the muhurtham">
-      <div className="grid grid-cols-4 gap-2 md:gap-3">
+      <div className="grid grid-cols-4 gap-1.5 md:gap-3">
         <Unit value={t?.d ?? 0} label="Days" ta="நாட்கள்" />
         <Unit value={t?.h ?? 0} label="Hours" ta="மணி" />
         <Unit value={t?.m ?? 0} label="Minutes" ta="நிமிடம்" />

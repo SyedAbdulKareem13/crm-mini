@@ -58,9 +58,18 @@ body {
   font-size: 16px;
   line-height: 1.5;
   overflow-x: clip;
+  /* 0 in portrait and on notchless devices; keeps content off the rounded corners in landscape */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-feature-settings: "kern" 1, "liga" 1;
+}
+
+@supports not (overflow: clip) {
+  body {
+    overflow-x: hidden;
+  }
 }
 
 ::selection {
@@ -72,6 +81,13 @@ body {
   outline: 2px solid var(--color-gold);
   outline-offset: 3px;
   border-radius: 2px;
+  /* two-tone: the dark halo carries the ring on ivory scenes, where gold alone is 2.1:1 */
+  box-shadow: 0 0 0 5px rgba(18, 5, 7, 0.55);
+}
+.silk-ivory :focus-visible,
+.glass-card :focus-visible {
+  outline-color: var(--color-maroon);
+  box-shadow: 0 0 0 5px rgba(246, 238, 223, 0.75);
 }
 
 ::-webkit-scrollbar {
@@ -151,6 +167,7 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  -webkit-text-fill-color: transparent;
   animation: gold-shimmer 11s linear infinite;
 }
 @keyframes gold-shimmer {
@@ -164,6 +181,7 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 /* ───────────────────────── Surfaces ───────────────────────── */
@@ -251,6 +269,10 @@ body {
     border-color 0.35s,
     box-shadow 0.35s;
   will-change: transform;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:active {
+  transform: scale(0.97);
 }
 @media (max-width: 640px) {
   .btn {
@@ -265,26 +287,38 @@ body {
   background: linear-gradient(135deg, #e8cf8a 0%, #c9a24a 45%, #a8822e 100%);
   box-shadow: 0 10px 30px -12px rgba(201, 162, 74, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.55);
 }
-.btn-gold:hover {
-  box-shadow: 0 16px 40px -12px rgba(201, 162, 74, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+@media (hover: hover) and (pointer: fine) {
+  .btn-gold:hover {
+    box-shadow: 0 16px 40px -12px rgba(201, 162, 74, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  }
 }
 .btn-outline {
   color: var(--color-gold-light);
   border: 1px solid rgba(201, 162, 74, 0.7);
   background: rgba(18, 5, 7, 0.25);
 }
-.btn-outline:hover {
-  background: rgba(201, 162, 74, 0.12);
-  border-color: var(--color-gold-light);
+@media (hover: hover) and (pointer: fine) {
+  .btn-outline:hover {
+    background: rgba(201, 162, 74, 0.12);
+    border-color: var(--color-gold-light);
+  }
+}
+.btn-outline:active {
+  background: rgba(201, 162, 74, 0.2);
 }
 .btn-outline-dark {
   color: var(--color-maroon);
   border: 1px solid rgba(90, 16, 32, 0.45);
   background: rgba(255, 255, 255, 0.35);
 }
-.btn-outline-dark:hover {
-  background: rgba(90, 16, 32, 0.08);
-  border-color: var(--color-maroon);
+@media (hover: hover) and (pointer: fine) {
+  .btn-outline-dark:hover {
+    background: rgba(90, 16, 32, 0.08);
+    border-color: var(--color-maroon);
+  }
+}
+.btn-outline-dark:active {
+  background: rgba(90, 16, 32, 0.14);
 }
 
 /* ───────────────────────── Programme thread ───────────────────────── */
@@ -379,25 +413,30 @@ body {
   animation: glow-breathe 4s ease-in-out infinite;
 }
 
-/* ───────────────────────── Scene deck ───────────────────────── */
-main > .scene {
+/* ───────────────────────── Scene deck ─────────────────────────
+   Selectors must not use `main > …`: pinning re-parents each section into a
+   GSAP pin-spacer, which silently dropped the clip, the card edge, the shadow
+   and the stacking order from every scene but the last. The depth ladder is set
+   per section by SceneStack for the same reason (:nth-child no longer lines up). */
+.scene {
   position: relative;
   overflow: clip;
   isolation: isolate;
   border-radius: 1.75rem 1.75rem 0 0;
   box-shadow: 0 -30px 80px -20px rgba(0, 0, 0, 0.55);
+  z-index: var(--scene-depth, 1);
 }
 @media (min-width: 768px) {
-  main > .scene {
+  .scene {
     border-radius: 2.5rem 2.5rem 0 0;
   }
 }
-main > .scene:first-child {
+#opening.scene {
   border-radius: 0;
   box-shadow: none;
 }
 /* a hairline of gold along the top edge of every card */
-main > .scene:not(:first-child)::before {
+.scene:not(#opening)::before {
   content: "";
   position: absolute;
   inset: 0 0 auto 0;
@@ -406,14 +445,6 @@ main > .scene:not(:first-child)::before {
   pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(201, 162, 74, 0.55) 30%, rgba(232, 207, 138, 0.8) 50%, rgba(201, 162, 74, 0.55) 70%, transparent);
 }
-main > .scene:nth-child(1) { z-index: 1; }
-main > .scene:nth-child(2) { z-index: 2; }
-main > .scene:nth-child(3) { z-index: 3; }
-main > .scene:nth-child(4) { z-index: 4; }
-main > .scene:nth-child(5) { z-index: 5; }
-main > .scene:nth-child(6) { z-index: 6; }
-main > .scene:nth-child(7) { z-index: 7; }
-main > .scene:nth-child(8) { z-index: 8; }
 
 /* only the pinned scene's visible viewport needs veiling, so the layer stays screen-sized */
 .scene-veil {
@@ -460,7 +491,8 @@ main > .scene:nth-child(8) { z-index: 8; }
   .spin-slow,
   .spin-slower,
   .glow-breathe,
-  .float-y {
+  .float-y,
+  .pulse-ring {
     animation: none !important;
   }
   .lights .flame {
@@ -533,6 +565,7 @@ main > .scene:nth-child(8) { z-index: 8; }
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+  -webkit-text-fill-color: transparent;
 }
 
 .gate-amp {
@@ -576,8 +609,8 @@ main > .scene:nth-child(8) { z-index: 8; }
 
 /* ── the seal: the only piece of metal on the screen ── */
 .gate-slot {
-  --seal: clamp(6.5rem, 23vw, 8.75rem);
-  min-height: calc(var(--seal) + 3.6rem);
+  --seal: clamp(4.25rem, min(23vw, 26svh), 8.75rem);
+  min-height: calc(var(--seal) + min(3.6rem, 6svh));
 }
 .gate-dots {
   height: var(--seal);

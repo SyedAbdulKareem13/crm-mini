@@ -15,6 +15,8 @@ export interface LampSceneProps {
   quality: Quality;
   active: boolean;
   onReady: () => void;
+  /** the GPU dropped the context (iOS does this under memory pressure) — fall back to the drawn lamp */
+  onLost: () => void;
 }
 
 /* ───────────── helpers ───────────── */
@@ -350,9 +352,9 @@ function LampGroup({ lit, y, physical }: { lit: MutableRefObject<number>; y: num
 
 const DUST: Record<Quality, number> = { high: 700, medium: 160, low: 0 };
 
-export default function LampScene({ lit, progress, pointer, quality, active, onReady }: LampSceneProps) {
-  // phones render at 1× — the scene is dark and glowing, so the softer edge is invisible and the fill cost halves
-  const dpr: number | [number, number] = quality === "high" ? [1, 2] : 1;
+export default function LampScene({ lit, progress, pointer, quality, active, onReady, onLost }: LampSceneProps) {
+  // 1.5× on phones: enough to kill the stair-stepping on a 3× screen at a quarter of the fill cost of full density
+  const dpr: number | [number, number] = quality === "high" ? [1, 2] : quality === "medium" ? [1, 1.5] : 1;
   const lampY = -2.15;
 
   return (
@@ -365,6 +367,10 @@ export default function LampScene({ lit, progress, pointer, quality, active, onR
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.toneMappingExposure = 1.12;
         gl.setClearColor(0x000000, 0);
+        gl.domElement.addEventListener("webglcontextlost", (e) => {
+          e.preventDefault();
+          onLost();
+        });
         onReady();
       }}
       style={{ position: "absolute", inset: 0 }}

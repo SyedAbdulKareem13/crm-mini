@@ -17,7 +17,7 @@ import { SceneVeil } from "@/components/effects/SceneStack";
 function StringLights() {
   const n = 15;
   return (
-    <svg viewBox="0 0 1200 160" className="pointer-events-none absolute inset-x-0 top-0 h-[120px] w-full md:h-[160px]" aria-hidden preserveAspectRatio="xMidYMin slice">
+    <svg viewBox="0 0 1200 160" className="lights pointer-events-none absolute inset-x-0 top-0 h-[120px] w-full md:h-[160px]" aria-hidden preserveAspectRatio="xMidYMin slice">
       <defs>
         <radialGradient id="bulb-glow" cx="0.5" cy="0.5" r="0.5">
           <stop offset="0" stopColor="#ffe6a8" stopOpacity="0.95" />
@@ -77,7 +77,7 @@ export function Reception() {
   );
 
   return (
-    <section ref={root} id="reception" data-scene aria-labelledby="reception-title" className="scene relative bg-[linear-gradient(180deg,#120507_0%,#2a0b12_28%,#3a0a12_60%,#1a0709_100%)] pb-[16vh] pt-[18vh] text-ivory">
+    <section ref={root} id="reception" data-scene aria-labelledby="reception-title" className="scene relative bg-[linear-gradient(180deg,#120507_0%,#2a0b12_28%,#3a0a12_60%,#1a0709_100%)] pb-[30vh] pt-[18vh] text-ivory md:pb-[16vh]">
       <StringLights />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(60%_40%_at_50%_100%,rgba(184,85,47,0.22),transparent_70%)]" aria-hidden />
 
@@ -92,14 +92,14 @@ export function Reception() {
           </h2>
           <p className="rise mt-5 max-w-lg font-display text-xl italic text-champagne/85 md:text-2xl">{ev.description}</p>
 
-          <dl className="rise mt-9 grid grid-cols-2 gap-6 border-t border-gold/25 pt-7">
+          <dl className="rise mt-9 grid grid-cols-1 gap-6 border-t border-gold/25 pt-7 sm:grid-cols-2">
             <div>
-              <dt className="eyebrow text-[0.6rem] text-ivory/55">Date</dt>
+              <dt className="eyebrow text-[0.7rem] tracking-[0.16em] text-ivory/70 md:tracking-[0.34em]">Date</dt>
               <dd className="mt-2 font-display text-2xl text-gold-light md:text-3xl">{ev.dateLabel}</dd>
               <dd className="text-sm text-ivory/60">{ev.weekday}</dd>
             </div>
             <div>
-              <dt className="eyebrow text-[0.6rem] text-ivory/55">Time</dt>
+              <dt className="eyebrow text-[0.7rem] tracking-[0.16em] text-ivory/70 md:tracking-[0.34em]">Time</dt>
               <dd className="mt-2 font-display text-2xl text-gold-light md:text-3xl">{ev.timeLabel}</dd>
               <dd className="text-sm text-ivory/60">Dinner follows</dd>
             </div>

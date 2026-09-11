@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { Venue } from "@/data/wedding";
 import { mapsEmbedUrl, mapsSearchUrl } from "@/lib/calendar";
 import { ButtonLink, Button } from "@/components/ui/Button";
-import { IconExternal, IconMap, IconPin } from "@/components/ui/Icons";
+import { IconExternal, IconMap, IconPin, IconClose } from "@/components/ui/Icons";
 import { cn } from "@/lib/utils";
 
 /** Premium location panel: stylised map with a living pin → real map on request. */
@@ -15,14 +15,25 @@ export function LocationCard({ venue, sacred = false, className }: { venue: Venu
     <div className={cn("location-card rounded-[30px] p-2", sacred ? "glass-dark" : "glass-dark", className)} style={{ transformStyle: "preserve-3d" }}>
       <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] bg-[#23101a]">
         {open ? (
-          <iframe
-            title={`Map of ${venue.name}, ${venue.city}`}
-            src={mapsEmbedUrl(venue.mapsQuery)}
-            loading="lazy"
-            allowFullScreen
-            referrerPolicy="no-referrer-when-downgrade"
-            className="absolute inset-0 h-full w-full border-0"
-          />
+          <>
+            <iframe
+              title={`Map of ${venue.name}, ${venue.city}`}
+              src={mapsEmbedUrl(venue.mapsQuery)}
+              loading="lazy"
+              allowFullScreen
+              referrerPolicy="no-referrer-when-downgrade"
+              className="absolute inset-0 h-full w-full border-0"
+            />
+            <Button
+              variant="outline"
+              className="absolute right-3 top-3 !min-h-11 !px-4 text-[0.7rem]"
+              onClick={() => setOpen(false)}
+              aria-label="Hide the map"
+              icon={<IconClose />}
+            >
+              Close
+            </Button>
+          </>
         ) : (
           <>
             {/* stylised map */}
@@ -59,13 +70,13 @@ export function LocationCard({ venue, sacred = false, className }: { venue: Venu
               <IconPin className="relative text-5xl text-gold-light" />
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 p-5">
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-3 p-5 sm:flex-row sm:items-end sm:justify-between sm:gap-4">
               <div>
-                <p className="eyebrow text-[0.6rem] text-gold/80">{sacred ? "Temple" : "Venue"}</p>
-                <p className="font-display text-2xl leading-tight text-ivory">{venue.name}</p>
+                <p className="eyebrow text-[0.7rem] tracking-[0.16em] text-gold/85 md:tracking-[0.34em]">{sacred ? "Temple" : "Venue"}</p>
+                <p className="font-display text-[clamp(1.25rem,5.2vw,1.5rem)] leading-tight text-ivory">{venue.name}</p>
                 <p className="text-sm text-ivory/65">{venue.city}</p>
               </div>
-              <Button variant="outline" className="!min-h-10 !px-4 !py-2 text-[0.66rem]" onClick={() => setOpen(true)} icon={<IconMap />}>
+              <Button variant="outline" className="!px-4 text-[0.72rem]" onClick={() => setOpen(true)} icon={<IconMap />}>
                 Reveal map
               </Button>
             </div>

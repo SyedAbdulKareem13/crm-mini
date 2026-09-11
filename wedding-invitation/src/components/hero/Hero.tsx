@@ -21,7 +21,7 @@ function Name({ text, className }: { text: string; className: string }) {
   return (
     <span className={`${className} inline-flex`} aria-hidden style={{ perspective: 900 }}>
       {graphemes(text).map((ch, i) => (
-        <span key={i} className="ch gold-text inline-block will-change-transform" style={{ animationDelay: `${-i * 0.22}s` }}>
+        <span key={i} className="ch gold-text inline-block" style={{ animationDelay: `${-i * 0.22}s` }}>
           {ch}
         </span>
       ))}
@@ -46,6 +46,12 @@ export function Hero() {
     const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
     (fonts?.ready ?? Promise.resolve()).then(() => setReady());
   }, [setReady]);
+
+  // the GPU can drop a context on iOS under memory pressure — show the drawn lamp rather than a hole
+  const onLampLost = useCallback(() => {
+    setUse3D(false);
+    markReady();
+  }, [markReady]);
 
   // decide 3D after the quality tier is known on the client
   useEffect(() => {
@@ -95,7 +101,7 @@ export function Hero() {
         .fromTo(q(".hero-kolam"), finePointer ? { autoAlpha: 0, scale: 0.82, rotate: -10 } : { autoAlpha: 0 }, finePointer ? { autoAlpha: 1, scale: 1, rotate: 0, duration: 3.6, ease: "power2.out" } : { autoAlpha: 1, duration: 2.4 }, 1.3)
         .add(drawStrokes(q(".hero-kolam")[0], { duration: 3.2, stagger: 0.004 }), 1.3)
         .add(unfoldChars(q(".name-a .ch"), { stagger: 0.065 }), 2.5)
-        .fromTo(q(".amp"), { autoAlpha: 0, scale: 0.3, rotate: -40, filter: "blur(8px)" }, { autoAlpha: 1, scale: 1, rotate: 0, filter: "blur(0px)", duration: 1.3, ease: "back.out(1.6)" }, 3.3)
+        .fromTo(q(".amp"), finePointer ? { autoAlpha: 0, scale: 0.3, rotate: -40, filter: "blur(8px)" } : { autoAlpha: 0, scale: 0.3, rotate: -40 }, finePointer ? { autoAlpha: 1, scale: 1, rotate: 0, filter: "blur(0px)", duration: 1.3, ease: "back.out(1.6)" } : { autoAlpha: 1, scale: 1, rotate: 0, duration: 1.3, ease: "back.out(1.6)" }, 3.3)
         .add(unfoldChars(q(".name-b .ch"), { stagger: 0.065 }), 3.55)
         .add(drawStrokes(q(".flourish")[0], { duration: 1.8 }), 4.2)
         .add(drawStrokes(q(".flourish")[1], { duration: 1.8 }), 4.2)
@@ -138,11 +144,12 @@ export function Hero() {
         scrollTrigger: { trigger: section.current, start: "top top", end: "bottom bottom", scrub: 0.7 },
         defaults: { ease: "none" },
       });
-      tl.to(q(".hero-copy"), { yPercent: -26, scale: 1.05, autoAlpha: 0, duration: 0.5 }, 0)
-        .to(q(".hero-scroll"), { autoAlpha: 0, duration: 0.12 }, 0)
+      tl.to(q(".hero-copy"), { yPercent: -26, scale: 1.05, autoAlpha: 0, duration: 0.62 }, 0.18)
+        .to(q(".hero-scroll"), { autoAlpha: 0, duration: 0.25 }, 0.05)
         .to(q(".hero-kolam"), finePointer ? { scale: 1.45, rotate: 16, autoAlpha: 0, duration: 0.7 } : { autoAlpha: 0, duration: 0.5 }, 0.05)
         .to(q(".hero-gopuram"), { yPercent: 16, scale: 1.1, autoAlpha: 0.2, duration: 1 }, 0)
-        .fromTo(q(".hero-sweep"), { xPercent: -130, autoAlpha: 0 }, { xPercent: 130, autoAlpha: 0.55, duration: 0.45 }, 0.5);
+        .fromTo(q(".hero-sweep"), { xPercent: -150, autoAlpha: 0 }, { xPercent: 150, autoAlpha: 0.55, duration: 0.45 }, 0.5)
+        .to(q(".hero-sweep"), { autoAlpha: 0, duration: 0.08 }, 0.87);
 
       // the lamp keeps burning beneath the next card until it is fully covered, then rests
       // (resolved on document — selector strings inside this hook are scoped to the hero)
@@ -191,7 +198,7 @@ export function Hero() {
         {/* 3D lamp — or the illustrated fallback on low tiers */}
         {use3D ? (
           <div className="hero-canvas absolute inset-0" aria-hidden data-active={active ? "1" : "0"}>
-            <LampScene lit={lit} progress={progress} pointer={pointer} quality={quality} active={active} onReady={markReady} />
+            <LampScene lit={lit} progress={progress} pointer={pointer} quality={quality} active={active} onReady={markReady} onLost={onLampLost} />
           </div>
         ) : (
           <div className="hero-fallback absolute inset-x-0 bottom-[6%] flex justify-center" aria-hidden>

@@ -69,7 +69,7 @@ export function Sacred() {
           tl.add(drawStrokes(q(".gopuram")[0], { duration: 3.4, stagger: 0.012, ease: "power1.inOut" }), 0)
             .add(riseIn(q(".rise"), { stagger: 0.12 }), 0.9)
             .to(q(".temple-lamps .flame, .temple-lamps .flame-slow"), { autoAlpha: 1, duration: 1.2, stagger: 0.18 }, 1.4)
-            .add(drawStrokes(q(".kalasam")[0], { duration: 1.6 }), 1.2);
+            .add(drawStrokes(q(".kalasam")[0], { duration: 0.9 }), 0.2);
           petals({ type: "burst", count: 30, y: 0.4, kind: "gold" });
         },
         "top 60%",
@@ -126,8 +126,8 @@ export function Sacred() {
             <Lamp2D glow className="h-[20svh] w-auto md:h-[28vh]" />
           </div>
 
-          <div className="layer-copy relative z-10 mx-auto max-w-4xl px-6 py-10 text-center [background:radial-gradient(closest-side,rgba(18,5,7,0.82),rgba(18,5,7,0.55)_60%,transparent)]">
-            <Kalasam className="kalasam mx-auto h-16 w-auto text-gold" />
+          <div className="layer-copy relative z-10 mx-auto max-w-4xl px-6 py-10 text-center [background:radial-gradient(ellipse_128%_76%_at_50%_52%,rgba(18,5,7,0.92)_0%,rgba(18,5,7,0.78)_45%,rgba(18,5,7,0.45)_72%,transparent_100%)]">
+            <Kalasam className="kalasam mx-auto h-20 w-auto text-gold md:h-16" />
             <p className="rise eyebrow mt-6 text-gold/80">
               The Sacred Moment <span className="mx-2">·</span> <span className="tamil normal-case tracking-normal">முகூர்த்தம்</span>
             </p>
@@ -136,9 +136,9 @@ export function Sacred() {
             </h2>
             <p className="rise tamil mt-4 text-lg text-champagne/85 md:text-2xl">{ev.tamil}</p>
 
-            <div className="rise mt-10 inline-flex flex-col items-center gap-2 rounded-3xl border border-gold/30 bg-night/40 px-8 py-6 backdrop-blur-sm md:px-12">
+            <div className="rise mt-10 inline-flex flex-col items-center gap-2 rounded-3xl border border-gold/30 bg-night/70 px-8 py-6 md:px-12">
               <p className="font-display text-3xl text-gold-light md:text-5xl">{ev.dateLabel}</p>
-              <p className="eyebrow text-[0.62rem] text-ivory/60">{ev.weekday}</p>
+              <p className="eyebrow text-[0.7rem] tracking-[0.16em] text-ivory/75 md:tracking-[0.34em]">{ev.weekday}</p>
               <p className="mt-2 font-display text-2xl text-ivory md:text-4xl">{ev.timeLabel}</p>
             </div>
 
@@ -158,7 +158,7 @@ export function Sacred() {
         </div>
       </div>
 
-      <div className="details relative mx-auto grid max-w-6xl items-start gap-10 px-6 pb-[16vh] pt-6 md:grid-cols-[1.1fr_0.9fr] md:gap-14">
+      <div className="details relative mx-auto grid max-w-6xl items-start gap-10 px-6 pb-[30vh] pt-6 md:grid-cols-[1.1fr_0.9fr] md:gap-14 md:pb-[16vh]">
         <div className="countdown">
           <p className="eyebrow text-gold/80">Counting down to the muhurtham</p>
           <p className="tamil mt-1 text-sm text-ivory/60">முகூர்த்தத்திற்கு இன்னும்</p>

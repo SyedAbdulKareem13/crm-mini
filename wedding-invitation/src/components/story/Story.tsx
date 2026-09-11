@@ -42,8 +42,8 @@ export function Story() {
         .to(q(".story-eyebrow"), { autoAlpha: 1, y: 0, duration: 0.08 }, 0.14)
         .to(q(".story-lamp"), { autoAlpha: 1, y: 0, duration: 0.1 }, 0.16)
         .to(q(".story-lit"), { opacity: 1, duration: 0.07, stagger: 0.055, ease: "power1.inOut" }, 0.2)
-        .to(q(".story-en"), { autoAlpha: 1, y: 0, duration: 0.1 }, 0.66)
-        .to(q(".story-stage"), { autoAlpha: 0.15, scale: 0.98, duration: 0.14 }, 0.86);
+        .to(q(".story-en"), { autoAlpha: 1, y: 0, duration: 0.1 }, 0.56)
+        .to(q(".story-stage"), { autoAlpha: 0.55, scale: 0.99, duration: 0.06 }, 0.94);
     },
     { dependencies: [reducedMotion, finePointer], scope: root },
   );
@@ -67,7 +67,7 @@ export function Story() {
             <p className="story-line tamil mt-8 max-w-5xl text-[clamp(1.55rem,4.4vw,3.5rem)] leading-[1.7]" aria-hidden>
               {line.map((w, i) => (
                 <span key={i} className="story-word relative mx-[0.16em] inline-block">
-                  <span className="text-gold-light/20">{w}</span>
+                  <span className="text-gold-light/45">{w}</span>
                   <span className="story-lit absolute inset-0 text-champagne will-change-[opacity]">{w}</span>
                 </span>
               ))}
@@ -81,13 +81,17 @@ export function Story() {
           </div>
         </div>
 
-        {/* silk curtains */}
-        <div className="curtain-l absolute inset-y-0 left-0 z-20 w-1/2 silk-maroon shadow-[20px_0_60px_rgba(0,0,0,0.5)]" aria-hidden>
-          <div className="absolute inset-y-0 right-0 w-[3px] bg-linear-to-b from-gold-deep via-gold-light to-gold-deep" />
-        </div>
-        <div className="curtain-r absolute inset-y-0 right-0 z-20 w-1/2 silk-maroon shadow-[-20px_0_60px_rgba(0,0,0,0.5)]" aria-hidden>
-          <div className="absolute inset-y-0 left-0 w-[3px] bg-linear-to-b from-gold-deep via-gold-light to-gold-deep" />
-        </div>
+        {/* silk curtains — only when they can actually be opened */}
+        {!reducedMotion && (
+          <>
+            <div className="curtain-l absolute inset-y-0 left-0 z-20 w-1/2 silk-maroon shadow-[20px_0_60px_rgba(0,0,0,0.5)]" aria-hidden>
+              <div className="absolute inset-y-0 right-0 w-[3px] bg-linear-to-b from-gold-deep via-gold-light to-gold-deep" />
+            </div>
+            <div className="curtain-r absolute inset-y-0 right-0 z-20 w-1/2 silk-maroon shadow-[-20px_0_60px_rgba(0,0,0,0.5)]" aria-hidden>
+              <div className="absolute inset-y-0 left-0 w-[3px] bg-linear-to-b from-gold-deep via-gold-light to-gold-deep" />
+            </div>
+          </>
+        )}
       </div>
       <SceneVeil />
     </section>

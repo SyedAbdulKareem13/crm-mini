@@ -9,13 +9,13 @@ import { cn } from "@/lib/utils";
 
 /** Golden progress thread (all sizes) + scene dots with labels (≥ lg). */
 export function SceneNav() {
-  const { introDone } = useExperience();
+  const { introDone, opened } = useExperience();
   const [active, setActive] = useState<SceneId>("opening");
   const thread = useRef<HTMLDivElement>(null);
   const nav = useRef<HTMLElement>(null);
 
   useGSAP(() => {
-    if (!introDone) return;
+    if (!opened) return;
     const st = ScrollTrigger.create({
       start: 0,
       end: "max",
@@ -33,16 +33,16 @@ export function SceneNav() {
     );
     gsap.fromTo(nav.current, { autoAlpha: 0, x: 16 }, { autoAlpha: 1, x: 0, duration: 1.2, delay: 0.4 });
     return () => { st.kill(); triggers.forEach((t) => t.kill()); };
-  }, { dependencies: [introDone] });
+  }, { dependencies: [opened, introDone] });
 
   useEffect(() => {
-    if (!introDone) return;
+    if (!opened) return;
     gsap.to(thread.current, { autoAlpha: 1, duration: 1 });
-  }, [introDone]);
+  }, [opened]);
 
   return (
     <>
-      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-0 z-[55] h-[2px] opacity-0">
+      <div aria-hidden className="pointer-events-none fixed inset-x-0 top-[env(safe-area-inset-top)] z-[55] h-[2px] opacity-0">
         <div ref={thread} className="h-full w-full origin-left scale-x-0 bg-linear-to-r from-gold-deep via-gold to-gold-light shadow-[0_0_12px_rgba(232,207,138,0.7)]" />
       </div>
 

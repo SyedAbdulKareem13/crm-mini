@@ -21,7 +21,10 @@ export function SceneStack() {
 
   // pause looping SVG animations for scenes that are off-screen
   useEffect(() => {
-    const sections = Array.from(document.querySelectorAll<HTMLElement>("main > [data-scene]"));
+    const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-scene]"));
+    // the stacking ladder lives on the sections themselves: pinning moves them into
+    // pin-spacers, so a :nth-child rule in CSS would stop matching
+    sections.forEach((s, i) => s.style.setProperty("--scene-depth", String(i + 1)));
     const io = new IntersectionObserver(
       (entries) => entries.forEach((e) => (e.target as HTMLElement).classList.toggle("in-view", e.isIntersecting)),
       { rootMargin: "12% 0px" },
@@ -33,7 +36,7 @@ export function SceneStack() {
   useGSAP(
     () => {
       if (reducedMotion || !ready) return;
-      const sections = Array.from(document.querySelectorAll<HTMLElement>("main > [data-scene]"));
+      const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-scene]"));
       const depth = quality === "high";
 
       sections.forEach((section, i) => {

@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
  * Audio is opt-in only, starts on user gesture, fades in/out gently.
  */
 export function FloatingControls() {
-  const { introDone } = useExperience();
+  const { opened } = useExperience();
   const wrap = useRef<HTMLDivElement>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -20,9 +20,9 @@ export function FloatingControls() {
   const hasAudio = Boolean(wedding.audio.src);
 
   useEffect(() => {
-    if (!introDone) return;
+    if (!opened) return;
     gsap.fromTo(wrap.current, { autoAlpha: 0, y: 16 }, { autoAlpha: 1, y: 0, duration: 1, delay: 0.6 });
-  }, [introDone]);
+  }, [opened]);
 
   const toggleSound = useCallback(() => {
     if (!hasAudio) return;
@@ -76,7 +76,7 @@ export function FloatingControls() {
   return (
     <div
       ref={wrap}
-      className="fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-4 z-[55] flex flex-col gap-3 opacity-0 sm:bottom-6 sm:right-6"
+      className="invisible fixed bottom-[calc(1rem+env(safe-area-inset-bottom))] right-[calc(1rem+env(safe-area-inset-right))] z-[55] flex flex-col gap-3 opacity-0 sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] sm:right-[calc(1.5rem+env(safe-area-inset-right))]"
     >
       {hasAudio && (
         <button

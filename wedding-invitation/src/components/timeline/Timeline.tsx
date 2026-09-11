@@ -55,7 +55,7 @@ function DayMarker({ day }: { day: (typeof wedding.days)[number] }) {
       {/* on phones the thread runs down the left; the diamond sits on it */}
       <span className="thread-anchor absolute left-[20px] h-3 w-3 -translate-x-1/2 rotate-45 border border-gold bg-ivory md:hidden" aria-hidden />
       <div className="thread-anchor-md day-pill inline-flex items-center gap-3 rounded-full border border-gold/50 bg-ivory px-5 py-2.5 shadow-[0_18px_40px_-24px_rgba(42,26,20,0.6)]">
-        <span className="eyebrow text-[0.62rem] text-maroon">{day.label}</span>
+        <span className="eyebrow text-[0.7rem] tracking-[0.16em] text-maroon md:tracking-[0.34em]">{day.label}</span>
         <span className="h-3 w-px bg-gold/50" aria-hidden />
         <span className="font-display text-base text-ink md:text-lg">{day.dateLabel}</span>
         <span className="tamil hidden text-xs text-maroon/70 sm:inline">{day.tamil}</span>
@@ -84,10 +84,10 @@ function EventCard({ ev, index }: { ev: WeddingEvent; index: number }) {
         <span className="pointer-events-none absolute inset-x-8 top-0 h-px bg-linear-to-r from-transparent via-gold/70 to-transparent" aria-hidden />
 
         <div className="relative flex flex-wrap items-center gap-3">
-          <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.62rem] font-semibold uppercase tracking-[0.18em]", `tone-${ev.tone}`)}>
+          <span className={cn("inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[0.7rem] font-semibold uppercase tracking-[0.12em] sm:text-[0.62rem] sm:tracking-[0.18em]", `tone-${ev.tone}`)}>
             {tone.icon}
             {tone.label}
-            <span className="tamil ml-0.5 normal-case tracking-normal opacity-80">{tone.ta}</span>
+            <span className="tamil ml-1 text-[1.15em] normal-case tracking-normal opacity-90">{tone.ta}</span>
           </span>
           <p className="eyebrow text-gold-deep">
             {ev.weekday} <span className="mx-1.5 text-gold">·</span> {ev.dateLabel}
@@ -100,13 +100,13 @@ function EventCard({ ev, index }: { ev: WeddingEvent; index: number }) {
         </h3>
         <p className="tamil relative mt-1 text-lg text-maroon/75">{ev.tamil}</p>
 
-        <p className="relative mt-5 font-display text-3xl text-ink md:text-4xl">{ev.timeLabel}</p>
+        <p className="relative mt-5 font-display text-[1.55rem] leading-tight text-ink sm:text-3xl md:text-4xl">{ev.timeLabel}</p>
         <p className="relative mt-3 max-w-prose text-[0.95rem] leading-relaxed text-ink-soft">{ev.description}</p>
 
         <ul className="relative mt-5 flex flex-wrap gap-x-5 gap-y-2" aria-label="Moments">
           {ev.moments.map((m) => (
-            <li key={m} className="flex items-center gap-2 text-sm text-ink">
-              <span className="h-1.5 w-1.5 rotate-45 bg-gold" aria-hidden />
+            <li key={m} className="flex items-start gap-2 text-sm text-ink">
+              <span className="mt-[0.45em] h-1.5 w-1.5 shrink-0 rotate-45 bg-gold" aria-hidden />
               {m}
             </li>
           ))}
@@ -131,18 +131,18 @@ function EventCard({ ev, index }: { ev: WeddingEvent; index: number }) {
           )}
         </div>
 
-        <div className="relative mt-6 flex flex-wrap gap-3">
-          <ButtonLink href={googleCalendarUrl(ev)} target="_blank" rel="noopener noreferrer" variant="outline-dark" icon={<IconCalendar />}>
-            Add to calendar
-          </ButtonLink>
-          <Button variant="outline-dark" onClick={() => downloadIcs(ev)} aria-label={`Download ${ev.title} as .ics`}>
-            .ics
-          </Button>
+        <div className="relative mt-6 grid gap-2.5 sm:flex sm:flex-wrap sm:gap-3">
           {ev.venue && (
-            <ButtonLink href={mapsSearchUrl(ev.venue.mapsQuery)} target="_blank" rel="noopener noreferrer" variant="gold" icon={<IconExternal />}>
+            <ButtonLink href={mapsSearchUrl(ev.venue.mapsQuery)} target="_blank" rel="noopener noreferrer" variant="gold" icon={<IconExternal />} className="w-full sm:w-auto">
               Open in Maps
             </ButtonLink>
           )}
+          <ButtonLink href={googleCalendarUrl(ev)} target="_blank" rel="noopener noreferrer" variant="outline-dark" icon={<IconCalendar />} className="w-full sm:w-auto">
+            Add to calendar
+          </ButtonLink>
+          <Button variant="outline-dark" onClick={() => downloadIcs(ev)} aria-label={`Download ${ev.title} as .ics`} className="w-full justify-center sm:w-auto">
+            Save .ics
+          </Button>
         </div>
       </article>
     </li>
@@ -283,7 +283,7 @@ export function Timeline() {
   const dayTwo = wedding.events.filter((e) => e.day === 2);
 
   return (
-    <section ref={root} id="celebration" data-scene aria-labelledby="celebration-title" className="scene silk-ivory pulli relative py-[16vh] text-ink">
+    <section ref={root} id="celebration" data-scene aria-labelledby="celebration-title" className="scene silk-ivory pulli relative pt-[16vh] pb-[38vh] text-ink md:py-[16vh]">
       <div className="relative mx-auto max-w-6xl px-6">
         <header className="tl-head text-center">
           <p className="head-rise eyebrow text-maroon/80">
