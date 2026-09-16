@@ -911,4 +911,462 @@ body {
   animation: bulb-glow 2.8s ease-in-out infinite;
 }
 
+/* Append inside the existing `@layer components { … }` block in
+   /home/user/crm-mini/wedding-invitation/src/app/globals.css, just before its
+   closing brace (after the `.bulb` keyframes). Verified in place: `npx tsc
+   --noEmit` and `npx next build` both clean, and every rule below — including
+   `min(44.5svh,90vw)`, `aspect-ratio:1040/1449`, the compound `(min-width:680px)`
+   query and every arbitrary Tailwind utility in the JSX — confirmed present in
+   the emitted production stylesheet. */
+
+/* ═══════════════════ #couple — the silk panel ═══════════════════
+   The right half of the page is a panel of maroon silk running full-bleed to the
+   right edge and off the bottom, and the couple stand in it. That ground is not
+   decoration: measured off the cutout, the groom's cream veshti is 1.18:1 against
+   the ivory page and 12.5:1 against this maroon. On cream he disappears; on silk
+   he glows.
+
+   ONE breakpoint governs the scene, and it lives here rather than in Tailwind
+   `lg:` utilities so the two can never disagree about which layout is on screen.
+   Width alone is not enough — a phone in landscape (740×360) has plenty of width
+   for two columns and no height at all for a stack, so it takes the wide layout.
+
+   Nothing below uses backdrop-filter, mix-blend-mode, filter: blur()/drop-shadow()
+   or an animated text-shadow. Every soft edge is a gradient or a mask, so the whole
+   scene sits inside the phone motion budget with nothing switched off but the
+   finest weave layer. */
+
+/* layout switches, so the JSX never guesses which layout is live */
+.u-wide-only {
+  display: none;
+}
+.u-narrow-only {
+  display: block;
+}
+
+/* ── the copy column ── */
+.couple-copy {
+  position: relative;
+  z-index: 10;
+  margin-inline: auto;
+  display: flex;
+  max-width: 24rem;
+  flex-direction: column;
+  align-items: center;
+  padding: clamp(1.25rem, 4.5svh, 3.5rem) 1.5rem 0;
+  text-align: center;
+}
+
+/* the sentence is set small, italic and narrow: it is the preamble, and it
+   visibly hands over to the names rather than competing with them */
+.c-head {
+  margin-top: clamp(0.8rem, 2.6svh, 1.8rem);
+}
+.c-head-line {
+  display: block;
+  max-width: 24ch;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(1rem, 4.4vw, 1.25rem);
+  line-height: 1.35;
+}
+
+/* the names finish the sentence. Solid maroon (11.9:1 on ivory), never gold —
+   #c9a24a on cream is 2.07:1 and fails even the large-text bar. Gold is spent
+   on hairlines and on the ampersand, which is what makes it read as metal. */
+.c-names {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  column-gap: 0.28em;
+  margin-top: clamp(0.9rem, 3.2svh, 2rem);
+}
+.name-mask {
+  display: block;
+  overflow: hidden;
+  /* descender room without adding leading */
+  padding-bottom: 0.1em;
+  margin-bottom: -0.1em;
+}
+.name-line {
+  display: block;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+  font-size: clamp(1.85rem, 8.2vw, 2.5rem);
+  line-height: 1.02;
+}
+.c-amp-row {
+  display: inline-flex;
+  align-items: baseline;
+}
+/* gold-deep (#8e6a1f, 4.30:1) held at >= 24px everywhere, where the bar is 3:1 */
+.c-amp {
+  display: block;
+  font-size: 1.5rem;
+  line-height: 1;
+}
+.c-amp-rule {
+  display: none;
+}
+.c-name-ta {
+  margin-top: clamp(0.5rem, 1.8svh, 1.1rem);
+}
+.c-quote-wrap {
+  display: none;
+}
+
+/* ── the panel, and the gold rule on its edge, share one box ── */
+.seam-box {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 62svh;
+}
+
+/* The seam. This mask path is the same geometry the JSX strokes in gold
+   (SEAM_NARROW / SEAM_WIDE) in an identically-placed <svg> with the same viewBox
+   and preserveAspectRatio, so the rule always lands on the pixel edge of the silk.
+   Edit them together. */
+.couple-silk {
+  --seam: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><path d='M0 100 V26 C24 26 34 7 50 7 C66 7 76 26 100 26 V100 Z' fill='black'/></svg>");
+  --fig-w: min(44.5svh, 90vw);
+  z-index: 1;
+  -webkit-mask-image: var(--seam);
+  mask-image: var(--seam);
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+/* the silk itself, re-lit for a portrait: brightest behind their heads so dark
+   hair reads against it (1.86:1), falling to near-black at the floor so the
+   cream veshti still blazes and the knee-crop dissolves into shadow */
+.silk-fill {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background-color: #38090f;
+  background-image:
+    radial-gradient(56% 78% at 0% 60%, rgba(201, 162, 74, 0.15), rgba(201, 162, 74, 0) 62%),
+    radial-gradient(54% 40% at 50% 17%, rgba(166, 50, 76, 0.72), rgba(166, 50, 76, 0) 76%),
+    radial-gradient(98% 46% at 52% -12%, rgba(122, 27, 46, 0.7), rgba(122, 27, 46, 0) 72%),
+    radial-gradient(86% 44% at 50% 108%, rgba(8, 1, 4, 0.97), rgba(8, 1, 4, 0) 70%),
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 8px),
+    repeating-linear-gradient(25deg, rgba(201, 162, 74, 0.045) 0 1px, transparent 1px 6px);
+}
+
+/* the studio key light that comes up on them — a drawn gradient, never a filter */
+.couple-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background:
+    radial-gradient(34% 24% at 49% 22%, rgba(255, 214, 164, 0.16), rgba(255, 214, 164, 0) 72%),
+    radial-gradient(56% 40% at 49% 32%, rgba(201, 162, 74, 0.1), rgba(201, 162, 74, 0) 74%);
+}
+
+/* ONE medallion, drawn across the join: the same kolam at the same place in page
+   space, in deep gold on the cream half and light gold on the silk half. It is
+   the strongest stitch across the seam, and one GSAP tween turns both halves so
+   they can never fall out of register. */
+.kolam-seam,
+.kolam-seam-in {
+  position: absolute;
+  left: 4vw;
+  width: 92vw;
+  height: 92vw;
+  pointer-events: none;
+}
+.kolam-seam {
+  z-index: 0;
+  top: calc(42.34svh - 46vw);
+}
+.kolam-seam-in {
+  z-index: 1;
+  top: calc(4.34svh - 46vw);
+}
+
+/* the shadow they throw on the silk. Drawn and skewed — GSAP owns the transform,
+   so it is set in the timeline and again in the reduced-motion branch. */
+.couple-cast {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  z-index: 1;
+  width: var(--fig-w);
+  margin-left: calc(var(--fig-w) / -2);
+  height: 62%;
+  background: radial-gradient(44% 50% at 58% 70%, rgba(6, 1, 3, 0.52), rgba(6, 1, 3, 0.2) 48%, rgba(6, 1, 3, 0) 74%);
+}
+
+/* three nested boxes so the scroll scrub (yPercent), the pointer (x/y) and the
+   entrance (yPercent/scale) never write the same transform */
+.figure-drift,
+.figure-pointer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+.figure-pointer {
+  z-index: auto;
+}
+
+.couple-figure {
+  position: absolute;
+  left: 50%;
+  bottom: -10svh;
+  width: var(--fig-w);
+  margin-left: calc(var(--fig-w) / -2);
+  aspect-ratio: 1040 / 1449;
+}
+
+/* the gold hairline ring lives inside the figure box, behind the photograph, so
+   their bodies occlude it at every size without a single measurement changing */
+.couple-ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* His hair is flush with the top edge of the asset (a 20px flat at the crown),
+   and the crop ends at their knees. Both are dissolved, not cut: opaque from 2.6%
+   (source y 38, pure hair) to 82% (source y 1188, below their clasped hands). */
+.couple-photo {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.5) 1.1%,
+    #000 2.6%,
+    #000 82%,
+    rgba(0, 0, 0, 0.45) 91%,
+    rgba(0, 0, 0, 0) 99%
+  );
+  mask-image: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.5) 1.1%,
+    #000 2.6%,
+    #000 82%,
+    rgba(0, 0, 0, 0.45) 91%,
+    rgba(0, 0, 0, 0) 99%
+  );
+}
+
+/* the floor: the figure sinks into it before the card edge ever cuts it */
+.couple-floor {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 4;
+  height: 34%;
+  pointer-events: none;
+  background:
+    radial-gradient(56% 34% at 49% 100%, rgba(4, 0, 2, 0.85), rgba(4, 0, 2, 0) 78%),
+    linear-gradient(180deg, rgba(8, 1, 4, 0) 0%, rgba(8, 1, 4, 0.18) 46%, rgba(8, 1, 4, 0.62) 76%, rgba(8, 1, 4, 0.95) 100%);
+}
+
+.strand {
+  position: absolute;
+  right: 7%;
+  top: 6%;
+  z-index: 3;
+  height: 34%;
+  width: 3rem;
+  pointer-events: none;
+}
+
+.seam-rule {
+  z-index: 20;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* the cream shades into the silk over a hand's width instead of butting against it */
+.seam-bleed {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 62svh;
+  height: 14svh;
+  z-index: 2;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(58, 10, 18, 0) 0%, rgba(58, 10, 18, 0.035) 58%, rgba(58, 10, 18, 0.1) 100%);
+}
+
+.couple-thoranam {
+  position: absolute;
+  top: -1px;
+  left: 0;
+  width: 100%;
+  height: clamp(84px, 10svh, 124px);
+  z-index: 30;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(180deg, #000 0 58%, rgba(0, 0, 0, 0) 100%);
+  mask-image: linear-gradient(180deg, #000 0 58%, rgba(0, 0, 0, 0) 100%);
+}
+
+/* ═══════════ the wide layout: copy left, silk right ═══════════ */
+@media (min-width: 1024px), (min-width: 680px) and (max-height: 620px) {
+  .u-wide-only {
+    display: block;
+  }
+  .u-narrow-only {
+    display: none;
+  }
+
+  .couple-copy {
+    margin-inline: 0;
+    display: flex;
+    width: 48%;
+    max-width: none;
+    min-height: 100svh;
+    align-items: flex-start;
+    justify-content: center;
+    padding: 0 4vw 12svh max(2rem, 5vw);
+    text-align: left;
+  }
+
+  .c-head {
+    margin-top: clamp(1rem, 3svh, 2rem);
+  }
+  .c-head-line {
+    max-width: 16ch;
+    font-size: clamp(1.15rem, 1.7vw, 1.6rem);
+    line-height: 1.32;
+  }
+
+  .c-names {
+    display: block;
+    margin-top: clamp(1.1rem, 3.2svh, 2.2rem);
+  }
+  .name-line {
+    font-size: clamp(2.75rem, 5.2vw, 5rem);
+    line-height: 0.92;
+  }
+  .c-amp-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.08em 0;
+  }
+  .c-amp {
+    font-size: clamp(1.6rem, 2.2vw, 2.6rem);
+  }
+  /* the rule runs out of the ampersand toward the photograph — the copy points
+     at the couple, which is the second stitch across the seam */
+  .c-amp-rule {
+    display: block;
+    height: 1px;
+    flex: 1;
+    background: linear-gradient(90deg, rgba(201, 162, 74, 0.85), rgba(201, 162, 74, 0.06));
+  }
+
+  .seam-box {
+    top: 0;
+    bottom: 0;
+    left: auto;
+    right: 0;
+    width: 52%;
+    height: auto;
+  }
+
+  .couple-silk {
+    --seam: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'><path d='M100 0 H20 C11 0 4.5 3.5 1.8 9 C0.6 11.5 0 14.5 0 18 V100 H100 Z' fill='black'/></svg>");
+    --fig-w: min(65svh, 44.5vw);
+  }
+
+  .couple-figure,
+  .couple-cast {
+    left: 48%;
+  }
+  .couple-figure {
+    bottom: -9svh;
+  }
+
+  .kolam-seam,
+  .kolam-seam-in {
+    width: 46vw;
+    height: 46vw;
+    top: calc(56svh - 23vw);
+  }
+  .kolam-seam {
+    left: 25vw;
+  }
+  .kolam-seam-in {
+    left: -23vw;
+  }
+
+  .seam-bleed {
+    inset: 0 52% 0 auto;
+    width: 13vw;
+    height: auto;
+    background: linear-gradient(90deg, rgba(58, 10, 18, 0) 0%, rgba(58, 10, 18, 0.035) 58%, rgba(58, 10, 18, 0.1) 100%);
+    /* the silk's shoulder curves away at the top, so the bleed fades out there
+       rather than smudging cream that has no fabric beside it */
+    -webkit-mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000 24%);
+    mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, #000 24%);
+  }
+}
+
+/* the jasmine needs a margin of maroon to hang in; below 1280 there is none */
+@media (max-width: 1279px) {
+  .strand {
+    display: none;
+  }
+}
+
+/* a garland needs headroom. A short landscape phone has none, and its heads
+   would land in the leaves. */
+@media (max-height: 620px) {
+  .couple-thoranam {
+    display: none;
+  }
+}
+
+/* the union quote is a bonus beat, not load-bearing: it appears only where the
+   column has real room, and the scene is composed to be complete without it */
+@media (min-width: 1280px) and (min-height: 820px) {
+  .c-quote-wrap {
+    display: block;
+    max-width: 30ch;
+    margin-top: clamp(1.2rem, 3.6svh, 2.4rem);
+  }
+}
+
+/* ── phone budget ── */
+@media (pointer: coarse) {
+  /* the finest weave is a 1px repeating gradient over a full-width box; the
+     kolams are static here (no scroll scrub) so they need no compositor hint */
+  .silk-fill {
+    background-image:
+      radial-gradient(56% 78% at 0% 60%, rgba(201, 162, 74, 0.15), rgba(201, 162, 74, 0) 62%),
+      radial-gradient(56% 42% at 50% 16%, rgba(166, 50, 76, 0.72), rgba(166, 50, 76, 0) 76%),
+      radial-gradient(98% 46% at 52% -12%, rgba(122, 27, 46, 0.7), rgba(122, 27, 46, 0) 72%),
+      radial-gradient(86% 44% at 50% 108%, rgba(8, 1, 4, 0.97), rgba(8, 1, 4, 0) 70%),
+      repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.022) 0 2px, transparent 2px 8px);
+  }
+  .kolam-seam,
+  .kolam-seam-in {
+    will-change: auto;
+  }
+  /* belt and braces: nothing in this scene may reach for a filter on a phone */
+  .couple-silk * {
+    filter: none;
+    backdrop-filter: none;
+    mix-blend-mode: normal;
+  }
+}
+
 }
