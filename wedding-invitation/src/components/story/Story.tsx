@@ -8,7 +8,6 @@ import { words } from "@/lib/utils";
 import { Kolam } from "@/components/art/Kolam";
 import { Lamp2D } from "@/components/art/Lamp2D";
 import { petals } from "@/components/effects/Petals";
-import { SceneVeil } from "@/components/effects/SceneStack";
 
 /**
  * Pinned quote scene: silk curtains part, the Tamil line is lit word by word
@@ -51,7 +50,7 @@ export function Story() {
   const line = words(wedding.quotes.story.ta);
 
   return (
-    <section ref={root} id="story" data-scene aria-labelledby="story-title" className={reducedMotion ? "scene relative" : "scene relative h-[280svh]"}>
+    <section ref={root} id="story" data-scene aria-labelledby="story-title" className={reducedMotion ? "scene relative bg-night" : finePointer ? "scene relative h-[280svh] bg-night" : "scene relative h-[190svh] bg-night"}>
       <div className="sticky top-0 h-[100svh] overflow-hidden silk-maroon">
         <div className="story-stage absolute inset-0">
           <Kolam hairline strokeWidth={1} className="story-kolam art-layer absolute left-1/2 top-1/2 w-[130vw] -translate-x-1/2 -translate-y-1/2 text-gold/[0.14] md:w-[118vmax]" />
@@ -93,7 +92,6 @@ export function Story() {
           </>
         )}
       </div>
-      <SceneVeil />
     </section>
   );
 }

@@ -19,50 +19,52 @@ export function scrollToTarget(target: string | HTMLElement | number, offset = 0
     return;
   }
   const el = typeof target === "string" ? document.querySelector<HTMLElement>(target) : target;
-  el?.scrollIntoView({ behavior: "smooth", block: "start" });
+  if (!el) return;
+  window.scrollTo({ top: el.getBoundingClientRect().top + window.scrollY + offset, behavior: "smooth" });
 }
 
+/**
+ * Smooth wheel scrolling — on desktop only.
+ *
+ * Phones and tablets scroll natively. Lenis's `syncTouch` mode re-implements touch
+ * scrolling in JavaScript (its own inertia curve, no rubber-banding, no URL-bar collapse),
+ * which is exactly what made the page feel "not standard" on a phone. ScrollTrigger reads
+ * the native scroll position directly, so every scrubbed scene behaves the same either way.
+ */
 export function SmoothScroll({ children }: { children: ReactNode }) {
   const { reducedMotion, scroll } = useExperience();
 
   useEffect(() => {
-    if (reducedMotion) return;
     const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const lenis = new Lenis({
-      lerp: 0.07,
-      wheelMultiplier: 0.85,
-      smoothWheel: true,
-      // on touch devices Lenis drives the scroll position every frame, so ScrollTrigger
-      // scrubs and pins stay in lock-step with the finger instead of trailing momentum
-      syncTouch: coarse,
-      syncTouchLerp: 0.09,
-      touchInertiaExponent: 1.7,
-      touchMultiplier: 1.3,
-      anchors: true,
-    });
-    instance = lenis;
 
-    lenis.on("scroll", (e: { scroll: number; velocity: number; progress: number }) => {
-      scroll.current.y = e.scroll;
-      scroll.current.velocity = e.velocity;
-      scroll.current.progress = e.progress;
-      ScrollTrigger.update();
-    });
+    if (!reducedMotion && !coarse) {
+      const lenis = new Lenis({
+        lerp: 0.07,
+        wheelMultiplier: 0.85,
+        smoothWheel: true,
+        anchors: true,
+      });
+      instance = lenis;
 
-    const raf = (time: number) => lenis.raf(time * 1000);
-    gsap.ticker.add(raf);
-    gsap.ticker.lagSmoothing(0);
+      lenis.on("scroll", (e: { scroll: number; velocity: number; progress: number }) => {
+        scroll.current.y = e.scroll;
+        scroll.current.velocity = e.velocity;
+        scroll.current.progress = e.progress;
+        ScrollTrigger.update();
+      });
 
-    return () => {
-      gsap.ticker.remove(raf);
-      lenis.destroy();
-      instance = null;
-    };
-  }, [reducedMotion, scroll]);
+      const raf = (time: number) => lenis.raf(time * 1000);
+      gsap.ticker.add(raf);
+      gsap.ticker.lagSmoothing(0);
 
-  // Native fallback keeps scroll metrics flowing for effects
-  useEffect(() => {
-    if (!reducedMotion) return;
+      return () => {
+        gsap.ticker.remove(raf);
+        lenis.destroy();
+        instance = null;
+      };
+    }
+
+    // native scrolling: keep the shared scroll metrics flowing for the petals' wind
     let last = window.scrollY;
     const onScroll = () => {
       const y = window.scrollY;

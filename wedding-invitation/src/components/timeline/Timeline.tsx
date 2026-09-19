@@ -11,7 +11,6 @@ import { IconCalendar, IconExternal, IconPin } from "@/components/ui/Icons";
 import { drawStrokes, prepareDraw, showStrokes } from "@/animations/draw";
 import { onceInView } from "@/animations/scroll";
 import { petals } from "@/components/effects/Petals";
-import { SceneVeil } from "@/components/effects/SceneStack";
 import { cn } from "@/lib/utils";
 
 const MOTIF = { ring: RingsMotif, lamp: LampMotif, temple: TempleMotif } as const;
@@ -283,7 +282,7 @@ export function Timeline() {
   const dayTwo = wedding.events.filter((e) => e.day === 2);
 
   return (
-    <section ref={root} id="celebration" data-scene aria-labelledby="celebration-title" className="scene silk-ivory pulli relative pt-[16vh] pb-[38vh] text-ink md:py-[16vh]">
+    <section ref={root} id="celebration" data-scene aria-labelledby="celebration-title" className="scene silk-ivory pulli relative pt-[12vh] pb-[16vh] text-ink md:py-[16vh]">
       <div className="relative mx-auto max-w-6xl px-6">
         <header className="tl-head text-center">
           <p className="head-rise eyebrow text-maroon/80">
@@ -323,7 +322,6 @@ export function Timeline() {
           </ol>
         </div>
       </div>
-      <SceneVeil />
     </section>
   );
 }

@@ -176,7 +176,7 @@ export function Loader() {
   return (
     <div
       ref={root}
-      className="fixed inset-0 z-[100] cursor-pointer overflow-hidden bg-transparent"
+      className="fixed inset-0 z-[100] cursor-pointer touch-none overflow-hidden bg-transparent"
       role="dialog"
       aria-modal="true"
       aria-label="Invitation"

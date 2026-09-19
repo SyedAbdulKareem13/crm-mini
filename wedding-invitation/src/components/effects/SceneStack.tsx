@@ -1,30 +1,28 @@
 "use client";
 
 import { useEffect } from "react";
-import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
-import { useExperience } from "@/lib/experience";
 
 /**
- * Liquid scene transitions.
+ * Scene housekeeping.
  *
- * Every <section data-scene> becomes a card in a deck: when a scene's bottom reaches
- * the bottom of the viewport it is pinned in place (no extra scroll distance) while
- * the next scene slides up over it. The covered scene recedes — it scales down a
- * touch and a warm-dark veil settles over it — and the incoming scene's content
- * drifts in slightly slower than the card itself, which reads as depth.
+ * The page scrolls plainly. Every <section data-scene> is a rounded card in normal flow,
+ * and each card after the first is pulled up by exactly its corner radius (`.scene` in
+ * globals.css), so the rounded top edge reveals the scene above it and never the page
+ * background. Sticky, scroll-scrubbed scenes (hero, story, finale) get their held frame
+ * from CSS `position: sticky` inside a taller section — nothing here pins.
  *
- * Sections are also tagged .in-view so decorative CSS animations only run when
- * the scene can actually be seen (see globals.css).
+ * There used to be a GSAP pin deck in this file: each finished scene was pinned with
+ * `pinSpacing: false` while the next slid over it. On a phone that covered the couple
+ * at the chest before their scene had been read, left the end of the page unreachable
+ * (no pin spacers means a document shorter than its content) and re-parented every
+ * section into a `.pin-spacer`, which broke the card styling. Do not bring it back.
+ *
+ * What remains: sections are tagged `.in-view` so looping decorative CSS animations only
+ * run while their scene can actually be seen (globals.css pauses them otherwise).
  */
 export function SceneStack() {
-  const { reducedMotion, quality, ready, finePointer } = useExperience();
-
-  // pause looping SVG animations for scenes that are off-screen
   useEffect(() => {
     const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-scene]"));
-    // the stacking ladder lives on the sections themselves: pinning moves them into
-    // pin-spacers, so a :nth-child rule in CSS would stop matching
-    sections.forEach((s, i) => s.style.setProperty("--scene-depth", String(i + 1)));
     const io = new IntersectionObserver(
       (entries) => entries.forEach((e) => (e.target as HTMLElement).classList.toggle("in-view", e.isIntersecting)),
       { rootMargin: "12% 0px" },
@@ -33,54 +31,5 @@ export function SceneStack() {
     return () => io.disconnect();
   }, []);
 
-  useGSAP(
-    () => {
-      if (reducedMotion || !ready) return;
-      const sections = Array.from(document.querySelectorAll<HTMLElement>("[data-scene]"));
-      const depth = quality === "high";
-
-      sections.forEach((section, i) => {
-        const next = sections[i + 1];
-        if (!next) return;
-
-        // hold the finished scene in place while the next one slides over it
-        ScrollTrigger.create({
-          trigger: section,
-          start: "bottom bottom",
-          endTrigger: next,
-          end: "bottom bottom",
-          pin: true,
-          pinSpacing: false,
-          anticipatePin: 1,
-        });
-
-        // the covered scene recedes
-        const veil = section.querySelector<HTMLElement>(":scope > .scene-veil");
-        const cover = gsap.timeline({
-          scrollTrigger: { trigger: next, start: "top bottom", end: "top top", scrub: 1.1 },
-          defaults: { ease: "none" },
-        });
-        if (veil) cover.fromTo(veil, { opacity: 0 }, { opacity: 0.62 }, 0);
-        if (depth) cover.fromTo(section, { scale: 1 }, { scale: 0.965, transformOrigin: "50% 85%" }, 0);
-
-        // the arriving scene's content drifts in a beat behind its card (desktop; phones keep layers lean)
-        if (finePointer) {
-          const inner = Array.from(next.children).filter((c) => !c.classList.contains("scene-veil"));
-          if (inner.length) {
-            gsap.fromTo(inner, { y: 64 }, { y: 0, ease: "none", scrollTrigger: { trigger: next, start: "top bottom", end: "top top", scrub: 1.1 } });
-          }
-        }
-      });
-
-      ScrollTrigger.refresh();
-    },
-    { dependencies: [reducedMotion, ready, quality, finePointer] },
-  );
-
   return null;
-}
-
-/** Drop one of these as the last child of every scene section. */
-export function SceneVeil() {
-  return <div className="scene-veil" aria-hidden />;
 }

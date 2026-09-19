@@ -14,7 +14,6 @@ import { IconArrowUp, IconCheck, IconCopy, IconDownload, IconWhatsApp } from "@/
 import { petals } from "@/components/effects/Petals";
 import { scrollToTarget } from "@/components/effects/SmoothScroll";
 import { showStrokes } from "@/animations/draw";
-import { SceneVeil } from "@/components/effects/SceneStack";
 
 function Chars({ text, className }: { text: string; className?: string }) {
   return (
@@ -30,7 +29,13 @@ function Chars({ text, className }: { text: string; className?: string }) {
 
 /**
  * Together — light gathers, a lotus blooms, the names return one last time.
- * Pinned so the closing frame holds still at the bottom of the page.
+ *
+ * The closing scene flows: a normal section at least one screen tall, the copy centred
+ * in it, the lotus closing the card beneath the copy. A held (sticky) closing frame clips
+ * whatever does not fit — on a 640px-tall phone it cut the names and put the lotus behind
+ * the buttons, and on a 900px laptop it clipped the title — so `globals.css` holds the
+ * frame only where a screen can hold all of it (fine pointer, motion allowed, ≥ 1140px
+ * tall). Layout lives in `.fin-flow`, `.fin-body`, `.fin-lotus`; nothing here branches.
  */
 export function Finale() {
   const root = useRef<HTMLElement>(null);
@@ -86,19 +91,20 @@ export function Finale() {
   const shareWa = whatsappUrl(`${wedding.share.text}\n${typeof window !== "undefined" ? window.location.href : ""}`.trim());
 
   return (
-    <section ref={root} id="finale" data-scene aria-labelledby="finale-title" className={reducedMotion ? "scene relative" : finePointer ? "scene relative h-[210svh]" : "scene relative h-[150svh]"}>
-      <div className="sticky top-0 h-[100svh] overflow-hidden bg-[radial-gradient(80%_70%_at_50%_60%,#4a0f1c_0%,#2a0810_45%,#120507_100%)]">
+    <section ref={root} id="finale" data-scene aria-labelledby="finale-title" className="scene relative bg-night">
+      {/* position/overflow are set in CSS so the held variant can switch to sticky */}
+      <div className="fin-flow bg-[radial-gradient(80%_70%_at_50%_60%,#4a0f1c_0%,#2a0810_45%,#120507_100%)]">
         <div className="fin-light pointer-events-none absolute inset-0 bg-[radial-gradient(45%_45%_at_50%_58%,rgba(255,180,80,0.32),rgba(122,27,46,0.1)_45%,transparent_70%)]" aria-hidden />
         <Kolam hairline strokeWidth={1} className="fin-kolam art-layer pointer-events-none absolute left-1/2 top-1/2 w-[130vw] -translate-x-1/2 -translate-y-1/2 text-gold/[0.12] md:w-[112vmax]" />
 
-        <JasmineStrand className="fin-strand pointer-events-none absolute left-[4vw] top-0 hidden h-[70svh] w-16 md:block" count={14} />
-        <JasmineStrand className="fin-strand pointer-events-none absolute right-[4vw] top-0 hidden h-[70svh] w-16 -scale-x-100 md:block" count={14} />
+        <JasmineStrand className="fin-strand pointer-events-none absolute left-[4vw] top-0 hidden h-[70svh] w-16 lg:block" count={14} />
+        <JasmineStrand className="fin-strand pointer-events-none absolute right-[4vw] top-0 hidden h-[70svh] w-16 -scale-x-100 lg:block" count={14} />
 
-        <div className="breathe pointer-events-none absolute bottom-[-3vh] left-1/2 w-[min(60vw,440px)] md:w-[min(74vw,440px)]" aria-hidden>
+        <div className="fin-lotus breathe pointer-events-none absolute bottom-[-3vh] left-1/2" aria-hidden>
           <Lotus className="w-full" />
         </div>
 
-        <div className="relative z-10 flex h-full flex-col items-center justify-center px-6 pt-8 pb-[max(4.5rem,calc(3rem+env(safe-area-inset-bottom)))] text-center md:pt-0 md:pb-[26vh]">
+        <div className="fin-body relative z-10 flex flex-col items-center justify-center px-6 text-center">
           <p className="fin-rise eyebrow text-gold/75">
             Together <span className="mx-2">·</span> <span className="tamil normal-case tracking-normal">ஒன்றாய்</span>
           </p>
@@ -165,7 +171,6 @@ export function Finale() {
           </button>
         </div>
       </div>
-      <SceneVeil />
     </section>
   );
 }

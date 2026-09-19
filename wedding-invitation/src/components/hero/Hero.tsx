@@ -13,7 +13,6 @@ import { Flourish } from "@/components/art/Motifs";
 import { ScrollIndicator } from "@/components/ui/ScrollIndicator";
 import { drawStrokes, showStrokes } from "@/animations/draw";
 import { riseIn, unfoldChars } from "@/animations/reveal";
-import { SceneVeil } from "@/components/effects/SceneStack";
 
 const LampScene = dynamic(() => import("@/components/three/LampScene"), { ssr: false });
 
@@ -66,9 +65,7 @@ export function Hero() {
     return () => window.clearTimeout(t);
   }, [markReady]);
 
-  // The canvas sleeps once the next card has covered the lamp (see the ScrollTrigger below).
-  // No IntersectionObserver here: the scene deck re-parents the section into a pin-spacer,
-  // which makes an observer report a zero-size "not intersecting" entry it never revokes.
+  // The canvas sleeps once the couple's card has scrolled up over the lamp (see the ScrollTrigger below).
 
   // initial hidden states (JS-only so the page is readable without JS)
   useGSAP(
@@ -151,13 +148,13 @@ export function Hero() {
         .fromTo(q(".hero-sweep"), { xPercent: -150, autoAlpha: 0 }, { xPercent: 150, autoAlpha: 0.55, duration: 0.45 }, 0.5)
         .to(q(".hero-sweep"), { autoAlpha: 0, duration: 0.08 }, 0.87);
 
-      // the lamp keeps burning beneath the next card until it is fully covered, then rests
+      // the lamp keeps burning until the couple's card has all but scrolled it off the top, then rests
       // (resolved on document — selector strings inside this hook are scoped to the hero)
       const nextScene = document.getElementById("couple");
       if (nextScene) {
         ScrollTrigger.create({
           trigger: nextScene,
-          start: "top 52%",
+          start: "top 10%",
           onEnter: () => {
             covered.current = true;
             setActive(false);
@@ -176,7 +173,7 @@ export function Hero() {
   const groom = wedding.couple.groom;
 
   return (
-    <section ref={section} id="opening" data-scene aria-labelledby="hero-title" className={reducedMotion ? "scene relative h-[100svh]" : "scene relative h-[175svh] md:h-[200vh]"}>
+    <section ref={section} id="opening" data-scene aria-labelledby="hero-title" className={reducedMotion ? "scene relative h-[100svh] bg-night" : "scene relative h-[175svh] bg-night md:h-[200vh]"}>
       <div ref={sticky} className="sticky top-0 h-[100svh] overflow-hidden bg-night">
         {/* atmosphere */}
         <div className="hero-glow absolute inset-0 opacity-0" aria-hidden>
@@ -251,7 +248,6 @@ export function Hero() {
         {/* transition layers */}
         <div className="hero-sweep pointer-events-none absolute inset-y-0 left-0 w-[70vw] opacity-0 bg-[linear-gradient(100deg,transparent,rgba(243,228,189,0.22)_42%,rgba(232,207,138,0.5)_50%,rgba(243,228,189,0.22)_58%,transparent)]" aria-hidden />
       </div>
-      <SceneVeil />
     </section>
   );
 }

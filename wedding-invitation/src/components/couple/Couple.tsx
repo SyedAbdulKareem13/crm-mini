@@ -11,7 +11,6 @@ import { JasmineStrand } from "@/components/art/Jasmine";
 import { drawStrokes, prepareDraw, showStrokes } from "@/animations/draw";
 import { unfoldChars } from "@/animations/reveal";
 import { onceInView } from "@/animations/scroll";
-import { SceneVeil } from "@/components/effects/SceneStack";
 
 /**
  * THE SEAM — the open edge of the silk panel.
@@ -183,36 +182,38 @@ export function Couple() {
 
         <span className="couple-cast" />
 
-        <div className="figure-drift">
-          <div className="figure-pointer">
-            <div className="couple-figure">
-              <svg className="couple-ring" viewBox="0 0 100 139.33" fill="none" aria-hidden>
-                <circle
-                  cx="50"
-                  cy={RING_CY}
-                  r={RING_R}
-                  data-draw
-                  stroke="#c9a24a"
-                  strokeOpacity="0.62"
-                  strokeWidth="1"
-                  vectorEffect="non-scaling-stroke"
-                />
-                <circle data-bead cx="50" cy={RING_CY - RING_R} r="1.7" fill="#e8cf8a" stroke="none" />
-              </svg>
+        <div className="figure-fade">
+          <div className="figure-drift">
+            <div className="figure-pointer">
+              <div className="couple-figure">
+                <svg className="couple-ring" viewBox="0 0 100 139.33" fill="none" aria-hidden>
+                  <circle
+                    cx="50"
+                    cy={RING_CY}
+                    r={RING_R}
+                    data-draw
+                    stroke="#c9a24a"
+                    strokeOpacity="0.62"
+                    strokeWidth="1"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <circle data-bead cx="50" cy={RING_CY - RING_R} r="1.7" fill="#e8cf8a" stroke="none" />
+                </svg>
 
-              <img
-                className="couple-photo"
-                src="/couple/dharani-barath-1040.webp"
-                srcSet="/couple/dharani-barath-520.webp 520w, /couple/dharani-barath-760.webp 760w, /couple/dharani-barath-1040.webp 1040w"
-                sizes="(min-width: 1024px) 45vw, 86vw"
-                width={1040}
-                height={1449}
-                alt="Dharani and Barath together — Barath in a cream silk shirt and gold-bordered veshti, Dharani in a peacock-blue Kanjivaram with gold jewellery and jasmine in her hair."
-                loading="eager"
-                fetchPriority="low"
-                decoding="async"
-                draggable={false}
-              />
+                <img
+                  className="couple-photo"
+                  src="/couple/dharani-barath-1040.webp"
+                  srcSet="/couple/dharani-barath-520.webp 520w, /couple/dharani-barath-760.webp 760w, /couple/dharani-barath-1040.webp 1040w"
+                  sizes="(min-width: 1024px) 45vw, 86vw"
+                  width={1040}
+                  height={1449}
+                  alt="Dharani and Barath together — Barath in a cream silk shirt and gold-bordered veshti, Dharani in a peacock-blue Kanjivaram with gold jewellery and jasmine in her hair."
+                  loading="eager"
+                  fetchPriority="low"
+                  decoding="async"
+                  draggable={false}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -324,8 +325,6 @@ export function Couple() {
           <p className="c-quote tamil mt-2 text-[0.86rem] leading-[1.8] text-maroon/65">{wedding.quotes.union.ta}</p>
         </div>
       </div>
-
-      <SceneVeil />
     </section>
   );
 }

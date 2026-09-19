@@ -17,7 +17,6 @@ import { drawStrokes, prepareDraw, showStrokes } from "@/animations/draw";
 import { onceInView } from "@/animations/scroll";
 import { riseIn } from "@/animations/reveal";
 import { petals } from "@/components/effects/Petals";
-import { SceneVeil } from "@/components/effects/SceneStack";
 
 /**
  * The Sacred Moment — an arch opens onto a temple drawn in gold light.
@@ -106,7 +105,7 @@ export function Sacred() {
           } as React.CSSProperties
         }
       >
-        <div className="stage relative flex min-h-[100svh] items-center justify-center overflow-hidden pb-[14vh] pt-[16vh]">
+        <div className="stage relative flex min-h-[100svh] items-center justify-center overflow-hidden pb-[10vh] pt-[12vh] md:pb-[14vh] md:pt-[16vh]">
           <div className="layer-glow pointer-events-none absolute inset-0 bg-[radial-gradient(45%_40%_at_50%_62%,rgba(255,170,70,0.28),transparent_70%)]" aria-hidden />
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(80%_50%_at_50%_100%,rgba(139,90,43,0.35),transparent_70%)]" aria-hidden />
 
@@ -158,7 +157,7 @@ export function Sacred() {
         </div>
       </div>
 
-      <div className="details relative mx-auto grid max-w-6xl items-start gap-10 px-6 pb-[30vh] pt-6 md:grid-cols-[1.1fr_0.9fr] md:gap-14 md:pb-[16vh]">
+      <div className="details relative mx-auto grid max-w-6xl items-start gap-10 px-6 pb-[14vh] pt-6 md:grid-cols-[1.1fr_0.9fr] md:gap-14 md:pb-[16vh]">
         <div className="countdown">
           <p className="eyebrow text-gold/80">Counting down to the muhurtham</p>
           <p className="tamil mt-1 text-sm text-ivory/60">முகூர்த்தத்திற்கு இன்னும்</p>
@@ -171,7 +170,6 @@ export function Sacred() {
       <p className="sr-only">
         {wedding.couple.display} wedding on {ev.dateLabel}, {ev.timeLabel}, at {ev.venue!.name}, {ev.venue!.city}.
       </p>
-      <SceneVeil />
     </section>
   );
 }
