@@ -179,13 +179,19 @@ export const wedding = {
   },
 
   /**
-   * Downloadable invitation card. The site renders its own card at /invite.png from the same art
-   * and fonts. To use a designed image instead, drop it in /public/invite/ and set
-   * image: "/invite/royal-invitation.jpg".
+   * Downloadable invitation card — the designed card the couple supplied. Leave `image`
+   * empty to fall back to /invite.png, which the site renders at build time from its own
+   * art and fonts. `thumb` is only the keepsake preview in the finale (rendered 120px
+   * tall); `image` is what the Download button actually hands over, so it stays full size.
    */
   invite: {
-    image: "",
-    filename: "Dharani-Barath-Wedding-Invitation.png",
+    image: "/invite/dharani-barath-invitation.jpg",
+    thumb: "/invite/dharani-barath-invitation-thumb.webp",
+    /** intrinsic size of `image`, so the preview reserves the right box before it loads */
+    width: 1060,
+    height: 1484,
+    format: "JPG",
+    filename: "Dharani-Barath-Wedding-Invitation.jpg",
     /**
      * Tamil line printed on the generated card. The card renderer (Satori) cannot reorder
      * prefixed vowel signs (ெ ே ை ொ ோ), so keep this line to letters with pulli or

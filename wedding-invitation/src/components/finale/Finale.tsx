@@ -88,6 +88,8 @@ export function Finale() {
 
   const wishes = wedding.wishes.whatsapp ? whatsappUrl(wedding.wishes.message, wedding.wishes.whatsapp) : null;
   const inviteHref = wedding.invite.image || "/invite.png";
+  // the preview is 120px tall; it must not pull the full-size card down to draw that
+  const inviteThumb = wedding.invite.thumb || inviteHref;
   const shareWa = whatsappUrl(`${wedding.share.text}\n${typeof window !== "undefined" ? window.location.href : ""}`.trim());
 
   return (
@@ -124,11 +126,12 @@ export function Finale() {
             className="fin-rise group mt-9 hidden items-center gap-5 rounded-2xl border border-gold/30 bg-night/30 p-3 pr-6 transition-colors hover:border-gold/70 md:flex"
           >
             <img
-              src={inviteHref}
+              src={inviteThumb}
               alt={`${wedding.couple.display} invitation card`}
-              width={84}
-              height={121}
+              width={wedding.invite.width}
+              height={wedding.invite.height}
               loading="lazy"
+              decoding="async"
               className="h-[7.5rem] w-auto rounded-md border border-gold/40 shadow-[0_18px_40px_-16px_rgba(0,0,0,0.8)] transition-transform duration-700 group-hover:-translate-y-1 group-hover:-rotate-1"
             />
             <span className="flex flex-col items-start text-left">
@@ -137,7 +140,7 @@ export function Finale() {
               </span>
               <span className="mt-1 font-display text-2xl text-champagne">Save the royal card</span>
               <span className="mt-1 inline-flex items-center gap-2 text-[0.72rem] uppercase tracking-[0.18em] text-gold-light">
-                <IconDownload /> Download PNG
+                <IconDownload /> Download {wedding.invite.format}
               </span>
             </span>
           </a>
