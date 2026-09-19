@@ -4,6 +4,7 @@ import { Story } from "@/components/story/Story";
 import { Timeline } from "@/components/timeline/Timeline";
 import { Reception } from "@/components/venues/Reception";
 import { Sacred } from "@/components/venues/Sacred";
+import { Vow } from "@/components/vow/Vow";
 import { Finale } from "@/components/finale/Finale";
 import { Loader } from "@/components/hero/Loader";
 import { SmoothScroll } from "@/components/effects/SmoothScroll";
@@ -48,6 +49,7 @@ export default function Page() {
         <Timeline />
         <Reception />
         <Sacred />
+        <Vow />
         <Finale />
       </main>
       <SceneStack />

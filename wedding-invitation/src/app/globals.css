@@ -510,6 +510,90 @@ body {
   }
 }
 
+/* ───────────────────────── The hand-taking ─────────────────────────
+   One centred column at every width — no two-column split, because the Couple scene
+   already owns that and this beat is meant to read as its answer, not its echo.
+   The photograph is in NORMAL FLOW, flush with the section's top edge: the arms are
+   cropped by the frame, so flush is what lets them continue off the screen. An explicit
+   width with an aspect-derived height also keeps Safari from sizing the <img> off its
+   intrinsic dimensions, which is the trap `.seal-mark` and `.seam-rule` fell into. */
+.vow-scene {
+  /* full-bleed on a phone: the arms are cropped by the asset's own left and right edges, so
+     anything narrower than the screen guillotines his sleeve with a hard vertical line in
+     the middle of the cream. At 100% the cut lands at the screen edge, where it reads as
+     the arms carrying on past it — which is what the photograph is actually doing. */
+  --hands-w: 100%;
+  display: flex;
+  min-height: 100svh;
+  flex-direction: column;
+  align-items: center;
+}
+@media (min-width: 1024px) {
+  .vow-scene {
+    /* a desktop screen is far wider than the photograph, so it is contained here and the
+       side fade below does the work the screen edge does on a phone. Sized so the whole
+       column — photograph, rule and both lines — clears a 900px laptop without scrolling. */
+    --hands-w: min(46svh, 34vw);
+  }
+}
+
+.vow-drift {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.vow-hands {
+  display: block;
+  width: var(--hands-w);
+  height: auto;
+  margin-inline: auto;
+  /* Her forearm and his sleeve run off the left and right edges of the asset. Dissolving
+     the outer sliver stops that becoming a visible vertical cut, and matches how the couple
+     photograph is dissolved rather than cropped elsewhere on the page. The top is NOT faded:
+     it is flush with the card edge and meant to be a clean bleed. */
+  -webkit-mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, #000 4.5%, #000 95.5%, rgba(0, 0, 0, 0) 100%);
+  mask-image: linear-gradient(90deg, rgba(0, 0, 0, 0) 0%, #000 4.5%, #000 95.5%, rgba(0, 0, 0, 0) 100%);
+  will-change: clip-path, transform;
+}
+
+/* the copy is pushed to the foot of the screen, so the slack between the photograph and
+   the line becomes deliberate air rather than a gap at the bottom of the card */
+.vow-copy {
+  margin-top: auto;
+  width: 100%;
+  max-width: 34rem;
+  padding: clamp(1.5rem, 5svh, 3rem) 1.5rem clamp(3rem, 10svh, 5.5rem);
+  text-align: center;
+}
+
+.vow-line {
+  font-size: clamp(1.35rem, 5.6vw, 2.1rem);
+  line-height: 1.55;
+  font-weight: 400;
+}
+
+.vow-rule {
+  display: block;
+  width: min(13rem, 60%);
+  height: 6px;
+  margin: clamp(1.1rem, 3svh, 1.9rem) auto;
+  overflow: visible;
+}
+
+.vow-en {
+  font-size: clamp(1rem, 3.8vw, 1.25rem);
+  line-height: 1.4;
+}
+
+/* the clip-path reveal is the only motion on a phone here, and it is one property on one
+   element — no filter, no blend mode, nothing that forces a repaint of the cream */
+@media (pointer: coarse) {
+  .vow-hands {
+    will-change: auto;
+  }
+}
+
 /* ───────────────────────── Curtain gate ───────────────────────── */
 .gate-veil {
   background:

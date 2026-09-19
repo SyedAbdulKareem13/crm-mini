@@ -5,6 +5,7 @@ export const SCENES = [
   { id: "celebration", label: "The Celebration", ta: "விழா" },
   { id: "reception", label: "The Evening", ta: "வரவேற்பு" },
   { id: "sacred", label: "The Sacred Moment", ta: "முகூர்த்தம்" },
+  { id: "vow", label: "Hand in Hand", ta: "கைகோர்த்து" },
   { id: "finale", label: "Together", ta: "ஒன்றாய்" },
 ] as const;
 

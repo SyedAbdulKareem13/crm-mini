@@ -176,6 +176,17 @@ export const wedding = {
       en: "With love, we begin forever.",
       ta: "வாழ்க வளமுடன் · நூறாண்டு வாழ்க",
     },
+    /**
+     * The hand-taking — the quiet beat between the muhurtham hour and the farewell.
+     * Rendered by components/vow/Vow.tsx. The Tamil is deliberately plain and parallel to
+     * `union` above; have a native speaker read it before this goes to guests.
+     */
+    hands: {
+      eyebrow: "Hand in hand",
+      eyebrowTamil: "கைகோர்த்து",
+      ta: "இணைந்த கைகள், இணைந்த வாழ்க்கை.",
+      en: "From this hour, one life.",
+    },
   },
 
   /**
