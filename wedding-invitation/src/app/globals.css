@@ -689,10 +689,19 @@ body {
   0%, 58% { transform: translateX(-58%); }
   86%, 100% { transform: translateX(58%); }
 }
-/* the mark is incised: a lit lip sits a hair below the dark groove */
+/* The mark is incised: a lit lip sits a hair below the dark groove.
+   Both axes are stated outright rather than left to `inset`. An <svg> is a REPLACED
+   element, and for one that is absolutely positioned, `width`/`height: auto` resolves
+   to the element's intrinsic size, not to the gap between opposing offsets. Blink
+   stretches it to the gap anyway; WebKit follows the rule, so on iOS the lamp took its
+   own size and sat off-centre in the gold face. `.couple-ring` already guards this the
+   same way. */
 .seal-mark {
   position: absolute;
-  inset: 15%;
+  left: 15%;
+  top: 15%;
+  width: 70%;
+  height: 70%;
   color: #3a0a12;
 }
 .seal-mark-lip {
@@ -1233,7 +1242,11 @@ body {
   pointer-events: none;
 }
 
+/* .seam-box leaves width auto here (left/right) and height auto in the wide layout
+   (top/bottom). This is an <svg>, so see the note on .seal-mark: both axes are given. */
 .seam-rule {
+  width: 100%;
+  height: 62svh;
   z-index: 20;
   overflow: visible;
   pointer-events: none;
@@ -1326,6 +1339,10 @@ body {
     right: 0;
     width: 52%;
     height: auto;
+  }
+  .seam-rule {
+    width: 52%;
+    height: 100%;
   }
 
   .couple-silk {
