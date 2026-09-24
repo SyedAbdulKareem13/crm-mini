@@ -53,7 +53,7 @@ Scene labels for the side navigation are in `src/data/scenes.ts`.
 
 1. Import the repo in Vercel → **Add New Project** (Framework preset: Next.js is auto-detected).
 2. **Root Directory:** leave empty when deploying from the standalone `dharani-barath-wedding` repository. If you deploy from the `crm-mini` branch where this app lives in `wedding-invitation/`, set Root Directory to that folder.
-3. Add the environment variable `NEXT_PUBLIC_SITE_URL` = your final URL (e.g. `https://dharani-barath.vercel.app`). It feeds canonical/OG metadata; the build works without it.
+3. The canonical URL defaults to `https://dharbarath.in`. Override it with `NEXT_PUBLIC_SITE_URL` only for a preview deployment that should advertise its own host. It feeds the canonical link, the Open Graph/Twitter cards and `metadataBase` (which resolves the OG image path).
 4. Deploy. The Open Graph and Twitter images (`/opengraph-image`, `/twitter-image`) are rendered at build time with the bundled fonts, so the link previews beautifully on WhatsApp, Instagram, Telegram, iMessage and Facebook.
 
 ## Project structure

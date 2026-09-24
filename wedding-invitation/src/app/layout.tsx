@@ -33,7 +33,11 @@ const notoSansTamil = Noto_Sans_Tamil({
   display: "swap",
 });
 
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dharani-barath.vercel.app";
+// The wedding's own domain. It is the fallback rather than the only value so a preview
+// deployment can override it, but it must be the REAL canonical host: metadataBase also
+// resolves the relative OG image path, so a stale default sends every WhatsApp share card
+// and canonical link to a host the invitation no longer lives on.
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://dharbarath.in";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
